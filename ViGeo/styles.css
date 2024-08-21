@@ -1,0 +1,256 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+h1 {
+    text-align: center;
+    margin-top: 20px;
+}
+
+#header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 20px 0;
+}
+
+    #header #salvaId {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
+
+#content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+#pulsanteDraw {
+    display: flex;
+    margin: 10px;
+    align-items: center;
+    width: 100%;
+}
+
+#pulsanteDraw button{
+    margin: 10px;
+}
+
+#map {
+    position: relative;
+    width: 100%;
+    height: 300px;
+    border: 1px solid black;
+}
+
+#ragruppamentiGruppi {
+    position: relative;
+    width: 100%;
+    height: 300px;
+    border: 1px solid black;
+}
+
+#liste {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 20px;
+}
+
+#listaGruppiServizio, #listaComponenti {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#gruppiServizioList, #componentiList {
+    width: 100%;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+}
+
+    #gruppiServizioList ul, #componentiList ul {
+        padding: 0;
+        list-style-type: none;
+    }
+
+@media (min-width: 600px) {
+    #content {
+        flex-direction: row;
+        justify-content: space-around;
+    }
+
+    #map {
+        width: 60%;
+        height: 700px;
+    }
+
+    #ragruppamentiGruppi {
+        width: 60%;
+        height: 700px;
+    }
+
+    #liste {
+        width: 35%;
+    }
+
+    #gruppiServizioList, #componentiList {
+        height: 500px;
+    }
+}
+
+form {
+    display: grid;
+    gap: 10px;
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+    form input, form button {
+        width: 100%;
+    }
+
+#version {
+    text-align: end;
+    margin: 20px 0;
+}
+
+#legend {
+    margin: 20px auto;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    max-width: 80%;
+    background-color: #f9f9f9;
+}
+
+    #legend h2 {
+        text-align: center;
+        font-size: 1.2em;
+        margin-bottom: 10px;
+        color: #333;
+    }
+
+    #legend ul {
+        list-style: none;
+        padding-left: 0;
+        margin: 0;
+    }
+
+        #legend ul li {
+            margin-bottom: 8px;
+            font-size: 1em;
+            color: #555;
+        }
+
+            #legend ul li::before {
+                content: "� ";
+                color: #2c7be5; /* Blue color */
+                font-weight: bold;
+                display: inline-block;
+                width: 1em;
+                margin-left: -1em;
+            }
+
+#note {
+    margin: 20px auto;
+    padding: 15px;
+    border: 1px solid #e5e5e5;
+    border-radius: 5px;
+    max-width: 80%;
+    background-color: #fff3cd;
+    color: #856404;
+    font-size: 1em;
+    line-height: 1.4;
+    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.ui-dialog {
+    z-index:400 !important;
+}
+
+.leaflet-right {
+    display: none !important;
+}
+
+/* Style the tab */
+.tab {
+    overflow: hidden;
+    border: 1px solid #ccc;
+    background-color: #f1f1f1;
+}
+
+    /* Style the buttons that are used to open the tab content */
+    .tab button {
+        background-color: inherit;
+        float: left;
+        border: none;
+        outline: none;
+        cursor: pointer;
+        padding: 14px 16px;
+        transition: 0.3s;
+    }
+
+        /* Change background color of buttons on hover */
+        .tab button:hover {
+            background-color: #ddd;
+        }
+
+        /* Create an active/current tablink class */
+        .tab button.active {
+            background-color: #ccc;
+        }
+
+/* Style the tab content */
+.tabcontent {
+    display: none;
+    padding: 6px 12px;
+    border: 1px solid #ccc;
+    border-top: none;
+}
+
+.results {
+    min-width: 30%;
+    display: inline-grid;
+    margin: 2px;
+}
+
+li {
+    list-style-type: none;
+}
+
+.blink_text {
+    animation: 1s blinker linear infinite;
+}
+
+@keyframes blinker {
+    0% { 
+        opacity: 1.0; 
+
+    }
+    50% {
+        opacity: 0.0;
+    }
+    100% {
+        opacity: 1.0;
+    }
+}
+.sogPopup {
+    display: -webkit-inline-box;
+}
+.assPopup {
+    display: -webkit-inline-box;
+}
+.regPopup {
+    display: -webkit-inline-box;
+}
+.gruppoPopup {
+    display: -webkit-inline-box;
+}

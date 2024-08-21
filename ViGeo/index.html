@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>ViGeo</title>
+	<link rel="stylesheet" href="https://code.jquery.com/ui/1.13.3/themes/base/jquery-ui.css">
+	<script src="https://code.jquery.com/jquery-3.7.1.js"></script>
+	<script src="https://code.jquery.com/ui/1.13.3/jquery-ui.js"></script>
+	<link rel="stylesheet" href="styles.css">
+	<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+	<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+	<script src="https://cdn.jsdelivr.net/npm/xlsx@0.17.0/dist/xlsx.full.min.js"></script>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+</head>
+
+<body>
+	<h1>ViGeo - Creazione e gestione dei gruppi di servizio</h1>
+	
+	<button id="show">Mostra sezione</button>
+	<button id="hide">Nascondi sezione</button> 
+	<div id="header">
+		Carica il confine di congregazione (kml):<input type="file" id="fileInputConfini" accept=".kml" /><br>
+		Carica i punti di ritrovo (kml):<input type="file" id="fileInputRitrovo" accept=".kml" /><br>
+		Carica file json (database):<input type="file" id="fileInputDB" accept=".json" /><br>
+		<div id="salvaId">
+			<button type="button" id="saveButton">Salva Nuovo Database json</button><br>
+			<button type="button" id="exportExcelButton">Export Excel della Congregazione</button>
+		</div>
+	</div>
+
+	<!-- Tab links -->
+	<div class="tab" style="margin-top: 10px;">
+		<button class="tablinks" onclick="openTab(event, 'map')" id="defaultOpen">Mappa</button>
+		<button class="tablinks" onclick="openTab(event, 'ragruppamentiGruppi')">Gruppi di Servizio</button>
+	</div>
+	<div class="filter-container tab">
+		<label for="filter">Filtra per tipologia:</label>
+		<div id="filters">
+
+		</div>
+	</div>
+	<div id="content">
+		<div id="map" class="tabcontent"></div>
+		<div id="ragruppamentiGruppi" class="tabcontent" style="overflow: auto;"></div>
+		<div id="liste">
+			<div id="listaGruppiServizio">
+				<button id="addGruppiServizioButton">Aggiungi un nuovo gruppo di servizio</button>
+				<div id="gruppiServizioList" style="height: 110px; overflow-y: scroll;">
+					<ul id="gruppiServizioItemList"></ul>
+				</div>
+			</div>
+			<div id="listaComponenti">
+				<button id="addComponeteButton">Aggiungi un nuovo componente</button>
+				<div id="componentiList" style="height: 500px; overflow-y: scroll;">
+					<ul id="addressItemList"></ul>
+				</div>
+				<div id="countProclamatori"></div>
+			</div>
+		</div>
+		<div style="clear:both;"></div>
+	</div>
+	<div id="pulsanteDraw">
+		<button id="drawPolygonBtn">Abilita disegno poligono</button>
+		<button id="getCoordinatesBtn">Recupera coordinate</button>	
+	</div>
+	<div id="legend">
+		Leggenda:
+		<ul>
+			<li>linea verde = confine di congregazione</li>
+			<li>linea rosso = area di raccolta in caso di emergenza</li>
+			<li><i class="fa-solid fa-user"></i> Sorvegliante di Gruppo</li>
+			<li><i class="fa-solid fa-handshake"></i> Assisitente</li>
+			<li><i class="fa-solid fa-briefcase"></i> Pioniere Regolare</li>
+		</ul>
+	</div>
+	<div id="note">
+		NB. quando si inserisce un componente utilizzando solo l'indirizzo, la geolizalizzazione potrebbe essere
+		approssimativa, quindi si consiglia di modificare le coordinate manualmente in un secondo momento.
+	</div>
+
+	<div id="componenteModal" title="Operazioni Componente" style="z-index: 400;">
+		<h2>Componente di Cogregazione</h2>
+		<form id="componenteForm">
+			<div id="formItem">
+				<label for="name">Componente:</label>
+				<input type="text" id="name" required>
+				<label for="address">Indirizzo:</label>
+				<input type="text" id="address" placeholder="Via, Rione, Viale...">
+				<label for="cap">CAP:</label>
+				<input type="text" id="cap">
+				<label for="city">Città:</label>
+				<input type="text" id="city">
+				<label>Coordinate:</label>
+				<ul>
+					<li>
+						<label for="lat">Latitudine:</label>
+						<input type="text" id="lat">
+					</li>
+					<li>
+						<label for="lon">Longitudine:</label>
+						<input type="text" id="lon">
+					</li>
+				</ul>
+				<label for="serviceGroup">Gruppo di Servizio:</label>
+				<select name="serviceGroup" id="serviceGroup"></select>
+				<br />
+				<label for="p_regolare">Sorvegliante di Gruppo:</label>
+				<input type="checkbox" id="p_sorvegliante" value=""/>
+				<br />
+				<label for="p_regolare">Assistente:</label>
+				<input type="checkbox" id="p_assistente" value=""/>
+				<br />
+				<label for="p_regolare">Pioniere Regolare:</label>
+				<input type="checkbox" id="p_regolare" value=""/>
+				<br />
+				<input type="text" id="idComponente" value="" disabled />
+				<br>
+				<button type="button" id="aggiungiComponente">Aggiungi</button>
+				<button type="button" id="modificaComponente">Modifica</button>
+				<button type="button" id="eliminaComponente">Elimina</button>
+			</div>
+		</form>
+	</div>
+
+	<div id="gruppiServizioModal" title="Operazioni ai Gruppo di Servizio" style="z-index: 400;">
+		<h2>Gruppo di Servizio</h2>
+		<form id="gruppiServizioForm">
+			<div id="formItem">
+				<label for="nameGruppiServizio">Gruppo di Servizio:</label>
+				<input type="text" id="nameGruppiServizio" value="" required>
+				<label for="colorGruppiServizio">Colore:</label>
+				<select name="colorGruppiServizio" id="colorGruppiServizio" required></select>
+				<br />
+				<input type="text" id="idGruppiServizio" value="" disabled />
+				<br>
+				<button type="button" id="aggiungiGruppiServizio">Aggiungi</button>
+				<button type="button" id="modificaGruppiServizio">Modifica</button>
+				<button type="button" id="eliminaGruppiServizio">Elimina</button>
+			</div>
+		</form>
+	</div>
+
+	<script src="script.js"></script>
+</body>
+
+</html>

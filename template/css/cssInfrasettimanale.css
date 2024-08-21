@@ -1,0 +1,30 @@
+#sezione1 {
+    display: -webkit-box !important;
+}
+
+.core_row {
+    border-left-color: #0003;
+    border-left-width: .75em;
+    border-left-style: solid;
+}
+.mm_part {
+    padding: 1rem 0 1rem 1rem;
+}
+
+.tgw_row {
+    border-left-color: #3c7f8b;
+    border-left-width: .75em;
+    border-left-style: solid;
+}
+
+.fm_row {
+    border-left-color: #d68f00;
+    border-left-width: .75em;
+    border-left-style: solid;
+}
+
+.lac_row {
+    border-left-color: #942926;
+    border-left-width: .75em;
+    border-left-style: solid;
+}

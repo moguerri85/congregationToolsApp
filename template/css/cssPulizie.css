@@ -1,0 +1,16 @@
+
+.contentRow{
+    display: flex;
+}
+
+.col-3 {
+    flex: 0 0 auto;
+    width: 10%;
+}
+
+.col-12 {
+    flex: 0 0 auto;
+    width: 30%;
+}
+
+

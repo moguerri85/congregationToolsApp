@@ -1,0 +1,17 @@
+.rowIncarichi {
+    display: ruby-text;
+}
+
+.special {
+    font-weight: bolder !important;
+    margin-top: 3%;
+}
+
+.col-10 {
+    width: 18% !important;
+}
+
+.col-12 {
+    width: 27% !important;
+}
+

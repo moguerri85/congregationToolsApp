@@ -1,0 +1,14 @@
+.oratore_discorso {
+    background-color: beige;
+}
+
+h3.badge {
+    font-size: 1.250rem !important;
+    font-weight: bold !important;
+    margin: 0;
+}
+
+.special {
+    font-weight: bolder !important;
+    margin-top: 3%;
+}
