@@ -1,6 +1,5 @@
 ﻿document.addEventListener('DOMContentLoaded', () => {
     const fileInputConfini = document.getElementById('fileInputConfini');
-    const fileInputRitrovo = document.getElementById('fileInputRitrovo');
     const fileInputDB = document.getElementById('fileInputDB');
     const saveButton = document.getElementById('saveButton');
     const exportExcelButton = document.getElementById('exportExcelButton');
@@ -36,7 +35,6 @@
     getPolygonBtn.addEventListener('click', handleGetCoordinateRitrovo);
 
     fileInputConfini.addEventListener('change', handleFileSelectConfini);
-    fileInputRitrovo.addEventListener('change', handleFileSelectRitrovo);
     fileInputDB.addEventListener('change', handleFileSelectDB);
     hide.addEventListener('click', handleHide);
     show.addEventListener('click', handleShow);
@@ -145,117 +143,135 @@
         }
     }
     
-    function handleFileSelectRitrovo(event) {
-    }
     function handleFileSelectDB(event) {
+        // Chiedi conferma all'utente
         const file = event.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                try {
-                    jsonTemp = JSON.parse(e.target.result);
 
-                    /* Gestione dei colori per i Gruppi di Servizio */
-                    //re-inizializzo la comboGruppiServizioHTML
-                    comboGruppiServizioHTML = ""
-                    comboColorGruppiServizio.forEach(({ id, nome, color }) => {
-                        comboGruppiServizioHTML += "<option value=" + id + ">" + nome + "</option>";
-                    });
-                    document.getElementById("colorGruppiServizio").innerHTML = comboGruppiServizioHTML;
+        const userConfirmed = confirm(`Si stanno modificando i dati esistenti. Vuoi proseguire a caricare il file: ${file.name}?`);
 
-                    /* Gestione del Singolo Componente */
-                    var countComponente = 1;
-                    if(jsonTemp.congregazione.componenti != undefined){
-                        jsonTemp.congregazione.componenti.forEach(({ id, name, address, cap, city, group, p_regolare, p_sorvegliante, p_assistente, lat, lon }) => {
-                            const completeAddress = address + ", " + cap + " " + city + " Italy";
+        if (file && file.type === 'application/json') {
+            if (userConfirmed) {
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            jsonTemp = JSON.parse(e.target.result);
 
-                            if ((lat === undefined && lon === undefined) || (lat === "" && lon === "")) {
-                                // Geocode address to coordinates
-                                fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${completeAddress}`)
-                                    .then(response => response.json())
-                                    .then(data => {
+                            /* Gestione dei colori per i Gruppi di Servizio */
+                            //re-inizializzo la comboGruppiServizioHTML
+                            comboGruppiServizioHTML = ""
+                            comboColorGruppiServizio.forEach(({ id, nome, color }) => {
+                                comboGruppiServizioHTML += "<option value=" + id + ">" + nome + "</option>";
+                            });
+                            document.getElementById("colorGruppiServizio").innerHTML = comboGruppiServizioHTML;
 
-                                        if (data.length > 0) {
-                                            const { lat, lon } = data[0];
-                                            id = countComponente;
-                                            componente.push({ id, name, address, cap, city, group, p_regolare, p_sorvegliante, p_assistente, lat, lon });
-                                            renderComponente();
-                                            componenteForm.reset();
-                                            countComponente++;
-                                        } else {
-                                            alert('Indirizzo non trovato di ' + name);
-                                        }
-                                    })
-                                    .catch(error => alert('Errore nella geocodifica dell\'indirizzo di ' + name));
-                            } else {
-                                id = countComponente;
-                                componente.push({ id, name, address, cap, city, group, p_regolare, p_sorvegliante, p_assistente, lat, lon });
-                                renderComponente();
-                                componenteForm.reset();
-                                countComponente++;
+                            /* Gestione del Singolo Componente */
+                            var countComponente = 1;
+                            if(jsonTemp.congregazione.componenti != undefined){
+                                jsonTemp.congregazione.componenti.forEach(({ id, name, address, cap, city, group, p_regolare, p_sorvegliante, p_assistente, lat, lon }) => {
+                                    const completeAddress = address + ", " + cap + " " + city + " Italy";
+
+                                    if ((lat === undefined && lon === undefined) || (lat === "" && lon === "")) {
+                                        // Geocode address to coordinates
+                                        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${completeAddress}`)
+                                            .then(response => response.json())
+                                            .then(data => {
+
+                                                if (data.length > 0) {
+                                                    const { lat, lon } = data[0];
+                                                    id = countComponente;
+                                                    componente.push({ id, name, address, cap, city, group, p_regolare, p_sorvegliante, p_assistente, lat, lon });
+                                                    renderComponente();
+                                                    componenteForm.reset();
+                                                    countComponente++;
+                                                } else {
+                                                    alert('Indirizzo non trovato di ' + name);
+                                                }
+                                            })
+                                            .catch(error => alert('Errore nella geocodifica dell\'indirizzo di ' + name));
+                                    } else {
+                                        id = countComponente;
+                                        componente.push({ id, name, address, cap, city, group, p_regolare, p_sorvegliante, p_assistente, lat, lon });
+                                        renderComponente();
+                                        componenteForm.reset();
+                                        countComponente++;
+                                    }
+                                });
                             }
-                        });
-                    }
 
-                    /* Gestione dei Gruppi di Servizio */
-                    if(jsonTemp.congregazione.gruppiDiServizio != undefined){
-                        jsonTemp.congregazione.gruppiDiServizio.forEach(({ id, name, color }) => {
-                            if (name != "ND") {
-                                gruppiServizio.push({ id, name, color });
+                            /* Gestione dei Gruppi di Servizio */
+                            if(jsonTemp.congregazione.gruppiDiServizio != undefined){
+                                jsonTemp.congregazione.gruppiDiServizio.forEach(({ id, name, color }) => {
+                                    if (name != "ND") {
+                                        gruppiServizio.push({ id, name, color });
+                                    }
+                                    renderGruppiServizio();
+                                    gruppiServizioForm.reset();
+                                });
                             }
-                            renderGruppiServizio();
-                            gruppiServizioForm.reset();
-                        });
-                    }
-                    comboGruppiServizioHTML = ""
-                    for (var key in gruppiServizio) {
-                        comboGruppiServizioHTML += "<option value=" + gruppiServizio[key].id + ">" + gruppiServizio[key].name + "</option>"
-                    }
-                    document.getElementById("serviceGroup").innerHTML = comboGruppiServizioHTML;
-
-                    /* Gestione dei Confini */
-                    if(jsonTemp.congregazione.confineDiCongregazione != undefined){
-                        jsonTemp.congregazione.confineDiCongregazione.forEach((coordinate, index) => {
-                            confineCongregazione = []
-                            for (var key in coordinate) {
-                                confineCongregazione.push(`[${coordinate[key]}]`);
+                          
+                            comboGruppiServizioHTML = ""
+                            for (var key in gruppiServizio) {
+                                comboGruppiServizioHTML += "<option value=" + gruppiServizio[key].id + ">" + gruppiServizio[key].name + "</option>"
                             }
-                            L.polygon([jsonTemp.congregazione.confineDiCongregazione],
-                                {
-                                    color: 'darkgreen',
-                                    fillColor: 'green',
-                                    fillOpacity: 0.1
-                                }).addTo(map);
-                        });
-                    }
+                            document.getElementById("serviceGroup").innerHTML = comboGruppiServizioHTML;
 
-                    /* Gestione dei Punti Ritrovo */
-                    if(jsonTemp.congregazione.puntiDiRitrovo != undefined){
-                        jsonTemp.congregazione.puntiDiRitrovo.forEach((coordinate, index) => {
-                            puntiRitrovo = []
-                            for (var key in coordinate) {
-                                puntiRitrovo.push([coordinate[key]]);
+                            /* Gestione dei Confini */
+                            if(jsonTemp.congregazione.confineDiCongregazione != undefined){
+                                jsonTemp.congregazione.confineDiCongregazione.forEach((coordinateSet) => {
+                                    // Trasformiamo le coordinate in un array di array di coordinate
+                                    confineCongregazione = []
+                                    
+                                    confineCongregazione.push([coordinateSet[0], coordinateSet[1]]);
+                                    
+                                    // `coordinateSet` è l'array di coordinate per un singolo poligono
+                                    if (coordinateSet.length > 0) {
+                                        const polygon = L.polygon(coordinateSet, {
+                                            color: 'darkgreen',
+                                            fillColor: 'green',
+                                            fillOpacity: 0.1
+                                        }).addTo(map);
+                                    }
+                                });
                             }
-                                                    
-                            L.polygon([puntiRitrovo],
-                                {
-                                    color: 'red',
-                                    fillColor: 'red',
-                                    fillOpacity: 0.1
-                                }).addTo(map);
-                                
-                        });
-                    }
 
-                } catch (error) {
-                    console.log(error);
-                    alert('Errore nel parsing del file JSON.');
+                            /* Gestione dei Punti Ritrovo */
+                            if (jsonTemp.congregazione.puntiDiRitrovo !== undefined) {
+                                jsonTemp.congregazione.puntiDiRitrovo.forEach((coordinate) => {
+                                    // Trasformiamo le coordinate in un array di array di coordinate
+                                    const puntiRitrovo = [];
+                                    for (var key in coordinate) {
+                                        puntiRitrovo.push([coordinate[key][0], coordinate[key][1]]);
+                                    }
+                            
+                                    // Aggiungiamo il poligono solo se abbiamo coordinate valide
+                                    if (puntiRitrovo.length > 0) {
+                                        L.polygon(puntiRitrovo, {
+                                            color: 'red',
+                                            fillColor: 'red',
+                                            fillOpacity: 0.1
+                                        }).addTo(map);
+                                    }
+                                });
+                            }
+                          
+                        } catch (error) {
+                            console.log(error);
+                            alert('Errore nel parsing del file JSON.');
+                        }
+
+                    };
+
+                    reader.readAsText(file);
                 }
-
-            };
-
-            reader.readAsText(file);
-        }
+            }else {
+                // Se l'utente annulla, resettare l'input file (opzionale)
+                event.target.value = '';
+                alert('Caricamento del file annullato.');
+            }
+        } else {
+            alert('Per favore, carica un file JSON valido.');
+        }    
     }
 
     function handleShow(event){
@@ -537,8 +553,7 @@
                     $('#p_sorvegliante_' + id).on('change', function () {
                         componente.forEach((item) => {
                             if (item.id == id) {
-                                var value = $(this).val(); // this gives me null
-                                if (value != null) {
+                                if ($(this).prop("checked")) {
                                     item.p_sorvegliante = true;
                                 } else { item.p_sorvegliante = false; }
                             }
@@ -547,9 +562,9 @@
                     });
                     $('#p_assistente_' + id).on('change', function () {
                         componente.forEach((item) => {
+                            console.log($(this).prop("checked") +" "+ item.id+" "+ id)
                             if (item.id == id) {
-                                var value = $(this).val(); // this gives me null
-                                if (value != null) {
+                                if ($(this).prop("checked")) {
                                     item.p_assistente = true;
                                 } else { item.p_assistente = false; }
                             }
@@ -559,8 +574,7 @@
                     $('#p_regolare' + id).on('change', function () {
                         componente.forEach((item) => {
                             if (item.id == id) {                                
-                                var value = $(this).val(); // this gives me null
-                                if (value != null) {
+                                if ($(this).prop("checked")) {
                                     item.p_regolare = true;
                                 } else { item.p_regolare = false; }
                             }
@@ -570,7 +584,8 @@
 
                 }
             };
-
+            
+            
             if (selectedTypes.includes(group)) {
                 marker = L.marker([parseFloat(lat) + parseFloat(offsetLat), parseFloat(lon) + parseFloat(offsetLon)], { draggable: true , icon: getColorByType(coloreMaker, p_regolare, p_sorvegliante, p_assistente) }).addTo(map)
                     .bindPopup(`${popupContent}`);
@@ -582,6 +597,7 @@
                     componente[index].lon = position.lng;
                     renderComponente();
                 });
+                
                 marker.on('popupopen', function () {
                     $('#selectOptions_' + id).val(group);
                     $('#selectOptions_' + id).on('change', function () {                    
@@ -607,8 +623,10 @@
                         });
                         renderComponente();
                     });
+
                     $('#p_assistente_' + id).on('change', function () {
                         componente.forEach((item) => {
+                            console.log($(this).prop("checked") +" "+ item.id+" "+ id)
                             if (item.id == id) {
                                 if ($(this).prop("checked")) {
                                     item.p_assistente = true;
@@ -617,6 +635,7 @@
                         });
                         renderComponente();
                     });
+
                     $('#p_regolare_' + id).on('change', function () {
                         componente.forEach((item) => {
                             if (item.id == id) {                                
@@ -630,6 +649,7 @@
                     });
                 });
             }
+                
             li.ondblclick = function () {
                 componenteForm.reset();
                 $("#idComponente").val(id);
@@ -1050,35 +1070,3 @@ function openTab(evt, idTab) {
     document.getElementById(idTab).style.display = "block";
     evt.currentTarget.className += " active";
 }
-
-document.getElementById('fileInputDB').addEventListener('change', function (event) {
-    const file = event.target.files[0];
-
-    if (file && file.type === 'application/json') {
-        // Chiedi conferma all'utente
-        const userConfirmed = confirm(`Si sta tentando di aggiungere i dati del file a quelli esistenti. Vuoi proseguire a caricare il file: ${file.name}?`);
-
-        if (userConfirmed) {
-            const reader = new FileReader();
-
-            reader.onload = function (e) {
-                try {
-                    //const jsonData = JSON.parse(e.target.result);
-                    //document.getElementById('output').textContent = JSON.stringify(jsonData, null, 2);
-                    // Puoi elaborare il jsonData qui
-                    alert('Caricamento del file effettuato con successo.');
-                } catch (error) {
-                    console.log('Errore durante il parsing del JSON: ' + error.message);
-                }
-            };
-
-            reader.readAsText(file);
-        } else {
-            // Se l'utente annulla, resettare l'input file (opzionale)
-            event.target.value = '';
-            alert('Caricamento del file annullato.');
-        }
-    } else {
-        alert('Per favore, carica un file JSON valido.');
-    }
-});
