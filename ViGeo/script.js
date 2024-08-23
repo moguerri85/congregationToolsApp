@@ -9,7 +9,8 @@
     const gruppiServizioForm = document.getElementById('gruppiServizioForm');
     const ragruppamentiGruppiList = document.getElementById('ragruppamentiGruppi');
     const drawPolygonBtn = document.getElementById('drawPolygonBtn');
-    const getPolygonBtn = document.getElementById('getCoordinatesBtn')
+    const getPolygonBtn = document.getElementById('getCoordinatesBtn');
+    const toggleRemove = document.getElementById('toggleRemove');
 
     const hide = document.getElementById('hide');
     const show = document.getElementById('show');
@@ -33,6 +34,7 @@
     
     drawPolygonBtn.addEventListener('click', handleDraw);
     getPolygonBtn.addEventListener('click', handleGetCoordinateRitrovo);
+    toggleRemove.addEventListener('click', handleRemoveRitrovo);
 
     fileInputConfini.addEventListener('change', handleFileSelectConfini);
     fileInputDB.addEventListener('change', handleFileSelectDB);
@@ -52,7 +54,6 @@
 
     document.getElementById("defaultOpen").click();
 
-
     comboColorGruppiServizioHTML = "<option value='1'>blu</option>"
     comboColorGruppiServizioHTML += "<option value='2'>rosso</option>"
     comboColorGruppiServizioHTML += "<option value='3'>giallo</option>"
@@ -63,15 +64,40 @@
 
     document.getElementById("colorGruppiServizio").innerHTML = comboColorGruppiServizioHTML;
 
+    function clearFileInput(idInput) {
+        try {
+            document.getElementById(idInput).value = null;
+        } catch(ex) { }
+        if (document.getElementById(idInput).value) {
+            document.getElementById(idInput).parentNode.replaceChild(document.getElementById(idInput).cloneNode(true), document.getElementById(idInput));
+        }
+      }
+
     let drawingEnabled = false;
+    let removeEnabled = false;
     let currentPolygon = [];
     let puntiRitrovo = [];  // Array per i multipoligoni
-    let polygonLayer;
 
     function handleDraw(event) {
         drawingEnabled = !drawingEnabled;
         this.textContent = drawingEnabled ? "Disabilita disegno Punto di Ritrovo" : "Abilita disegno Punto di Ritrovo";
     }
+
+    function handleRemoveRitrovo(event) {
+        for(i in map._layers) {
+            if(map._layers[i]._path != undefined) {
+                try {                        
+                    map.removeLayer(map._layers[i]);
+                    puntiRitrovo = [];
+                    confineCongregazione = [];
+                }
+                catch(e) {
+                    console.log("problem with " + e + map._layers[i]);
+                }
+            }
+        }
+
+    }    
 
     // Gestisci il click sulla mappa per disegnare il poligono
     map.on('click', function(e) {
@@ -80,14 +106,11 @@
             currentPolygon.push([latlng.lat, latlng.lng]);
 
             if (currentPolygon.length > 2) {
-                if (polygonLayer) {
-                    map.removeLayer(polygonLayer);
-                }
-                polygonLayer = L.polygon(currentPolygon, { color: 'red' }).addTo(map);
+                L.polygon(currentPolygon, { color: 'red' }).addTo(map);              
             }
         }
     });
-    
+
     // Salva il poligono corrente come un multipoligono e resetta per il prossimo poligono
     // Recupera le coordinate di tutti i poligoni disegnati
     function handleGetCoordinateRitrovo(event) {
@@ -140,6 +163,7 @@
                 }
             };
             reader.readAsText(file);
+            clearFileInput("fileInputConfini");
         }
     }
     
@@ -239,7 +263,7 @@
                             if (jsonTemp.congregazione.puntiDiRitrovo !== undefined) {
                                 jsonTemp.congregazione.puntiDiRitrovo.forEach((coordinate) => {
                                     // Trasformiamo le coordinate in un array di array di coordinate
-                                    const puntiRitrovo = [];
+                                    puntiRitrovo = [];
                                     for (var key in coordinate) {
                                         puntiRitrovo.push([coordinate[key][0], coordinate[key][1]]);
                                     }
@@ -263,6 +287,7 @@
                     };
 
                     reader.readAsText(file);
+                    clearFileInput("fileInputDB");
                 }
             }else {
                 // Se l'utente annulla, resettare l'input file (opzionale)
@@ -469,7 +494,6 @@
 
             var coloreMaker = "grey";
             var nomeGruppo = "ND";
-
 
             if (group == "" || group == undefined) { group = 0; }
             if (p_sorvegliante == "" || p_sorvegliante == undefined) { p_sorvegliante = false; }
