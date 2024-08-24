@@ -1,6 +1,6 @@
 import sys
 import os
-from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QTabWidget, QPushButton, QMessageBox
+from PyQt5.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QWidget, QTabWidget, QPushButton, QMessageBox, QLineEdit
 from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineProfile
 from PyQt5.QtWebEngineCore import QWebEngineUrlRequestInterceptor, QWebEngineUrlRequestInfo
 from PyQt5.QtCore import QUrl, QEventLoop, QTimer, QObject, pyqtSlot
@@ -16,7 +16,7 @@ from utils.fine_settimana import combine_html_fine_settimana
 from utils.update_software import check_for_updates
 from utils.pulizie import combine_html_pulizie
 
-CURRENT_VERSION = "1.0.0"  # Versione corrente dell'app
+CURRENT_VERSION = "1.0.1"  # Versione corrente dell'app
 GITHUB_RELEASES_API_URL = "https://api.github.com/repos/moguerri85/utility_congregazione/releases/latest"
 
 class RequestInterceptor(QWebEngineUrlRequestInterceptor):
@@ -119,22 +119,46 @@ class WebScraper(QMainWindow):
         
         if "/wm" in url:      
             self.scrape_button = QPushButton('Genera Stampa Fine Settimana')
+            self.scrape_button.setFixedWidth(200)  # Imposta larghezza fissa a 200 pixel
+            self.scrape_button.setFixedHeight(30)  # Imposta altezza fissa a 30 pixel
             self.scrape_button.clicked.connect(self.load_schedule_fineSettimana_tab)
             self.web_layout.addWidget(self.scrape_button)
         elif "/mm" in url:
-            self.scrape_button = QPushButton('Genera Stampa Infra-Settimanale')  
+             # Crea un layout orizzontale
+            button_and_edit_layout = QHBoxLayout()
+
+            # Aggiungi il campo di testo
+            self.text_field = QLineEdit()
+            self.text_field.setPlaceholderText("Numero di settimane:")
+            self.text_field.setFixedWidth(200)  # Imposta larghezza fissa a 200 pixel
+            self.text_field.setFixedHeight(30)  # Imposta altezza fissa a 30 pixel
+            button_and_edit_layout.addWidget(self.text_field)
+
+            # Crea il pulsante
+            self.scrape_button = QPushButton('Genera Stampa Infra-Settimanale')
+            self.scrape_button.setFixedWidth(200)  # Imposta larghezza fissa a 200 pixel
+            self.scrape_button.setFixedHeight(30)  # Imposta altezza fissa a 30 pixel
             self.scrape_button.clicked.connect(self.load_schedule_infraSettimanale_tab)
-            self.web_layout.addWidget(self.scrape_button)
+            button_and_edit_layout.addWidget(self.scrape_button)
+
+            # Aggiungi il layout orizzontale alla web layout
+            self.web_layout.addLayout(button_and_edit_layout)
         elif "/avattendant" in url:
             self.scrape_button = QPushButton('Genera Stampa Incarchi') 
+            self.scrape_button.setFixedWidth(200)  # Imposta larghezza fissa a 200 pixel
+            self.scrape_button.setFixedHeight(30)  # Imposta altezza fissa a 30 pixel
             self.scrape_button.clicked.connect(self.load_schedule_incarichi) 
             self.web_layout.addWidget(self.scrape_button)
         elif "/cleaning" in url:
             self.scrape_button = QPushButton('Genera Stampa Pulizie') 
+            self.scrape_button.setFixedWidth(200)  # Imposta larghezza fissa a 200 pixel
+            self.scrape_button.setFixedHeight(30)  # Imposta altezza fissa a 30 pixel
             self.scrape_button.clicked.connect(self.load_schedule_pulizie_tab)
             self.web_layout.addWidget(self.scrape_button)
         elif "/manageGroups" in url:
             self.scrape_button = QPushButton('Genera Stampa Gruppo di Servizio') 
+            self.scrape_button.setFixedWidth(200)  # Imposta larghezza fissa a 200 pixel
+            self.scrape_button.setFixedHeight(30)  # Imposta altezza fissa a 30 pixel
             self.scrape_button.clicked.connect(self.load_schedule_gruppi_servizio_tab)
             self.web_layout.addWidget(self.scrape_button)
         else:
