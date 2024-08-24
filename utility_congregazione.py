@@ -1,20 +1,19 @@
 import sys
 import os
-from PyQt5.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QWidget, QTabWidget, QPushButton, QMessageBox, QLineEdit
+from PyQt5.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QWidget, QTabWidget, QPushButton, QMessageBox, QLineEdit, QProgressBar
 from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineProfile
 from PyQt5.QtWebEngineCore import QWebEngineUrlRequestInterceptor, QWebEngineUrlRequestInfo
 from PyQt5.QtCore import QUrl, QEventLoop, QTimer, QObject, pyqtSlot
-from bs4 import BeautifulSoup
 from jinja2 import Template
-from weasyprint import HTML
 import platform
 from PyQt5.QtWebChannel import QWebChannel
 
 from utils.av_uscieri import combine_html_av_uscieri
-from utils.infra_settimanale import combine_html_infrasettimale
+from utils.infra_settimanale import combine_html_infrasettimale, click_toggle_js_infraSettimanale, click_expand_js_infraSettimanale, perform_click_infraSettimanale_tab, retrieve_content_infraSettimanale_tab
 from utils.fine_settimana import combine_html_fine_settimana
 from utils.update_software import check_for_updates
 from utils.pulizie import combine_html_pulizie
+from utils.utility import show_alert
 
 CURRENT_VERSION = "1.0.1"  # Versione corrente dell'app
 GITHUB_RELEASES_API_URL = "https://api.github.com/repos/moguerri85/utility_congregazione/releases/latest"
@@ -92,6 +91,16 @@ class WebScraper(QMainWindow):
         #self.label(message_update)
         self.statusBar().showMessage(message_update)
 
+    def addProgressbar(self):
+        # Rimuovi tutti i QProgressBar dal layout
+        for widget in self.central_widget.findChildren(QProgressBar):
+            widget.setParent(None)  # Rimuove il pulsante dal layout
+        # Create and add the progress bar
+        self.progress_bar = QProgressBar(self)
+        self.layout.addWidget(self.progress_bar)
+        self.progress_bar.setValue(0)
+        self.progress_bar.setMaximum(100)  # Assume 100% as max value
+
     def inject_javascript(self):
         # Codice JavaScript per rilevare clic sui link e inviare l'URL al Python
         js_code = """
@@ -113,19 +122,27 @@ class WebScraper(QMainWindow):
         self.__dict__.pop('content', None)
         url = self.view.url().toString()        
         
+        # Crea un layout orizzontale
+        button_and_edit_layout = QHBoxLayout()
+        
         # Rimuovi tutti i QPushButton dal layout
-        for widget in self.central_widget.findChildren(QPushButton):
-            widget.setParent(None)  # Rimuove il pulsante dal layout
+        for widget_button in self.central_widget.findChildren(QPushButton):
+            widget_button.setParent(None)  # Rimuove il pulsante dal layout
+        # Rimuovi tutti i QPushButton dal layout
+        for widget_edit in self.central_widget.findChildren(QLineEdit):
+            widget_edit.setParent(None)  # Rimuove il pulsante dal layout    
         
         if "/wm" in url:      
             self.scrape_button = QPushButton('Genera Stampa Fine Settimana')
             self.scrape_button.setFixedWidth(200)  # Imposta larghezza fissa a 200 pixel
             self.scrape_button.setFixedHeight(30)  # Imposta altezza fissa a 30 pixel
             self.scrape_button.clicked.connect(self.load_schedule_fineSettimana_tab)
-            self.web_layout.addWidget(self.scrape_button)
+            button_and_edit_layout.addWidget(self.scrape_button)
+
+            # Aggiungi il layout orizzontale alla web layout
+            self.web_layout.addLayout(button_and_edit_layout)
         elif "/mm" in url:
-             # Crea un layout orizzontale
-            button_and_edit_layout = QHBoxLayout()
+            
 
             # Aggiungi il campo di testo
             self.text_field = QLineEdit()
@@ -138,7 +155,9 @@ class WebScraper(QMainWindow):
             self.scrape_button = QPushButton('Genera Stampa Infra-Settimanale')
             self.scrape_button.setFixedWidth(200)  # Imposta larghezza fissa a 200 pixel
             self.scrape_button.setFixedHeight(30)  # Imposta altezza fissa a 30 pixel
-            self.scrape_button.clicked.connect(self.load_schedule_infraSettimanale_tab)
+            # Usa lambda o partial per passare self.text_field
+            self.scrape_button.clicked.connect(lambda: self.load_schedule_infraSettimanale_tab(self.text_field))
+            # oppure: self.scrape_button.clicked.connect(partial(self.load_schedule_infraSettimanale_tab, self.text_field))
             button_and_edit_layout.addWidget(self.scrape_button)
 
             # Aggiungi il layout orizzontale alla web layout
@@ -148,19 +167,28 @@ class WebScraper(QMainWindow):
             self.scrape_button.setFixedWidth(200)  # Imposta larghezza fissa a 200 pixel
             self.scrape_button.setFixedHeight(30)  # Imposta altezza fissa a 30 pixel
             self.scrape_button.clicked.connect(self.load_schedule_incarichi) 
-            self.web_layout.addWidget(self.scrape_button)
+            button_and_edit_layout.addWidget(self.scrape_button)
+
+            # Aggiungi il layout orizzontale alla web layout
+            self.web_layout.addLayout(button_and_edit_layout)
         elif "/cleaning" in url:
             self.scrape_button = QPushButton('Genera Stampa Pulizie') 
             self.scrape_button.setFixedWidth(200)  # Imposta larghezza fissa a 200 pixel
             self.scrape_button.setFixedHeight(30)  # Imposta altezza fissa a 30 pixel
             self.scrape_button.clicked.connect(self.load_schedule_pulizie_tab)
-            self.web_layout.addWidget(self.scrape_button)
+            button_and_edit_layout.addWidget(self.scrape_button)
+
+            # Aggiungi il layout orizzontale alla web layout
+            self.web_layout.addLayout(button_and_edit_layout)
         elif "/manageGroups" in url:
             self.scrape_button = QPushButton('Genera Stampa Gruppo di Servizio') 
             self.scrape_button.setFixedWidth(200)  # Imposta larghezza fissa a 200 pixel
             self.scrape_button.setFixedHeight(30)  # Imposta altezza fissa a 30 pixel
             self.scrape_button.clicked.connect(self.load_schedule_gruppi_servizio_tab)
-            self.web_layout.addWidget(self.scrape_button)
+            button_and_edit_layout.addWidget(self.scrape_button)
+
+            # Aggiungi il layout orizzontale alla web layout
+            self.web_layout.addLayout(button_and_edit_layout)
         else:
             self.statusBar().showMessage("")
 
@@ -175,9 +203,6 @@ class WebScraper(QMainWindow):
             else:
                 combined_html = combine_html_fine_settimana(self.content, html)
                 isSave = True
-        elif "/mm" in url:
-            combined_html = combine_html_infrasettimale(html)
-            isSave = True        
         elif "/avattendant" in url:
             combined_html = combine_html_av_uscieri(html)
             isSave = True
@@ -191,13 +216,54 @@ class WebScraper(QMainWindow):
         if isSave:
             self.save_html(combined_html)
 
-    def load_schedule_infraSettimanale_tab(self):
-        self.view.page().runJavaScript("""
-            function getContent() {
-                   return document.getElementById('mainContent').outerHTML;                      
-            }
-            getContent();
-            """, self.handle_html)  
+    def load_schedule_infraSettimanale_tab(self, text_field):
+        self.addProgressbar()
+        self.progress_bar.setValue(10)  # Imposta il progresso al 10%
+
+        # Array per memorizzare i contenuti
+        self.content_array = []
+
+        # Recupera il numero dal campo di testo
+        try:
+            numero_settimana = int(text_field.text())
+            if numero_settimana <= 0:
+                raise ValueError("Il numero deve essere positivo")
+        except ValueError:
+            show_alert("Inserisci un numero valido e positivo!")
+            return
+
+        self.view.page().runJavaScript(click_expand_js_infraSettimanale)
+        self.view.page().runJavaScript(click_toggle_js_infraSettimanale)
+
+        self.progress_bar.setValue(20)  # Set progress to 20%
+
+        """Esegue clic sul pulsante con ritardo specificato e gestisce il recupero del contenuto."""
+        self.progress_bar.setValue(20)  # Set progress to 20%
+
+        # Imposta il timer per eseguire i clic
+        self.current_click_index = 0
+        self.num_clicks = numero_settimana
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.handle_timeout_infraSettimanale_tab)
+        self.timer.start(2000)  # Intervallo di 2000 ms tra i clic
+    
+    def handle_timeout_infraSettimanale_tab(self):
+        """Gestisce il timeout del timer per eseguire i clic e recuperare il contenuto."""
+        if self.current_click_index < self.num_clicks:
+            perform_click_infraSettimanale_tab(self)
+            QTimer.singleShot(1000, lambda: retrieve_content_infraSettimanale_tab(self, self.current_click_index))
+            self.current_click_index += 1
+        else:
+            combined_html = combine_html_infrasettimale(self.content_array)
+            # Salva HTML
+            self.save_html(combined_html)
+
+            self.timer.stop()
+            self.progress_bar.setValue(100)  # Imposta la barra di progresso al 100%
+            # Rimuovi tutti i QPushButton dal layout
+            for widget_edit in self.central_widget.findChildren(QProgressBar):
+                widget_edit.setParent(None)  # Rimuove il QProgressBar dal layout      
+       
 
     def load_schedule_pulizie_tab(self):
         self.view.page().runJavaScript("""
@@ -306,7 +372,7 @@ class WebScraper(QMainWindow):
             file.write(html_content)
         
         #HTML("output.html").write_pdf('output.pdf')
-        self.show_alert("Generazione e download avvenuto con successo!")
+        show_alert("Generazione e download avvenuto con successo!")
         print('Combined HTML saved as output.html')  
 
     def load_local_ViGeo(self):
@@ -329,16 +395,7 @@ class WebScraper(QMainWindow):
         
         download.accept()
         # Crea e mostra il messaggio di avviso
-        self.show_alert("Download avvenuto con successo!")
-
-    def show_alert(self, testo):
-        # Crea e mostra il messaggio di avviso
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Information)
-        msg.setText(testo)
-        msg.setWindowTitle("Avviso")
-        msg.setStandardButtons(QMessageBox.Ok)
-        msg.exec()
+        show_alert("Download avvenuto con successo!")
         
     def closeEvent(self, event):
         reply = QMessageBox.question(self, "Esci", "Sei sicuro di voler uscire?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
