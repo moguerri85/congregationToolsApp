@@ -968,12 +968,6 @@ span.googleSignInButtonText {
     font-size: 1.2em
 }
 
-.section {
-    color: #fff;
-    padding-left: 1em;
-    padding-right: 1em;
-    width: 60%
-}
 
 .tgw {
     background-color: #656164
@@ -1842,20 +1836,6 @@ div.hg-nav .dropdown-divider {
     margin: .5rem 0;
     overflow: hidden;
     border-top: 1px solid rgba(0,0,0,.15)
-}
-
-@media print {
-    .print-margin {
-        padding-top: 1em
-    }
-
-    .print-avoid-page-break {
-        page-break-inside: avoid
-    }
-
-    thead {
-        display: table-row-group
-    }
 }
 
 .mainContent {
@@ -15668,52 +15648,6 @@ textarea.form-control-lg {
     }
 }
 
-@media print {
-    .d-print-inline {
-        display: inline!important
-    }
-
-    .d-print-inline-block {
-        display: inline-block!important
-    }
-
-    .d-print-block {
-        display: block!important
-    }
-
-    .d-print-grid {
-        display: grid!important
-    }
-
-    .d-print-inline-grid {
-        display: inline-grid!important
-    }
-
-    .d-print-table {
-        display: table!important
-    }
-
-    .d-print-table-row {
-        display: table-row!important
-    }
-
-    .d-print-table-cell {
-        display: table-cell!important
-    }
-
-    .d-print-flex {
-        display: flex!important
-    }
-
-    .d-print-inline-flex {
-        display: inline-flex!important
-    }
-
-    .d-print-none {
-        display: none!important
-    }
-}
-
 .btn-secondary {
     --bs-btn-color: #373433;
     --bs-btn-bg: #f8f8f7;
@@ -16509,12 +16443,6 @@ svg.leaflet-zoom-animated {
     border-right-color: #fff
 }
 
-@media print {
-    .leaflet-control {
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact
-    }
-}
 
 .recordBox,.recordBox tbody,.recordBox tbody tr,.recordBox tbody tr td {
     padding: 0!important;

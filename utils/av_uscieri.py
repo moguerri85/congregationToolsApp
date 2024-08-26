@@ -18,7 +18,7 @@ if (arrowButton) {
 
 retrieve_content_js_av_uscieri = """
 function getContent() {
-    return document.getElementById('mainContent').outerHTML;
+    return document.getElementById('mainContent').innerHTML;
 }
 getContent();
 """
@@ -49,7 +49,6 @@ def combine_html_av_uscieri( html):
     return html_content 
 
 def manipulateHTML_av_uscieri(html):
-    parsed_html_list = []  # Lista per memorizzare gli HTML modificati
     
     for card_div_HTML in html:
         # Converte la stringa HTML in un oggetto BeautifulSoup
@@ -98,20 +97,27 @@ def manipulateHTML_av_uscieri(html):
             div['class'] = [cls.replace('bg-secondary', 'bg-primary') for cls in div['class']]
 
 
-        # Aggiungi l'HTML manipolato alla lista
-        parsed_html_list.append(str(soup))
-    
-        # Trova l'elemento <div> con l'id 'mainContent'
-        div = soup.find('div', id='mainContent')
+        # Trova tutti i div con la classe 'mb-3 card'
+        cards = soup.find_all('div', class_='mb-3 card')
 
-        # Converti l'id in una classe
-        if div:
-            # Aggiungi la classe 'mainContent'
-            div['class'].append('mainContent')
-            # Rimuovi l'id
-            del div['id']
-            
-    string_html_content = "\n".join(parsed_html_list)
-    html = BeautifulSoup("<div class='flex-grow-1' id='mainContent'>" + string_html_content + "</div>", 'html.parser')
+        # Limita il numero di div in ogni lista a 5
+        chunk_size = 5
+        card_lists = [cards[i:i + chunk_size] for i in range(0, len(cards), chunk_size)]
+        # Crea l'HTML per ciascuna lista di div
+        html_results = []
+        for card_list in card_lists:
+            # Unisci i div in una stringa HTML
+            joined_cards = ''.join(str(card) for card in card_list)
+            # Incapsula in un contenitore
+            html_content = f"<div class='flex-grow-1 mainContent'>{joined_cards}</div>"
+            html_results.append(html_content)
+
+
+
+
+
+
+
+    string_html_content = "\n".join(html_results)
         
-    return html
+    return string_html_content
