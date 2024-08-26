@@ -42,6 +42,15 @@ def manipulateHTML_pulizie(html):
             if "Nessuna selezione" in value.text:  
                 value.extract()
         
+        # Trova l'elemento <div> con l'id 'mainContent'
+        div = htmlAll.find('div', id='mainContent')
+
+        # Converti l'id in una classe
+        if div:
+            # Aggiungi la classe 'mainContent'
+            div['class'].append('mainContent')
+            # Rimuovi l'id
+            del div['id']
     
     string_html_content = "\n".join(str(x) for x in htmlAll)
         

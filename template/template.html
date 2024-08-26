@@ -15,13 +15,24 @@
     </style>
     <script>
         {{ script_custom }}
+
+        // window height
+        const height = window.innerHeight;
+
+        // window width
+        const width = window.innerWidth;
+
+        console.log(height); // 711 1440
+
     </script>
 </head>
 <body>
     <div id="root">
-        <header id="header" style="margin-bottom:1rem" class="intest_header">
+        <header id="header" class="intest_header">
             <h4 class="text-uppercase fw-bolder">Congregazione Salerno Pastena</h4>
             <div style="opacity: 0.5;">
+                {{ logo_bibbia }}
+<!--
                 <svg version="1.0" xmlns="http://www.w3.org/2000/svg"
                      width="85.00pt" height="16.00pt" viewBox="0 0 385.0000 76.0000"
                      preserveAspectRatio="xMidYMid meet">
@@ -84,12 +95,13 @@
                         <path d="M2493 243 c37 -2 97 -2 135 0 37 2 6 3 -68 3 -74 0 -105 -1 -67 -3z" />
                     </g>
                 </svg>
+-->                
             </div>
 
             <div>
-                <h3 class="text-uppercase fw-bolder">
+                <h5 class="text-uppercase fw-bolder">
                     {{ programma }}
-                </h3>
+                </h5>
             </div>
         </header>
 

@@ -12,3 +12,13 @@ h3.badge {
     font-weight: bolder !important;
     margin-top: 3%;
 }
+
+.card-body {
+    flex: 1 1 auto;
+    padding: var(--bs-card-spacer-y) var(--bs-card-spacer-x) 0;
+    color: var(--bs-card-color);
+}
+
+.border-top {
+    border-top: 0!important
+}

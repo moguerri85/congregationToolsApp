@@ -1,14 +1,19 @@
 import sys
 import os
+import shutil
+import platform
 from PyQt5.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QWidget, QTabWidget, QPushButton, QMessageBox, QLineEdit, QProgressBar
 from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineProfile
 from PyQt5.QtWebEngineCore import QWebEngineUrlRequestInterceptor, QWebEngineUrlRequestInfo
 from PyQt5.QtCore import QUrl, QEventLoop, QTimer, QObject, pyqtSlot
 from jinja2 import Template
-import platform
+
 from PyQt5.QtWebChannel import QWebChannel
 
-from utils.av_uscieri import combine_html_av_uscieri
+import win32com.client
+
+
+from utils.av_uscieri import combine_html_av_uscieri, retrieve_content_av_uscieri, perform_click_av_uscieri
 from utils.infra_settimanale import combine_html_infrasettimale, click_toggle_js_infraSettimanale, click_expand_js_infraSettimanale, perform_click_infraSettimanale_tab, retrieve_content_infraSettimanale_tab
 from utils.fine_settimana import combine_html_fine_settimana
 from utils.update_software import check_for_updates
@@ -16,7 +21,7 @@ from utils.pulizie import combine_html_pulizie
 from utils.utility import show_alert
 
 CURRENT_VERSION = "1.0.1"  # Versione corrente dell'app
-GITHUB_RELEASES_API_URL = "https://api.github.com/repos/moguerri85/utility_congregazione/releases/latest"
+GITHUB_RELEASES_API_URL = "https://api.github.com/repos/moguerri85/congregationToolsApp/releases/latest"
 
 class RequestInterceptor(QWebEngineUrlRequestInterceptor):
     def interceptRequest(self, info: QWebEngineUrlRequestInfo):
@@ -34,7 +39,7 @@ class JavaScriptBridge(QObject):
         # Questa funzione viene chiamata dal JavaScript per notificare il clic su un link
         print(f"Link cliccato: {url}")
 
-class WebScraper(QMainWindow):
+class CongregationToolsApp(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Scra - ViGeo")
@@ -142,8 +147,6 @@ class WebScraper(QMainWindow):
             # Aggiungi il layout orizzontale alla web layout
             self.web_layout.addLayout(button_and_edit_layout)
         elif "/mm" in url:
-            
-
             # Aggiungi il campo di testo
             self.text_field = QLineEdit()
             self.text_field.setPlaceholderText("Numero di settimane:")
@@ -163,10 +166,20 @@ class WebScraper(QMainWindow):
             # Aggiungi il layout orizzontale alla web layout
             self.web_layout.addLayout(button_and_edit_layout)
         elif "/avattendant" in url:
+            # Aggiungi il campo di testo
+            self.text_field = QLineEdit()
+            self.text_field.setPlaceholderText("Numero di mesi:")
+            self.text_field.setFixedWidth(200)  # Imposta larghezza fissa a 200 pixel
+            self.text_field.setFixedHeight(30)  # Imposta altezza fissa a 30 pixel
+            button_and_edit_layout.addWidget(self.text_field)
+
+            # Crea il pulsante
             self.scrape_button = QPushButton('Genera Stampa Incarchi') 
             self.scrape_button.setFixedWidth(200)  # Imposta larghezza fissa a 200 pixel
             self.scrape_button.setFixedHeight(30)  # Imposta altezza fissa a 30 pixel
-            self.scrape_button.clicked.connect(self.load_schedule_incarichi) 
+            # Usa lambda o partial per passare self.text_field
+            self.scrape_button.clicked.connect(lambda: self.load_schedule_av_uscieri(self.text_field))
+            # oppure: self.scrape_button.clicked.connect(partial(self.load_schedule_infraSettimanale_tab, self.text_field))
             button_and_edit_layout.addWidget(self.scrape_button)
 
             # Aggiungi il layout orizzontale alla web layout
@@ -203,9 +216,6 @@ class WebScraper(QMainWindow):
             else:
                 combined_html = combine_html_fine_settimana(self.content, html)
                 isSave = True
-        elif "/avattendant" in url:
-            combined_html = combine_html_av_uscieri(html)
-            isSave = True
         elif "/cleaning" in url:
             combined_html = combine_html_pulizie(html)
             isSave = True  
@@ -237,9 +247,6 @@ class WebScraper(QMainWindow):
 
         self.progress_bar.setValue(20)  # Set progress to 20%
 
-        """Esegue clic sul pulsante con ritardo specificato e gestisce il recupero del contenuto."""
-        self.progress_bar.setValue(20)  # Set progress to 20%
-
         # Imposta il timer per eseguire i clic
         self.current_click_index = 0
         self.num_clicks = numero_settimana
@@ -250,7 +257,6 @@ class WebScraper(QMainWindow):
     def handle_timeout_infraSettimanale_tab(self):
         """Gestisce il timeout del timer per eseguire i clic e recuperare il contenuto."""
         if self.current_click_index < self.num_clicks:
-            perform_click_infraSettimanale_tab(self)
             QTimer.singleShot(1000, lambda: retrieve_content_infraSettimanale_tab(self, self.current_click_index))
             self.current_click_index += 1
         else:
@@ -264,7 +270,50 @@ class WebScraper(QMainWindow):
             for widget_edit in self.central_widget.findChildren(QProgressBar):
                 widget_edit.setParent(None)  # Rimuove il QProgressBar dal layout      
        
+    def load_schedule_av_uscieri(self, text_field):
+        self.addProgressbar()
+        self.progress_bar.setValue(10)  # Imposta il progresso al 10%
 
+        # Array per memorizzare i contenuti
+        self.content_array = []
+
+        # Recupera il numero dal campo di testo
+        try:
+            numero_mesi = int(text_field.text())
+            if numero_mesi <= 0:
+                raise ValueError("Il numero deve essere positivo")
+        except ValueError:
+            show_alert("Inserisci un numero valido e positivo!")
+            return
+
+        #self.view.page().runJavaScript(click_expand_js_infraSettimanale)
+        #self.view.page().runJavaScript(click_toggle_js_infraSettimanale)
+
+        self.progress_bar.setValue(20)  # Set progress to 20%
+
+        # Imposta il timer per eseguire i clic
+        self.current_click_index = 0
+        self.num_clicks = numero_mesi
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.handle_timeout_av_uscieri)
+        self.timer.start(2000)  # Intervallo di 2000 ms tra i clic
+
+    def handle_timeout_av_uscieri(self):
+        """Gestisce il timeout del timer per eseguire i clic e recuperare il contenuto."""
+        if self.current_click_index < self.num_clicks:
+            QTimer.singleShot(1000, lambda: retrieve_content_av_uscieri(self, self.current_click_index))
+            self.current_click_index += 1
+        else:
+            combined_html = combine_html_av_uscieri(self.content_array)
+            # Salva HTML
+            self.save_html(combined_html)
+
+            self.timer.stop()
+            self.progress_bar.setValue(100)  # Imposta la barra di progresso al 100%
+            # Rimuovi tutti i QPushButton dal layout
+            for widget_edit in self.central_widget.findChildren(QProgressBar):
+                widget_edit.setParent(None)  # Rimuove il QProgressBar dal layout      
+      
     def load_schedule_pulizie_tab(self):
         self.view.page().runJavaScript("""
             function getContent() {
@@ -275,14 +324,6 @@ class WebScraper(QMainWindow):
 
     def load_schedule_gruppi_servizio_tab(self):
         print("stampa gruppo di servizio")
-
-    def load_schedule_incarichi(self):
-        self.view.page().runJavaScript("""
-        function getContent() {
-                return document.getElementById('mainContent').outerHTML;                      
-        }
-        getContent();
-        """, self.handle_html)
 
     def load_schedule_fineSettimana_tab(self):
         self.view.page().runJavaScript("""
@@ -319,6 +360,10 @@ class WebScraper(QMainWindow):
         try:
             with open("./template/css/cssHourglass.css", 'r') as css:
                 css_content = css.read()
+        
+            image_path = './template/img/bibbia.png'
+            logo_bibbia = f'<img src="{image_path}" alt="bibbia" style="width:100px; height:auto;">'    
+            
         except FileNotFoundError:
             print("CSS file not found")
             # Handle the error, e.g., provide a default CSS or exit the program                    
@@ -328,52 +373,76 @@ class WebScraper(QMainWindow):
             with open("./template/css/cssAVUscieri.css", 'r') as css:
                 style_custom = css.read()
             script_custom = ""
-            data = {"scraped_data": html, "programma": "Audio\\Video e Uscieri", "css_content": css_content, "style_custom": style_custom, "script_custom": script_custom}
+            data = {"scraped_data": html, "programma": "Audio\\Video e Uscieri", "logo_bibbia": logo_bibbia, "css_content": css_content, "style_custom": style_custom, "script_custom": script_custom}
             file_name = "audio_video_uscieri.html"
         elif "/wm" in url: 
             with open("./template/css/cssFineSettimana.css", 'r') as css:
                 style_custom = css.read()
                 script_custom = ""
-            data = {"scraped_data": html, "programma": "Adunanza del fine settimana", "css_content": css_content, "style_custom": style_custom, "script_custom": script_custom}
+            data = {"scraped_data": html, "programma": "Adunanza del fine settimana", "logo_bibbia": logo_bibbia, "css_content": css_content, "style_custom": style_custom, "script_custom": script_custom}
             file_name = "fine_settimana.html"
         elif "/mm" in url: 
             with open("./template/css/cssInfrasettimanale.css", 'r') as css:
                 style_custom = css.read()
                 script_custom = ""
-            data = {"scraped_data": html, "programma": "Adunanza Infrasettimanale", "css_content": css_content, "style_custom": style_custom, "script_custom": script_custom}
+            data = {"scraped_data": html, "programma": "Adunanza Infrasettimanale", "logo_bibbia": logo_bibbia, "css_content": css_content, "style_custom": style_custom, "script_custom": script_custom}
             file_name = "infrasettimanale.html" 
         elif "/cleaning" in url: 
             with open("./template/css/cssPulizie.css", 'r') as css:
                 style_custom = css.read()
                 script_custom = ""
-            data = {"scraped_data": html, "programma": "Pulizie", "css_content": css_content, "style_custom": style_custom, "script_custom": script_custom}
+            data = {"scraped_data": html, "programma": "Pulizie", "logo_bibbia": logo_bibbia, "css_content": css_content, "style_custom": style_custom, "script_custom": script_custom}
             file_name = "pulizie.html"        
         else:
-            data = {"scraped_data": html, "programma": "Generico", "css_content": css_content}
+            data = {"scraped_data": html, "programma": "Generico", "logo_bibbia": logo_bibbia, "css_content": css_content}
             file_name = "generico.html"
             
         # Caricamento del template HTML
         with open("./template/template.html", encoding='utf-8') as file:
             template = Template(file.read())
 
-        html_content = template.render(data)                    
+        html_content = template.render(data)  
+
         # Scrittura del contenuto HTML su file
-        home_directory_os = os.path.expanduser("~")
-        desktop_directory_os = os.path.join(home_directory_os, "Desktop")
-        system_name = platform.system()
-        
-        file_path =""
-        if(system_name=="Windows"):
-            file_path = os.path.join(desktop_directory_os, file_name)
-        else:    
-            file_path = os.path.join(home_directory_os, file_name)
-            
-        with open(file_path, "w", encoding='utf-8') as file:
+        # Creazione html in appdata
+        appdata_path = os.path.join(os.getenv('APPDATA'), 'CongregationToolsApp')
+        local_file_path= appdata_path+'/'+file_name
+
+        #pdf_path = local_file_path+'.pdf'
+
+        with open(local_file_path, "w", encoding='utf-8') as file:
             file.write(html_content)
+
+
+        ###### parte per la creazione di pdf
+
+
+        # Leggi il contenuto HTML dal file
+        # with open(local_file_path, 'r', encoding='utf-8') as file:
+        #     html_content = file.read()
+
+        # Converti HTML in PDF
+        # Convert HTML file to PDF
+        # pdfkit.from_file(local_file_path, pdf_path)
+
+        # print("Conversion complete. PDF saved at:", pdf_path)
+
         
-        #HTML("output.html").write_pdf('output.pdf')
+        # Scrittura del contenuto HTML su file
+        # home_directory_os = os.path.expanduser("~")
+        # desktop_directory_os = os.path.join(home_directory_os, "Desktop")
+        #  = platform.system()
+        
+        #file_path =""
+        #if(system_name=="Windows"):
+        #    file_path = os.path.join(desktop_directory_os, file_name)
+        #else:    
+        #    file_path = os.path.join(home_directory_os, file_name)
+
+        #with open(file_path, "w", encoding='utf-8') as file:
+        #    file.write(html_content)
+
         show_alert("Generazione e download avvenuto con successo!")
-        print('Combined HTML saved as output.html')  
 
     def load_local_ViGeo(self):
         url = QUrl.fromLocalFile(os.path.abspath(os.path.join(os.path.dirname(__file__), "./ViGeo/index.html")))
@@ -404,8 +473,40 @@ class WebScraper(QMainWindow):
         else:
             event.ignore()
 
+def ensure_folder_appdata():
+    # Ottieni il percorso della cartella APPDATA e aggiungi 'CongregationToolsApp'
+    appdata_path = os.path.join(os.getenv('APPDATA'), 'CongregationToolsApp')
+
+    # Verifica se la cartella esiste, altrimenti creala
+    if not os.path.exists(appdata_path):
+        try:
+            os.makedirs(appdata_path)
+            print(f"Cartella creata: {appdata_path}")
+        except OSError as e:
+            print(f"Errore durante la creazione della cartella: {e}")
+    else:
+        print(f"La cartella esiste già: {appdata_path}")
+
+    # Percorso della cartella 'template' che vuoi copiare
+    source_folder = './template'
+
+    # Destinazione in cui copiare la cartella 'template'
+    destination_folder = os.path.join(appdata_path, 'template')
+
+    # Copia la cartella 'template' nella cartella 'CongregationToolsApp'
+    try:
+        if os.path.exists(source_folder):
+            # Copia l'intera cartella con i file e le sottocartelle
+            shutil.copytree(source_folder, destination_folder)
+            print(f"Cartella '{source_folder}' copiata con successo in '{destination_folder}'")
+        else:
+            print(f"La cartella sorgente '{source_folder}' non esiste.")
+    except Exception as e:
+        print(f"Errore durante la copia della cartella: {e}")
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    scraper = WebScraper()
+    ensure_folder_appdata()
+    scraper = CongregationToolsApp()
     scraper.show()
     sys.exit(app.exec_())

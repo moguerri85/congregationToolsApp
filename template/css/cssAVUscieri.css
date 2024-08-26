@@ -1,3 +1,7 @@
+#mainContent {
+    padding: 0rem 0rem 5rem;
+}
+
 .rowIncarichi {
     display: ruby-text;
 }
@@ -12,6 +16,19 @@
 }
 
 .col-12 {
-    width: 27% !important;
+    width: 25% !important;
 }
 
+.gap-4 {
+    gap: 0rem !important;
+}
+
+.card-body {
+    padding:  0.2rem 0.2rem 0.2rem 0.2rem;
+    align-items: center;
+}
+
+.d-flex {
+    display: flex !important;
+    padding-left: 5px;
+}
