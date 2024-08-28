@@ -10,14 +10,12 @@ from jinja2 import Template
 
 from PyQt5.QtWebChannel import QWebChannel
 
-import win32com.client
 
-
-from utils.av_uscieri import combine_html_av_uscieri, retrieve_content_av_uscieri, perform_click_av_uscieri
+from utils.av_uscieri import combine_html_av_uscieri, retrieve_content_av_uscieri
 from utils.infra_settimanale import combine_html_infrasettimale, click_toggle_js_infraSettimanale, click_expand_js_infraSettimanale, perform_click_infraSettimanale_tab, retrieve_content_infraSettimanale_tab
 from utils.fine_settimana import combine_html_fine_settimana
 from utils.update_software import check_for_updates
-from utils.pulizie import combine_html_pulizie
+from utils.pulizie import combine_html_pulizie, retrieve_content_pulizie
 from utils.utility import show_alert
 
 CURRENT_VERSION = "1.0.1"  # Versione corrente dell'app
@@ -179,18 +177,26 @@ class CongregationToolsApp(QMainWindow):
             self.scrape_button.setFixedHeight(30)  # Imposta altezza fissa a 30 pixel
             # Usa lambda o partial per passare self.text_field
             self.scrape_button.clicked.connect(lambda: self.load_schedule_av_uscieri(self.text_field))
-            # oppure: self.scrape_button.clicked.connect(partial(self.load_schedule_infraSettimanale_tab, self.text_field))
             button_and_edit_layout.addWidget(self.scrape_button)
 
             # Aggiungi il layout orizzontale alla web layout
             self.web_layout.addLayout(button_and_edit_layout)
         elif "/cleaning" in url:
+            # Aggiungi il campo di testo
+            self.text_field = QLineEdit()
+            self.text_field.setPlaceholderText("Numero di mesi:")
+            self.text_field.setFixedWidth(200)  # Imposta larghezza fissa a 200 pixel
+            self.text_field.setFixedHeight(30)  # Imposta altezza fissa a 30 pixel
+            button_and_edit_layout.addWidget(self.text_field)
+
+            # Crea il pulsante
             self.scrape_button = QPushButton('Genera Stampa Pulizie') 
             self.scrape_button.setFixedWidth(200)  # Imposta larghezza fissa a 200 pixel
             self.scrape_button.setFixedHeight(30)  # Imposta altezza fissa a 30 pixel
-            self.scrape_button.clicked.connect(self.load_schedule_pulizie_tab)
+            # Usa lambda o partial per passare self.text_field
+            self.scrape_button.clicked.connect(lambda: self.load_schedule_pulizie_tab(self.text_field))
             button_and_edit_layout.addWidget(self.scrape_button)
-
+            
             # Aggiungi il layout orizzontale alla web layout
             self.web_layout.addLayout(button_and_edit_layout)
         elif "/manageGroups" in url:
@@ -314,13 +320,46 @@ class CongregationToolsApp(QMainWindow):
             for widget_edit in self.central_widget.findChildren(QProgressBar):
                 widget_edit.setParent(None)  # Rimuove il QProgressBar dal layout      
       
-    def load_schedule_pulizie_tab(self):
-        self.view.page().runJavaScript("""
-            function getContent() {
-                   return document.getElementById('mainContent').outerHTML;                      
-            }
-            getContent();
-            """, self.handle_html)
+    def load_schedule_pulizie_tab(self, text_field):
+        self.addProgressbar()
+        self.progress_bar.setValue(10)  # Imposta il progresso al 10%
+
+        # Array per memorizzare i contenuti
+        self.content_array = []
+
+        # Recupera il numero dal campo di testo
+        try:
+            numero_mesi = int(text_field.text())
+            if numero_mesi <= 0:
+                raise ValueError("Il numero deve essere positivo")
+        except ValueError:
+            show_alert("Inserisci un numero valido e positivo!")
+            return
+
+        self.progress_bar.setValue(20)  # Set progress to 20%
+
+        # Imposta il timer per eseguire i clic
+        self.current_click_index = 0
+        self.num_clicks = numero_mesi
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.handle_timeout_pulizie)
+        self.timer.start(2000)  # Intervallo di 2000 ms tra i clic
+
+    def handle_timeout_pulizie(self):
+        """Gestisce il timeout del timer per eseguire i clic e recuperare il contenuto."""
+        if self.current_click_index < self.num_clicks:
+            QTimer.singleShot(1000, lambda: retrieve_content_pulizie(self, self.current_click_index))
+            self.current_click_index += 1
+        else:
+            combined_html = combine_html_pulizie(self.content_array)
+            # Salva HTML
+            self.save_html(combined_html)
+
+            self.timer.stop()
+            self.progress_bar.setValue(100)  # Imposta la barra di progresso al 100%
+            # Rimuovi tutti i QPushButton dal layout
+            for widget_edit in self.central_widget.findChildren(QProgressBar):
+                widget_edit.setParent(None)  # Rimuove il QProgressBar dal layout 
 
     def load_schedule_gruppi_servizio_tab(self):
         print("stampa gruppo di servizio")
