@@ -101,7 +101,7 @@ def manipulateHTML_av_uscieri(html):
         cards = soup.find_all('div', class_='mb-3 card')
 
         # Limita il numero di div in ogni lista a 5
-        chunk_size = 5
+        chunk_size = 6
         card_lists = [cards[i:i + chunk_size] for i in range(0, len(cards), chunk_size)]
         # Crea l'HTML per ciascuna lista di div
         html_results = []
