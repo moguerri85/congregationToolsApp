@@ -44,8 +44,13 @@
     font-weight: 600;
 }
 
+div.extended-data {
+    display: flex!important;
+    flex-direction: column!important
+}
+
 h5, .h5 {
-    font-size: 1.005rem;
+    font-size: 1.0rem;
 }
 
 @media print {
@@ -67,12 +72,12 @@ h5, .h5 {
     }
 
     .mainContent:nth-of-type(odd) {
-        margin-top: 15%;
+        margin-top: 110px;
         page-break-before: always;
     }
 
     .mainContent:nth-of-type(even) {
-        margin-top: 15%;
+        margin-top: 110px;
         page-break-before: always;
     }
 }

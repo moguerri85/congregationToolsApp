@@ -34,36 +34,33 @@
 }
 
 
+/* Stili per la stampa */
+@media print {
+    body {
+        margin: 0;
+        padding: 0;
+    }
 
+    header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: auto;
+        text-align: center;
+        background-color: white;
+        z-index: 1000;
+        page-break-before: always;
+    }
 
-        /* Stili per la stampa */
-        @media print {
-            body {
-                margin: 0;
-                padding: 0;
-            }
+    .mainContent:nth-of-type(odd) {
+        margin-top: 110px;
+        page-break-before: always;
+    }
 
-            header {
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                height: auto;
-                text-align: center;
-                background-color: white;
-                z-index: 1000;
-                page-break-before: always;
-            }
+    .mainContent:nth-of-type(even) {
+        margin-top: 110px;
+        page-break-before: always;
+    }
+}
 
-            .mainContent:nth-of-type(odd) {
-                margin-top: 15%;
-                page-break-before: always;
-            }
-        
-            .mainContent:nth-of-type(even) {
-                margin-top: 15%;
-                page-break-before: always;
-            }
-        }
-
-  
