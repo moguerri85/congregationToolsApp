@@ -1,5 +1,9 @@
+.mainContent {
+    padding: 0rem 1rem 1rem;
+}
+
 .oratore_discorso {
-    background-color: beige;
+    background: linear-gradient(to right, #c9a6538f, rgba(255, 215, 0, 0))
 }
 
 h3.badge {
@@ -13,6 +17,10 @@ h3.badge {
     margin-top: 3%;
 }
 
+.card {
+    margin: 1rem;
+}
+
 .card-body {
     flex: 1 1 auto;
     padding: var(--bs-card-spacer-y) var(--bs-card-spacer-x) 0;
@@ -21,4 +29,41 @@ h3.badge {
 
 .border-top {
     border-top: 0!important
+}
+
+.mb-3 {
+    margin-bottom: 0rem
+}
+
+h6 {
+    margin: auto;
+}
+
+@media print {
+    header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: #fff;
+        z-index: 1000;
+    }
+    
+    article {
+        page-break-before: always;
+    }
+
+    .mainContent {
+        page-break-inside: avoid;
+    }
+
+    .mainContent:nth-of-type(odd) {
+        margin-top: 110px;
+        page-break-before: always;
+    }
+
+    .mainContent:nth-of-type(even) {
+        margin-top: 110px;
+        page-break-before: always;
+    }
 }

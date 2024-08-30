@@ -6,7 +6,6 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout,
 from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineProfile
 from PyQt5.QtWebEngineCore import QWebEngineUrlRequestInterceptor, QWebEngineUrlRequestInfo
 from PyQt5.QtCore import QUrl, QEventLoop, QTimer, QObject, pyqtSlot
-from jinja2 import Template
 
 from PyQt5.QtWebChannel import QWebChannel
 
@@ -16,7 +15,7 @@ from utils.infra_settimanale import combine_html_infrasettimale, click_toggle_js
 from utils.fine_settimana import combine_html_fine_settimana
 from utils.update_software import check_for_updates
 from utils.pulizie import combine_html_pulizie, retrieve_content_pulizie
-from utils.utility import show_alert
+from utils.utility import show_alert, save_html
 
 CURRENT_VERSION = "1.0.1"  # Versione corrente dell'app
 GITHUB_RELEASES_API_URL = "https://api.github.com/repos/moguerri85/congregationToolsApp/releases/latest"
@@ -55,9 +54,6 @@ class CongregationToolsApp(QMainWindow):
         self.web_layout = QVBoxLayout(self.web_tab)
         self.view = QWebEngineView()
         self.web_layout.addWidget(self.view)
-        #self.scrape_button = QPushButton('Genera Stampa')
-        #self.scrape_button.clicked.connect(self.call_page)
-        #self.web_layout.addWidget(self.scrape_button)
         self.tabs.addTab(self.web_tab, "Hourglass")
 
         # Tab per il file HTML locale
@@ -211,27 +207,6 @@ class CongregationToolsApp(QMainWindow):
         else:
             self.statusBar().showMessage("")
 
-    def handle_html(self, html):
-        combined_html = ""
-        url = self.view.url().toString()
-        isSave = False
-        if "/wm" in url:
-            if not hasattr(self, 'content'):
-                self.content = html  # discorsi pubblici
-                self.load_crh_fineSettimana_tab()  # presidente e lettore
-            else:
-                combined_html = combine_html_fine_settimana(self.content, html)
-                isSave = True
-        elif "/cleaning" in url:
-            combined_html = combine_html_pulizie(html)
-            isSave = True  
-        else:
-            print("no!")
-
-        # Salva HTML
-        if isSave:
-            self.save_html(combined_html)
-
     def load_schedule_infraSettimanale_tab(self, text_field):
         self.addProgressbar()
         self.progress_bar.setValue(10)  # Imposta il progresso al 10%
@@ -246,6 +221,9 @@ class CongregationToolsApp(QMainWindow):
                 raise ValueError("Il numero deve essere positivo")
         except ValueError:
             show_alert("Inserisci un numero valido e positivo!")
+            # Rimuovi tutti i QPushButton dal layout
+            for widget_edit in self.central_widget.findChildren(QProgressBar):
+                widget_edit.setParent(None)  # Rimuove il QProgressBar dal layout  
             return
 
         self.view.page().runJavaScript(click_expand_js_infraSettimanale)
@@ -268,7 +246,7 @@ class CongregationToolsApp(QMainWindow):
         else:
             combined_html = combine_html_infrasettimale(self.content_array)
             # Salva HTML
-            self.save_html(combined_html)
+            save_html(self, combined_html)
 
             self.timer.stop()
             self.progress_bar.setValue(100)  # Imposta la barra di progresso al 100%
@@ -290,6 +268,9 @@ class CongregationToolsApp(QMainWindow):
                 raise ValueError("Il numero deve essere positivo")
         except ValueError:
             show_alert("Inserisci un numero valido e positivo!")
+            # Rimuovi tutti i QPushButton dal layout
+            for widget_edit in self.central_widget.findChildren(QProgressBar):
+                widget_edit.setParent(None)  # Rimuove il QProgressBar dal layout  
             return
 
         #self.view.page().runJavaScript(click_expand_js_infraSettimanale)
@@ -312,7 +293,7 @@ class CongregationToolsApp(QMainWindow):
         else:
             combined_html = combine_html_av_uscieri(self.content_array)
             # Salva HTML
-            self.save_html(combined_html)
+            save_html(self, combined_html)
 
             self.timer.stop()
             self.progress_bar.setValue(100)  # Imposta la barra di progresso al 100%
@@ -334,6 +315,9 @@ class CongregationToolsApp(QMainWindow):
                 raise ValueError("Il numero deve essere positivo")
         except ValueError:
             show_alert("Inserisci un numero valido e positivo!")
+            # Rimuovi tutti i QPushButton dal layout
+            for widget_edit in self.central_widget.findChildren(QProgressBar):
+                widget_edit.setParent(None)  # Rimuove il QProgressBar dal layout  
             return
 
         self.progress_bar.setValue(20)  # Set progress to 20%
@@ -353,7 +337,7 @@ class CongregationToolsApp(QMainWindow):
         else:
             combined_html = combine_html_pulizie(self.content_array)
             # Salva HTML
-            self.save_html(combined_html)
+            save_html(self, combined_html)
 
             self.timer.stop()
             self.progress_bar.setValue(100)  # Imposta la barra di progresso al 100%
@@ -365,6 +349,7 @@ class CongregationToolsApp(QMainWindow):
         print("stampa gruppo di servizio")
 
     def load_schedule_fineSettimana_tab(self):
+        self.__dict__.pop('content', None)
         self.view.page().runJavaScript("""
         document.querySelector('[data-rr-ui-event-key="schedule"]').click();
         """, self.check_content_fineSettimana)
@@ -386,102 +371,17 @@ class CongregationToolsApp(QMainWindow):
                 return document.getElementsByClassName('d-flex flex-column gap-4')[0].outerHTML;                      
         }
         getContent();
-        """, self.handle_html)
-        
-    def save_html(self, html):
-        # Nome del file da scrivere
-        file_name = "example.html"
-        
-        cwd = os.getcwd()  # Get the current working directory (cwd)
-        files = os.listdir(cwd)  # Get all the files in that directory
-        #print("Files in %r: %s" % (cwd, files))
+        """, self.handle_finesettimana_html)
 
-        try:
-            with open("./template/css/cssHourglass.css", 'r') as css:
-                css_content = css.read()
-        
-            image_path = './template/img/bibbia.png'
-            logo_bibbia = f'<img src="{image_path}" alt="bibbia" style="width:100px; height:auto;">'    
-            
-        except FileNotFoundError:
-            print("CSS file not found")
-            # Handle the error, e.g., provide a default CSS or exit the program                    
-         
-        url = self.view.url().toString()
-        if "/avattendant" in url: 
-            with open("./template/css/cssAVUscieri.css", 'r') as css:
-                style_custom = css.read()
-            script_custom = ""
-            data = {"scraped_data": html, "programma": "Audio\\Video e Uscieri", "logo_bibbia": logo_bibbia, "css_content": css_content, "style_custom": style_custom, "script_custom": script_custom}
-            file_name = "audio_video_uscieri.html"
-        elif "/wm" in url: 
-            with open("./template/css/cssFineSettimana.css", 'r') as css:
-                style_custom = css.read()
-                script_custom = ""
-            data = {"scraped_data": html, "programma": "Adunanza del fine settimana", "logo_bibbia": logo_bibbia, "css_content": css_content, "style_custom": style_custom, "script_custom": script_custom}
-            file_name = "fine_settimana.html"
-        elif "/mm" in url: 
-            with open("./template/css/cssInfrasettimanale.css", 'r') as css:
-                style_custom = css.read()
-                script_custom = ""
-            data = {"scraped_data": html, "programma": "Adunanza Infrasettimanale", "logo_bibbia": logo_bibbia, "css_content": css_content, "style_custom": style_custom, "script_custom": script_custom}
-            file_name = "infrasettimanale.html" 
-        elif "/cleaning" in url: 
-            with open("./template/css/cssPulizie.css", 'r') as css:
-                style_custom = css.read()
-                script_custom = ""
-            data = {"scraped_data": html, "programma": "Pulizie", "logo_bibbia": logo_bibbia, "css_content": css_content, "style_custom": style_custom, "script_custom": script_custom}
-            file_name = "pulizie.html"        
+    def handle_finesettimana_html(self, html):
+        combined_html = ""
+        if not hasattr(self, 'content'):
+            self.content = html  # discorsi pubblici
+            self.load_crh_fineSettimana_tab()  # presidente e lettore
         else:
-            data = {"scraped_data": html, "programma": "Generico", "logo_bibbia": logo_bibbia, "css_content": css_content}
-            file_name = "generico.html"
-            
-        # Caricamento del template HTML
-        with open("./template/template.html", encoding='utf-8') as file:
-            template = Template(file.read())
-
-        html_content = template.render(data)  
-
-        # Scrittura del contenuto HTML su file
-        # Creazione html in appdata
-        appdata_path = os.path.join(os.getenv('APPDATA'), 'CongregationToolsApp')
-        local_file_path= appdata_path+'/'+file_name
-
-        #pdf_path = local_file_path+'.pdf'
-
-        with open(local_file_path, "w", encoding='utf-8') as file:
-            file.write(html_content)
-
-
-        ###### parte per la creazione di pdf
-
-
-        # Leggi il contenuto HTML dal file
-        # with open(local_file_path, 'r', encoding='utf-8') as file:
-        #     html_content = file.read()
-
-        # Converti HTML in PDF
-        # Convert HTML file to PDF
-        # pdfkit.from_file(local_file_path, pdf_path)
-
-        # print("Conversion complete. PDF saved at:", pdf_path)
-
-        
-        # Scrittura del contenuto HTML su file
-        # home_directory_os = os.path.expanduser("~")
-        # desktop_directory_os = os.path.join(home_directory_os, "Desktop")
-        #  = platform.system()
-        
-        #file_path =""
-        #if(system_name=="Windows"):
-        #    file_path = os.path.join(desktop_directory_os, file_name)
-        #else:    
-        #    file_path = os.path.join(home_directory_os, file_name)
-
-        #with open(file_path, "w", encoding='utf-8') as file:
-        #    file.write(html_content)
-
-        show_alert("Generazione e download avvenuto con successo!")
+            combined_html = combine_html_fine_settimana(self.content, html)
+            save_html(self, combined_html)
+    
 
     def load_local_ViGeo(self):
         url = QUrl.fromLocalFile(os.path.abspath(os.path.join(os.path.dirname(__file__), "./ViGeo/index.html")))
