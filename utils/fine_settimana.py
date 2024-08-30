@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 
-def combine_html_fine_settimana(html1, html2):
+def combine_html_fine_settimana(self, html1, html2):
+    self.progress_bar.setValue(70)  # Set progress to 70%
     soup1 = BeautifulSoup(html1, 'html.parser')
     soup2 = BeautifulSoup(html2, 'html.parser')
     html1 = soup1.find_all("div", {"class": "d-flex flex-wrap align-self-start flex-grow-1"})
@@ -9,10 +10,12 @@ def combine_html_fine_settimana(html1, html2):
     # html2 i div card sono duplicati, utilizzare solo quelli con indice pari 0,2,4,6....
     html2 = [v for i, v in enumerate(html2) if i % 2 == 0]
 
-    html_content = manipulateHTML_fine_settimana(html1, html2)
+    html_content = manipulateHTML_fine_settimana(self, html1, html2)
     return html_content
 
-def manipulateHTML_fine_settimana(discorso, programma):
+def manipulateHTML_fine_settimana(self, discorso, programma):
+    self.progress_bar.setValue(80)  # Set progress to 80%
+
     countProFs = 0        
     for htmlProFS in programma:  # array di 1
         isSpeciale = False

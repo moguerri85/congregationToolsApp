@@ -2,20 +2,20 @@ import sys
 import os
 import shutil
 import platform
-from PyQt5.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QWidget, QTabWidget, QPushButton, QMessageBox, QLineEdit, QProgressBar
+
+from PyQt5.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QWidget, QTabWidget, QPushButton, QMessageBox, QLineEdit, QProgressBar, QTextEdit
 from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineProfile
 from PyQt5.QtWebEngineCore import QWebEngineUrlRequestInterceptor, QWebEngineUrlRequestInfo
-from PyQt5.QtCore import QUrl, QEventLoop, QTimer, QObject, pyqtSlot
-
+from PyQt5.QtCore import QUrl, QEventLoop, QTimer, QObject, pyqtSlot, Qt
+from PyQt5.QtGui import QPainter, QColor
 from PyQt5.QtWebChannel import QWebChannel
 
-
 from utils.av_uscieri import combine_html_av_uscieri, retrieve_content_av_uscieri
-from utils.infra_settimanale import combine_html_infrasettimale, click_toggle_js_infraSettimanale, click_expand_js_infraSettimanale, perform_click_infraSettimanale_tab, retrieve_content_infraSettimanale_tab
+from utils.infra_settimanale import combine_html_infrasettimale, click_toggle_js_infraSettimanale, click_expand_js_infraSettimanale, retrieve_content_infraSettimanale_tab
 from utils.fine_settimana import combine_html_fine_settimana
 from utils.update_software import check_for_updates
 from utils.pulizie import combine_html_pulizie, retrieve_content_pulizie
-from utils.utility import show_alert, save_html
+from utils.utility import show_alert, save_html, addProgressbar
 
 CURRENT_VERSION = "1.0.1"  # Versione corrente dell'app
 GITHUB_RELEASES_API_URL = "https://api.github.com/repos/moguerri85/congregationToolsApp/releases/latest"
@@ -36,6 +36,18 @@ class JavaScriptBridge(QObject):
         # Questa funzione viene chiamata dal JavaScript per notificare il clic su un link
         print(f"Link cliccato: {url}")
 
+class OverlayWidget(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        self.setStyleSheet("background-color: rgba(255, 255, 255, 0.8);")  # Colore bianco semitrasparente
+        self.setGeometry(parent.rect())  # Adatta le dimensioni all'area del genitore
+        self.setVisible(False)
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.fillRect(self.rect(), QColor(255, 255, 255, 128))  # Colore bianco con trasparenza
+
 class CongregationToolsApp(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -44,6 +56,9 @@ class CongregationToolsApp(QMainWindow):
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
         self.layout = QVBoxLayout(self.central_widget)
+
+        # Aggiungi l'overlay
+        self.overlay = OverlayWidget(self)
 
         # Aggiungi QTabWidget per gestire i tab
         self.tabs = QTabWidget()
@@ -90,16 +105,6 @@ class CongregationToolsApp(QMainWindow):
         #self.label(message_update)
         self.statusBar().showMessage(message_update)
 
-    def addProgressbar(self):
-        # Rimuovi tutti i QProgressBar dal layout
-        for widget in self.central_widget.findChildren(QProgressBar):
-            widget.setParent(None)  # Rimuove il pulsante dal layout
-        # Create and add the progress bar
-        self.progress_bar = QProgressBar(self)
-        self.layout.addWidget(self.progress_bar)
-        self.progress_bar.setValue(0)
-        self.progress_bar.setMaximum(100)  # Assume 100% as max value
-
     def inject_javascript(self):
         # Codice JavaScript per rilevare clic sui link e inviare l'URL al Python
         js_code = """
@@ -130,7 +135,7 @@ class CongregationToolsApp(QMainWindow):
         # Rimuovi tutti i QPushButton dal layout
         for widget_edit in self.central_widget.findChildren(QLineEdit):
             widget_edit.setParent(None)  # Rimuove il pulsante dal layout    
-        
+
         if "/wm" in url:      
             self.scrape_button = QPushButton('Genera Stampa Fine Settimana')
             self.scrape_button.setFixedWidth(200)  # Imposta larghezza fissa a 200 pixel
@@ -208,7 +213,7 @@ class CongregationToolsApp(QMainWindow):
             self.statusBar().showMessage("")
 
     def load_schedule_infraSettimanale_tab(self, text_field):
-        self.addProgressbar()
+        addProgressbar(self)
         self.progress_bar.setValue(10)  # Imposta il progresso al 10%
 
         # Array per memorizzare i contenuti
@@ -249,13 +254,9 @@ class CongregationToolsApp(QMainWindow):
             save_html(self, combined_html)
 
             self.timer.stop()
-            self.progress_bar.setValue(100)  # Imposta la barra di progresso al 100%
-            # Rimuovi tutti i QPushButton dal layout
-            for widget_edit in self.central_widget.findChildren(QProgressBar):
-                widget_edit.setParent(None)  # Rimuove il QProgressBar dal layout      
-       
+                        
     def load_schedule_av_uscieri(self, text_field):
-        self.addProgressbar()
+        addProgressbar(self)
         self.progress_bar.setValue(10)  # Imposta il progresso al 10%
 
         # Array per memorizzare i contenuti
@@ -295,14 +296,10 @@ class CongregationToolsApp(QMainWindow):
             # Salva HTML
             save_html(self, combined_html)
 
-            self.timer.stop()
-            self.progress_bar.setValue(100)  # Imposta la barra di progresso al 100%
-            # Rimuovi tutti i QPushButton dal layout
-            for widget_edit in self.central_widget.findChildren(QProgressBar):
-                widget_edit.setParent(None)  # Rimuove il QProgressBar dal layout      
+            self.timer.stop()      
       
     def load_schedule_pulizie_tab(self, text_field):
-        self.addProgressbar()
+        addProgressbar(self)
         self.progress_bar.setValue(10)  # Imposta il progresso al 10%
 
         # Array per memorizzare i contenuti
@@ -340,32 +337,33 @@ class CongregationToolsApp(QMainWindow):
             save_html(self, combined_html)
 
             self.timer.stop()
-            self.progress_bar.setValue(100)  # Imposta la barra di progresso al 100%
-            # Rimuovi tutti i QPushButton dal layout
-            for widget_edit in self.central_widget.findChildren(QProgressBar):
-                widget_edit.setParent(None)  # Rimuove il QProgressBar dal layout 
-
+             
     def load_schedule_gruppi_servizio_tab(self):
         print("stampa gruppo di servizio")
 
     def load_schedule_fineSettimana_tab(self):
         self.__dict__.pop('content', None)
+        addProgressbar(self)
+        self.progress_bar.setValue(10)  # Imposta il progresso al 10%
+
         self.view.page().runJavaScript("""
         document.querySelector('[data-rr-ui-event-key="schedule"]').click();
         """, self.check_content_fineSettimana)
 
     def load_crh_fineSettimana_tab(self):
+        self.progress_bar.setValue(50)  
         self.view.page().runJavaScript("""
         document.querySelector('[data-rr-ui-event-key="crh"]').click();
         """, self.check_content_fineSettimana)
 
-    def check_content_fineSettimana(self, content):
+    def check_content_fineSettimana(self, content):        
         loop = QEventLoop()
         QTimer.singleShot(2000, loop.quit)
         loop.exec_()
         self.scrape_content_fineSettimana()
 
-    def scrape_content_fineSettimana(self):        
+    def scrape_content_fineSettimana(self):  
+        self.progress_bar.setValue(20)  
         self.view.page().runJavaScript("""
         function getContent() {
                 return document.getElementsByClassName('d-flex flex-column gap-4')[0].outerHTML;                      
@@ -376,12 +374,13 @@ class CongregationToolsApp(QMainWindow):
     def handle_finesettimana_html(self, html):
         combined_html = ""
         if not hasattr(self, 'content'):
+            self.progress_bar.setValue(40)  # Set progress to 40%
             self.content = html  # discorsi pubblici
             self.load_crh_fineSettimana_tab()  # presidente e lettore
         else:
-            combined_html = combine_html_fine_settimana(self.content, html)
+            self.progress_bar.setValue(60)  # Set progress to 60%
+            combined_html = combine_html_fine_settimana(self, self.content, html)
             save_html(self, combined_html)
-    
 
     def load_local_ViGeo(self):
         url = QUrl.fromLocalFile(os.path.abspath(os.path.join(os.path.dirname(__file__), "./ViGeo/index.html")))
