@@ -149,7 +149,7 @@ class CongregationToolsApp(QMainWindow):
 
     def setup_infra_week_tab(self):
         self.add_text_field("Numero di settimane:")
-        self.add_button("Genera Stampa Infra-Settimanale", lambda: self.load_schedule_infraSettimanale_tab(self.text_field))
+        self.add_button("Genera Stampa Infrasettimanale", lambda: self.load_schedule_infraSettimanale_tab(self.text_field))
 
     def setup_av_attendant_tab(self):
         self.add_text_field("Numero di mesi:")
