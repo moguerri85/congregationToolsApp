@@ -1,4 +1,4 @@
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 
 
 
@@ -49,10 +49,11 @@ def combine_html_av_uscieri( html):
     return html_content 
 
 def manipulateHTML_av_uscieri(html):
+    html_soup = BeautifulSoup("\n".join(html), 'html.parser')
     
-    for card_div_HTML in html:
-        # Converte la stringa HTML in un oggetto BeautifulSoup
-        soup = BeautifulSoup(card_div_HTML, 'html.parser')
+    # Create a new list to store manipulated HTML
+    new_html_content = []
+    for soup in html_soup.find_all(True):  # True finds all tags
 
         # Trova e rimuove i div con la classe specificata
         for divIntestazione1 in soup.find_all("div", class_="d-flex flex-row justify-content-between align-items-end mb-4"):
@@ -103,21 +104,13 @@ def manipulateHTML_av_uscieri(html):
         # Limita il numero di div in ogni lista a 5
         chunk_size = 6
         card_lists = [cards[i:i + chunk_size] for i in range(0, len(cards), chunk_size)]
-        # Crea l'HTML per ciascuna lista di div
-        html_results = []
+  
         for card_list in card_lists:
             # Unisci i div in una stringa HTML
             joined_cards = ''.join(str(card) for card in card_list)
             # Incapsula in un contenitore
             html_content = f"<div class='flex-grow-1 mainContent'>{joined_cards}</div>"
-            html_results.append(html_content)
+            new_html_content.append(html_content)
 
-
-
-
-
-
-
-    string_html_content = "\n".join(html_results)
-        
+    string_html_content = "\n".join(new_html_content)
     return string_html_content

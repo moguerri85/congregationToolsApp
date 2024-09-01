@@ -106,7 +106,7 @@ def manipulateHTML_pulizie(html):
 
                     # Alterna lo sfondo in base alla settimana (pari o dispari)
                     if week_number % 2 == 0:
-                        background_gradient = "linear-gradient(to right, rgba(255, 215, 0, 0), rgba(255, 215, 0, 0.2), rgba(255, 215, 0, 0))"
+                        background_gradient = "linear-gradient(to right, rgba(255, 215, 0, 0), rgba(255, 215, 0, 0.5), rgba(255, 215, 0, 0.2), rgba(255, 215, 0, 0))"
                     else:
                         background_gradient = "linear-gradient(to right, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0))"
 
@@ -119,11 +119,16 @@ def manipulateHTML_pulizie(html):
             # Controlla se il terzo o quarto div contiene un dropdown valorizzato
             div_list = row_div.find_all("div", class_="text-center col-xl-3 col-lg-4 col-12")
             if len(div_list) >= 3:  # Verifica se ci sono abbastanza div
-                for i in [1, 2]:  
+                for i in [1]:  
                     for dropdown_div in div_list[i].find_all("div", class_="dropdown-bounded mt-1 dropdown"):                    
                         if dropdown_div.text:
                             # Cambia il colore di sfondo
                             row_div['style'] = "background: linear-gradient(to right, rgba(255, 215, 0, 0), rgb(255 0 0 / 24%), rgba(255, 215, 0, 0));margin-right: unset;margin-left: unset;"  # Colore speciale 
+                for i in [2]:  
+                    for dropdown_div in div_list[i].find_all("div", class_="dropdown-bounded mt-1 dropdown"):                    
+                        if dropdown_div.text:
+                            # Cambia il colore di sfondo
+                            row_div['style'] = "background: linear-gradient(to right, rgba(255, 215, 0, 0), rgba(255 0 0 / 10%), rgb(255 0 0 / 24%));margin-right: unset;margin-left: unset;"  # Colore speciale 
 
             #hr_tag = soup.new_tag("hr")
             #row_div.append(hr_tag)  # Aggiunge l'elemento <hr> alla fine del div

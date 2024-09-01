@@ -124,93 +124,57 @@ class CongregationToolsApp(QMainWindow):
 
     def call_page(self, url):
         self.__dict__.pop('content', None)
-        url = self.view.url().toString()        
-        
-        # Crea un layout orizzontale
-        button_and_edit_layout = QHBoxLayout()
-        
-        # Rimuovi tutti i QPushButton dal layout
-        for widget_button in self.central_widget.findChildren(QPushButton):
-            widget_button.setParent(None)  # Rimuove il pulsante dal layout
-        # Rimuovi tutti i QPushButton dal layout
-        for widget_edit in self.central_widget.findChildren(QLineEdit):
-            widget_edit.setParent(None)  # Rimuove il pulsante dal layout    
+        url = self.view.url().toString() 
 
-        if "/wm" in url:      
-            self.scrape_button = QPushButton('Genera Stampa Fine Settimana')
-            self.scrape_button.setFixedWidth(200)  # Imposta larghezza fissa a 200 pixel
-            self.scrape_button.setFixedHeight(30)  # Imposta altezza fissa a 30 pixel
-            self.scrape_button.clicked.connect(self.load_schedule_fineSettimana_tab)
-            button_and_edit_layout.addWidget(self.scrape_button)
-
-            # Aggiungi il layout orizzontale alla web layout
-            self.web_layout.addLayout(button_and_edit_layout)
+        self.clear_existing_widgets()
+        if "/wm" in url:
+            self.setup_weekend_tab()
         elif "/mm" in url:
-            # Aggiungi il campo di testo
-            self.text_field = QLineEdit()
-            self.text_field.setPlaceholderText("Numero di settimane:")
-            self.text_field.setFixedWidth(200)  # Imposta larghezza fissa a 200 pixel
-            self.text_field.setFixedHeight(30)  # Imposta altezza fissa a 30 pixel
-            button_and_edit_layout.addWidget(self.text_field)
-
-            # Crea il pulsante
-            self.scrape_button = QPushButton('Genera Stampa Infra-Settimanale')
-            self.scrape_button.setFixedWidth(200)  # Imposta larghezza fissa a 200 pixel
-            self.scrape_button.setFixedHeight(30)  # Imposta altezza fissa a 30 pixel
-            # Usa lambda o partial per passare self.text_field
-            self.scrape_button.clicked.connect(lambda: self.load_schedule_infraSettimanale_tab(self.text_field))
-            # oppure: self.scrape_button.clicked.connect(partial(self.load_schedule_infraSettimanale_tab, self.text_field))
-            button_and_edit_layout.addWidget(self.scrape_button)
-
-            # Aggiungi il layout orizzontale alla web layout
-            self.web_layout.addLayout(button_and_edit_layout)
+            self.setup_infra_week_tab()
         elif "/avattendant" in url:
-            # Aggiungi il campo di testo
-            self.text_field = QLineEdit()
-            self.text_field.setPlaceholderText("Numero di mesi:")
-            self.text_field.setFixedWidth(200)  # Imposta larghezza fissa a 200 pixel
-            self.text_field.setFixedHeight(30)  # Imposta altezza fissa a 30 pixel
-            button_and_edit_layout.addWidget(self.text_field)
-
-            # Crea il pulsante
-            self.scrape_button = QPushButton('Genera Stampa Incarchi') 
-            self.scrape_button.setFixedWidth(200)  # Imposta larghezza fissa a 200 pixel
-            self.scrape_button.setFixedHeight(30)  # Imposta altezza fissa a 30 pixel
-            # Usa lambda o partial per passare self.text_field
-            self.scrape_button.clicked.connect(lambda: self.load_schedule_av_uscieri(self.text_field))
-            button_and_edit_layout.addWidget(self.scrape_button)
-
-            # Aggiungi il layout orizzontale alla web layout
-            self.web_layout.addLayout(button_and_edit_layout)
+            self.setup_av_attendant_tab()
         elif "/cleaning" in url:
-            # Aggiungi il campo di testo
-            self.text_field = QLineEdit()
-            self.text_field.setPlaceholderText("Numero di mesi:")
-            self.text_field.setFixedWidth(200)  # Imposta larghezza fissa a 200 pixel
-            self.text_field.setFixedHeight(30)  # Imposta altezza fissa a 30 pixel
-            button_and_edit_layout.addWidget(self.text_field)
-
-            # Crea il pulsante
-            self.scrape_button = QPushButton('Genera Stampa Pulizie') 
-            self.scrape_button.setFixedWidth(200)  # Imposta larghezza fissa a 200 pixel
-            self.scrape_button.setFixedHeight(30)  # Imposta altezza fissa a 30 pixel
-            # Usa lambda o partial per passare self.text_field
-            self.scrape_button.clicked.connect(lambda: self.load_schedule_pulizie_tab(self.text_field))
-            button_and_edit_layout.addWidget(self.scrape_button)
-            
-            # Aggiungi il layout orizzontale alla web layout
-            self.web_layout.addLayout(button_and_edit_layout)
+            self.setup_cleaning_tab()
         elif "/manageGroups" in url:
-            self.scrape_button = QPushButton('Genera Stampa Gruppo di Servizio') 
-            self.scrape_button.setFixedWidth(200)  # Imposta larghezza fissa a 200 pixel
-            self.scrape_button.setFixedHeight(30)  # Imposta altezza fissa a 30 pixel
-            self.scrape_button.clicked.connect(self.load_schedule_gruppi_servizio_tab)
-            button_and_edit_layout.addWidget(self.scrape_button)
-
-            # Aggiungi il layout orizzontale alla web layout
-            self.web_layout.addLayout(button_and_edit_layout)
+            self.setup_groups_tab()
         else:
             self.statusBar().showMessage("")
+
+    def clear_existing_widgets(self):
+        for widget in self.central_widget.findChildren((QPushButton, QLineEdit)):
+            widget.setParent(None)
+
+    def setup_weekend_tab(self):
+        self.add_button("Genera Stampa Fine Settimana", self.load_schedule_fineSettimana_tab)
+
+    def setup_infra_week_tab(self):
+        self.add_text_field("Numero di settimane:")
+        self.add_button("Genera Stampa Infra-Settimanale", lambda: self.load_schedule_infraSettimanale_tab(self.text_field))
+
+    def setup_av_attendant_tab(self):
+        self.add_text_field("Numero di mesi:")
+        self.add_button("Genera Stampa Incarchi", lambda: self.load_schedule_av_uscieri(self.text_field))
+
+    def setup_cleaning_tab(self):
+        self.add_text_field("Numero di mesi:")
+        self.add_button("Genera Stampa Pulizie", lambda: self.load_schedule_pulizie_tab(self.text_field))
+
+    def setup_groups_tab(self):
+        self.add_button("Genera Stampa Gruppo di Servizio", self.load_schedule_gruppi_servizio_tab)
+
+    def add_text_field(self, placeholder_text):
+        self.text_field = QLineEdit()
+        self.text_field.setPlaceholderText(placeholder_text)
+        self.text_field.setFixedWidth(200)
+        self.text_field.setFixedHeight(30)
+        self.web_layout.addWidget(self.text_field)
+
+    def add_button(self, text, slot):
+        button = QPushButton(text)
+        button.setFixedWidth(200)
+        button.setFixedHeight(30)
+        button.clicked.connect(slot)
+        self.web_layout.addWidget(button)
 
     def load_schedule_infraSettimanale_tab(self, text_field):
         addProgressbar(self)
@@ -289,6 +253,7 @@ class CongregationToolsApp(QMainWindow):
     def handle_timeout_av_uscieri(self):
         """Gestisce il timeout del timer per eseguire i clic e recuperare il contenuto."""
         if self.current_click_index < self.num_clicks:
+            print(self.current_click_index)
             QTimer.singleShot(1000, lambda: retrieve_content_av_uscieri(self, self.current_click_index))
             self.current_click_index += 1
         else:
