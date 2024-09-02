@@ -1,0 +1,83 @@
+.mainContent {
+    padding: 0rem 1rem 1rem;
+}
+
+.mm_part {
+    padding: 0rem 0rem 0rem 1rem;
+    height: 100%;
+    display: flex;
+    align-items: baseline;
+}
+
+.flex-row {
+    flex-direction: row !important;
+    width: 75%;
+}
+
+.lac_row {
+    background-color: #d255661a !important;
+}
+
+.lac_row p {
+    color: #942926 !important;
+}
+
+.fm_row {
+    background-color: #fdcd7e1a !important;
+}
+
+.tgw_row {
+    background-color: #9ea5a81a !important;
+    align-items: center;
+}
+
+.core_row {
+    background-color: #fff !important;
+    align-items: center;
+}
+
+.hh-ddm .mt-1{
+    font-style: oblique;
+}
+
+.ddm{
+    font-weight: 600;
+}
+
+div.extended-data {
+    display: flex!important;
+    flex-direction: column!important
+}
+
+h5, .h5 {
+    font-size: 1.0rem;
+}
+
+@media print {
+    header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: #fff;
+        z-index: 1000;
+    }
+    
+    article {
+        page-break-before: always;
+    }
+
+    .mainContent {
+        page-break-inside: avoid;
+    }
+
+    .mainContent:nth-of-type(odd) {
+        margin-top: 110px;
+        page-break-before: always;
+    }
+
+    .mainContent:nth-of-type(even) {
+        margin-top: 110px;
+        page-break-before: always;
+    }
+}

@@ -1,0 +1,61 @@
+.mainContent {
+    padding: 0rem 1rem 1rem;
+}
+
+.row {
+    margin-left: calc(-.5 * 0.5rem)
+}
+
+.col-3 {
+    flex: 0 0 auto;
+    width: 10%;
+}
+
+.col-12 {
+    flex: 0 0 auto;
+    width: 30%;
+}
+
+.col-12_30{
+    flex: 0 0 auto;
+    width: 30%;
+}
+
+hr{
+    width: 79%;
+}
+
+/* Stili per la stampa */
+@media print {
+    body {
+        margin: 0;
+        padding: 0;
+    }
+
+    header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: auto;
+        text-align: center;
+        background-color: white;
+        z-index: 1000;
+        page-break-before: always;
+    }
+
+    .page:nth-of-type(odd) {
+        margin-top: 110px;
+        page-break-before: always;
+    }
+
+    .page:nth-of-type(even) {
+        margin-top: 110px;
+        page-break-before: always;
+    }
+
+    .row {
+        margin-left: calc(-.5* -0.5rem);
+    }
+}
+
