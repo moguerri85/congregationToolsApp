@@ -1,0 +1,79 @@
+.mainContent {
+    padding: 0rem 1rem 1rem;
+}
+
+.card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    word-wrap: break-word;
+    /* background-color: #f8f8f7; */
+    background-clip: border-box;
+    border: 0px solid rgb(0 0 0 / 23%); 
+    border-radius: 3px;
+    background-color: #fff;
+}
+
+.row {
+    margin-bottom: 15px;
+    margin-right: 0;
+    margin-left: 0;
+}
+
+table.pw-table {
+    border: 1px solid burlywood;
+    width: 100%;
+}
+
+tr{
+    border-bottom: 1px solid burlywood;
+}
+
+.colonna_postazione {
+    text-align: left;
+}
+
+.colonna_data {
+    width: 110px;
+    text-align: left;
+}
+
+td.colonna_data {
+    text-align: left;
+    padding-left: 10px;
+}
+
+/* Stili per la stampa */
+@media print {
+    body {
+        margin: 0;
+        padding: 0;
+    }
+
+    header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: auto;
+        text-align: center;
+        background-color: white;
+        z-index: 1000;
+        page-break-before: always;
+    }
+
+    .page:nth-of-type(odd) {
+        margin-top: 110px;
+        page-break-before: always;
+    }
+
+    .page:nth-of-type(even) {
+        margin-top: 110px;
+        page-break-before: always;
+    }
+
+    .row {
+        margin-left: calc(-.5* -0.5rem);
+    }
+}
+

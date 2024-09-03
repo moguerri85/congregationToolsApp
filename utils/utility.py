@@ -74,7 +74,13 @@ def save_html(self, html):
             style_custom = css.read()
             script_custom = ""
         data = {"scraped_data": html, "programma": "Pulizie", "logo_bibbia": logo_bibbia, "css_content": css_content, "style_custom": style_custom, "script_custom": script_custom}
-        file_name = "pulizie.html"        
+        file_name = "pulizie.html"    
+    elif "/publicWitnessing" in url: 
+        with open("./template/css/cssPublicWitnessing.css", 'r') as css:
+            style_custom = css.read()
+            script_custom = ""
+        data = {"scraped_data": html, "programma": "Testimonianza Pubblica", "logo_bibbia": logo_bibbia, "css_content": css_content, "style_custom": style_custom, "script_custom": script_custom}
+        file_name = "testimonianza_pubblica.html"         
     else:
         data = {"scraped_data": html, "programma": "Generico", "logo_bibbia": logo_bibbia, "css_content": css_content}
         file_name = "generico.html"

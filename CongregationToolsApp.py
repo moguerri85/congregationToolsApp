@@ -15,6 +15,7 @@ from utils.infra_settimanale import combine_html_infrasettimale, click_toggle_js
 from utils.fine_settimana import combine_html_fine_settimana
 from utils.update_software import check_for_updates
 from utils.pulizie import combine_html_pulizie, retrieve_content_pulizie
+from utils.testimonianza_pubblica import combine_html_testimonianza_pubbl, retrieve_content_testimonianza_pubbl, click_toggle_js_testimonianza_pubbl
 from utils.utility import show_alert, save_html, addProgressbar
 
 CURRENT_VERSION = "1.0.1"  # Versione corrente dell'app
@@ -26,15 +27,6 @@ class RequestInterceptor(QWebEngineUrlRequestInterceptor):
         print(f"Intercepted request to: {url}")
         # Non bloccare le richieste
         info.block(False)
-
-class JavaScriptBridge(QObject):
-    def __init__(self):
-        super().__init__()
-
-    @pyqtSlot(str)
-    def linkClicked(self, url):
-        # Questa funzione viene chiamata dal JavaScript per notificare il clic su un link
-        print(f"Link cliccato: {url}")
 
 class OverlayWidget(QWidget):
     def __init__(self, parent=None):
@@ -84,17 +76,8 @@ class CongregationToolsApp(QMainWindow):
         interceptor = RequestInterceptor()
         QWebEngineProfile.defaultProfile().setRequestInterceptor(interceptor)
 
-        # Configura il canale web
-        self.channel = QWebChannel()
-        self.bridge = JavaScriptBridge()
-        self.channel.registerObject('bridge', self.bridge)
-        self.view.page().setWebChannel(self.channel)
-
         self.load_local_ViGeo()
         self.load_page("https://app.hourglass-app.com/v2/page/app/scheduling/")
-
-        # Inietta il codice JavaScript nella pagina per monitorare i clic sui link
-        self.inject_javascript()
 
         # Connette i segnali di navigazione alla funzione di gestione
         self.view.urlChanged.connect(self.call_page)
@@ -105,20 +88,6 @@ class CongregationToolsApp(QMainWindow):
         #self.label(message_update)
         self.statusBar().showMessage(message_update)
 
-    def inject_javascript(self):
-        # Codice JavaScript per rilevare clic sui link e inviare l'URL al Python
-        js_code = """
-        (function() {
-            document.addEventListener('click', function(event) {
-                if (event.target.tagName === 'A' && event.target.href) {
-                    // Invia l'URL al Python tramite il canale web
-                    window.bridge.linkClicked(event.target.href);
-                }
-            }, true);
-        })();
-        """
-        self.view.page().runJavaScript(js_code)
-
     def load_page(self, url):
         self.view.setUrl(QUrl(url))
 
@@ -127,6 +96,8 @@ class CongregationToolsApp(QMainWindow):
         url = self.view.url().toString() 
 
         self.clear_existing_widgets()
+        
+
         if "/wm" in url:
             self.setup_weekend_tab()
         elif "/mm" in url:
@@ -137,6 +108,8 @@ class CongregationToolsApp(QMainWindow):
             self.setup_cleaning_tab()
         elif "/manageGroups" in url:
             self.setup_groups_tab()
+        elif "/publicWitnessing" in url:       
+            self.setup_publicWitnessing_tab()            
         else:
             self.statusBar().showMessage("")
 
@@ -145,36 +118,57 @@ class CongregationToolsApp(QMainWindow):
             widget.setParent(None)
 
     def setup_weekend_tab(self):
+        self.horizontal_layout = QHBoxLayout()
         self.add_button("Genera Stampa Fine Settimana", self.load_schedule_fineSettimana_tab)
+        # Aggiungi il layout orizzontale al layout principale
+        self.web_layout.addLayout(self.horizontal_layout)
 
     def setup_infra_week_tab(self):
+        # Creiamo un layout orizzontale per contenere il QLineEdit e il QPushButton
+        self.horizontal_layout = QHBoxLayout()
         self.add_text_field("Numero di settimane:")
         self.add_button("Genera Stampa Infrasettimanale", lambda: self.load_schedule_infraSettimanale_tab(self.text_field))
 
+        # Aggiungi il layout orizzontale al layout principale
+        self.web_layout.addLayout(self.horizontal_layout)
+
     def setup_av_attendant_tab(self):
+        self.horizontal_layout = QHBoxLayout()
         self.add_text_field("Numero di mesi:")
         self.add_button("Genera Stampa Incarchi", lambda: self.load_schedule_av_uscieri(self.text_field))
+        self.web_layout.addLayout(self.horizontal_layout)
 
     def setup_cleaning_tab(self):
+        self.horizontal_layout = QHBoxLayout()
         self.add_text_field("Numero di mesi:")
         self.add_button("Genera Stampa Pulizie", lambda: self.load_schedule_pulizie_tab(self.text_field))
+        self.web_layout.addLayout(self.horizontal_layout)
 
     def setup_groups_tab(self):
         self.add_button("Genera Stampa Gruppo di Servizio", self.load_schedule_gruppi_servizio_tab)
 
+    def setup_publicWitnessing_tab(self):
+        self.horizontal_layout = QHBoxLayout()
+        self.add_text_field("Numero di mesi:")
+        self.add_button("Genera Stampa Testimonianza Pubblica", lambda: self.load_schedule_publicWitnessing_tab(self.text_field))
+        self.web_layout.addLayout(self.horizontal_layout)
+
+
     def add_text_field(self, placeholder_text):
+        # Crea un QLineEdit e aggiungilo al layout orizzontale
         self.text_field = QLineEdit()
         self.text_field.setPlaceholderText(placeholder_text)
         self.text_field.setFixedWidth(200)
         self.text_field.setFixedHeight(30)
-        self.web_layout.addWidget(self.text_field)
+        self.horizontal_layout.addWidget(self.text_field)  # Aggiungi al layout orizzontale
 
     def add_button(self, text, slot):
+        # Crea un QPushButton e aggiungilo al layout orizzontale
         button = QPushButton(text)
         button.setFixedWidth(200)
         button.setFixedHeight(30)
         button.clicked.connect(slot)
-        self.web_layout.addWidget(button)
+        self.horizontal_layout.addWidget(button)  # Aggiungi al layout orizzontale
 
     def load_schedule_infraSettimanale_tab(self, text_field):
         addProgressbar(self)
@@ -305,6 +299,48 @@ class CongregationToolsApp(QMainWindow):
              
     def load_schedule_gruppi_servizio_tab(self):
         print("stampa gruppo di servizio")
+
+    def load_schedule_publicWitnessing_tab(self, text_field):
+        addProgressbar(self)
+        self.progress_bar.setValue(10)  # Imposta il progresso al 10%
+
+        # Array per memorizzare i contenuti
+        self.content_array = []
+
+        # Recupera il numero dal campo di testo
+        try:
+            numero_mesi = int(text_field.text())
+            if numero_mesi <= 0:
+                raise ValueError("Il numero deve essere positivo")
+        except ValueError:
+            show_alert("Inserisci un numero valido e positivo!")
+            # Rimuovi tutti i QPushButton dal layout
+            for widget_edit in self.central_widget.findChildren(QProgressBar):
+                widget_edit.setParent(None)  # Rimuove il QProgressBar dal layout  
+            return
+
+        self.view.page().runJavaScript(click_toggle_js_testimonianza_pubbl)
+
+        self.progress_bar.setValue(20)  # Set progress to 20%
+
+        # Imposta il timer per eseguire i clic
+        self.current_click_index = 0
+        self.num_clicks = numero_mesi
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.handle_timeout_testimonianza_pubbl)
+        self.timer.start(2000)  # Intervallo di 2000 ms tra i clic
+
+    def handle_timeout_testimonianza_pubbl(self):
+
+        if self.current_click_index < self.num_clicks:
+            QTimer.singleShot(1000, lambda: retrieve_content_testimonianza_pubbl(self, self.current_click_index))
+            self.current_click_index += 1
+        else:
+            combined_html = combine_html_testimonianza_pubbl(self.content_array)
+            # Salva HTML
+            save_html(self, combined_html)
+
+            self.timer.stop()
 
     def load_schedule_fineSettimana_tab(self):
         self.__dict__.pop('content', None)
