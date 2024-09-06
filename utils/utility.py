@@ -1,5 +1,5 @@
 import os
-from PyQt5.QtWidgets import QMessageBox, QProgressBar, QPushButton
+from PyQt5.QtWidgets import QMessageBox, QProgressBar, QPushButton, QLineEdit
 from jinja2 import Template
 
 
@@ -136,3 +136,59 @@ def save_html(self, html):
     # Rimuovi tutti i QPushButton dal layout
     for widget_edit in self.central_widget.findChildren(QProgressBar):
         widget_edit.setParent(None)  # Rimuove il QProgressBar dal layout    
+
+
+def clear_existing_widgets(self):
+    # Assicurati che il layout esista
+    if self.web_layout is None:
+        # print("Il layout 'web_layout' non è stato impostato.")
+        return
+
+    # Verifica se ci sono widget nel layout
+    if self.web_layout.count() == 0:
+        # print("Il layout è vuoto.")
+        return
+
+    # Itera sugli elementi del layout in ordine inverso
+    for i in reversed(range(self.web_layout.count())):
+        item = self.web_layout.itemAt(i)
+        if item is not None:
+            widget = item.widget()
+            if widget is not None:
+                if isinstance(widget, (QPushButton, QLineEdit)):
+                    # print(f"Rimuovendo widget: {widget}")  # Debug
+                    self.web_layout.removeWidget(widget)  # Rimuove il widget dal layout
+                    widget.deleteLater()  # Elimina il widget in modo sicuro
+                # else:
+                    # print(f"L'elemento {i} è un widget di tipo {type(widget)} e non è un QPushButton/QLineEdit.")  # Debug
+            else:
+                layout = item.layout()
+                if layout is not None:
+                    # print(f"L'elemento {i} è un layout di tipo {type(layout)}.")  # Debug
+                    # Se è un layout, puoi anche rimuovere i widget da esso
+                    clear_layout(self, layout)
+                # else:
+                    # print(f"L'elemento {i} è None e non è né un widget né un layout.")  # Debug
+        # else:
+            # print(f"Item {i} è None.")  # Debug
+
+def clear_layout(self, layout):
+    """Rimuove tutti i widget da un layout specificato."""
+    if layout is None:
+        return
+
+    for i in reversed(range(layout.count())):
+        item = layout.itemAt(i)
+        if item is not None:
+            widget = item.widget()
+            if widget is not None:
+                # print(f"Rimuovendo widget dal layout annidato: {widget}")  # Debug
+                layout.removeWidget(widget)
+                widget.deleteLater()
+            else:
+                sub_layout = item.layout()
+                if sub_layout is not None:
+                    # print(f"L'elemento {i} è un layout annidato di tipo {type(sub_layout)}.")  # Debug
+                    self.clear_layout(sub_layout)
+                # else:
+                    # print(f"L'elemento {i} è None e non è né un widget né un layout.")  # Debug
