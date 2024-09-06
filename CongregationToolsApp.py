@@ -6,9 +6,8 @@ import platform
 from PyQt5.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QWidget, QTabWidget, QPushButton, QMessageBox, QLineEdit, QProgressBar, QTextEdit
 from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineProfile
 from PyQt5.QtWebEngineCore import QWebEngineUrlRequestInterceptor, QWebEngineUrlRequestInfo
-from PyQt5.QtCore import QUrl, QEventLoop, QTimer, QObject, pyqtSlot, Qt
+from PyQt5.QtCore import QUrl, QEventLoop, QTimer, Qt
 from PyQt5.QtGui import QPainter, QColor
-from PyQt5.QtWebChannel import QWebChannel
 
 from utils.av_uscieri import combine_html_av_uscieri, retrieve_content_av_uscieri
 from utils.infra_settimanale import combine_html_infrasettimale, click_toggle_js_infraSettimanale, click_expand_js_infraSettimanale, retrieve_content_infraSettimanale_tab
@@ -98,18 +97,18 @@ class CongregationToolsApp(QMainWindow):
         self.clear_existing_widgets()
         
 
-        if "/wm" in url:
+        if "/scheduling/wm" in url:
             self.setup_weekend_tab()
-        elif "/mm" in url:
+        elif "/scheduling/mm" in url:
             self.setup_infra_week_tab()
-        elif "/avattendant" in url:
+        elif "/scheduling/avattendant" in url:
             self.setup_av_attendant_tab()
-        elif "/cleaning" in url:
+        elif "/scheduling/cleaning" in url:
             self.setup_cleaning_tab()
-        elif "/manageGroups" in url:
+        elif "/scheduling/manageGroups" in url:
             self.setup_groups_tab()
-        elif "/publicWitnessing" in url:       
-            self.setup_publicWitnessing_tab()            
+        elif "/scheduling/publicWitnessing" in url:       
+            self.setup_testimonianza_pubblica_tab()           
         else:
             self.statusBar().showMessage("")
 
@@ -232,9 +231,6 @@ class CongregationToolsApp(QMainWindow):
                 widget_edit.setParent(None)  # Rimuove il QProgressBar dal layout  
             return
 
-        #self.view.page().runJavaScript(click_expand_js_infraSettimanale)
-        #self.view.page().runJavaScript(click_toggle_js_infraSettimanale)
-
         self.progress_bar.setValue(20)  # Set progress to 20%
 
         # Imposta il timer per eseguire i clic
@@ -247,7 +243,6 @@ class CongregationToolsApp(QMainWindow):
     def handle_timeout_av_uscieri(self):
         """Gestisce il timeout del timer per eseguire i clic e recuperare il contenuto."""
         if self.current_click_index < self.num_clicks:
-            print(self.current_click_index)
             QTimer.singleShot(1000, lambda: retrieve_content_av_uscieri(self, self.current_click_index))
             self.current_click_index += 1
         else:
@@ -298,7 +293,8 @@ class CongregationToolsApp(QMainWindow):
             self.timer.stop()
              
     def load_schedule_gruppi_servizio_tab(self):
-        print("stampa gruppo di servizio")
+        # Implementa la logica per caricare e gestire il tab dei gruppi di servizio
+        pass
 
     def load_schedule_publicWitnessing_tab(self, text_field):
         addProgressbar(self)
@@ -446,6 +442,6 @@ def ensure_folder_appdata():
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     ensure_folder_appdata()
-    scraper = CongregationToolsApp()
-    scraper.show()
+    main_window = CongregationToolsApp()
+    main_window.show()
     sys.exit(app.exec_())
