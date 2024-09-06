@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+    <!-- link rel="stylesheet" type="text/css" href="./template/css/cssHourglass.css" -->
+    <link href="https://fonts.googleapis.com/css?family=Ubuntu+Condensed|Lato:400,400i,700" rel="stylesheet">
+    <style>
+        {{ css_content }}
+        {{ style_custom }}
+        
+    </style>
+    <script>
+        {{ script_custom }}
+
+        // window height
+        const height = window.innerHeight;
+
+        // window width
+        const width = window.innerWidth;
+
+        console.log(height); // 711 1440
+
+    </script>
+</head>
+<body>
+    <div id="root">
+        <header id="header" class="intest_header">
+            <h4 class="text-uppercase fw-bolder" style="margin-bottom: auto;">Congregazione Salerno Pastena</h4>
+            <div style="opacity: 0.5;" style="margin-top: auto;">
+                {{ logo_bibbia }}
+            </div>
+            <div>
+                <h5 class="text-uppercase fw-bolder" style="margin-top: auto;">
+                    {{ programma }}
+                </h5>
+            </div>
+        </header>
+
+        <article>
+            <div id="daRiempire">
+                {{ scraped_data }}
+            </div>
+        </article>
+
+        <!--footer-->
+        <!--p>© 2024 Tutti i diritti riservati.</p-->
+        <!--/footer -->
+    </div>
+
+</body>
+
+</html>

@@ -51,31 +51,31 @@ def save_html(self, html):
         # Handle the error, e.g., provide a default CSS or exit the program                    
         
     url = self.view.url().toString()
-    if "/avattendant" in url: 
+    if "/scheduling/avattendant" in url: 
         with open("./template/css/cssAVUscieri.css", 'r') as css:
             style_custom = css.read()
         script_custom = ""
         data = {"scraped_data": html, "programma": "Audio\\Video e Uscieri", "logo_bibbia": logo_bibbia, "css_content": css_content, "style_custom": style_custom, "script_custom": script_custom}
         file_name = "audio_video_uscieri.html"
-    elif "/wm" in url: 
+    elif "/scheduling/wm" in url: 
         with open("./template/css/cssFineSettimana.css", 'r') as css:
             style_custom = css.read()
             script_custom = ""
         data = {"scraped_data": html, "programma": "Adunanza del fine settimana", "logo_bibbia": logo_bibbia, "css_content": css_content, "style_custom": style_custom, "script_custom": script_custom}
         file_name = "fine_settimana.html"
-    elif "/mm" in url: 
+    elif "/scheduling/mm" in url: 
         with open("./template/css/cssInfrasettimanale.css", 'r') as css:
             style_custom = css.read()
             script_custom = ""
         data = {"scraped_data": html, "programma": "Adunanza Infrasettimanale", "logo_bibbia": logo_bibbia, "css_content": css_content, "style_custom": style_custom, "script_custom": script_custom}
         file_name = "infrasettimanale.html" 
-    elif "/cleaning" in url: 
+    elif "/scheduling/cleaning" in url: 
         with open("./template/css/cssPulizie.css", 'r') as css:
             style_custom = css.read()
             script_custom = ""
         data = {"scraped_data": html, "programma": "Pulizie", "logo_bibbia": logo_bibbia, "css_content": css_content, "style_custom": style_custom, "script_custom": script_custom}
         file_name = "pulizie.html"    
-    elif "/publicWitnessing" in url: 
+    elif "/scheduling/publicWitnessing" in url: 
         with open("./template/css/cssPublicWitnessing.css", 'r') as css:
             style_custom = css.read()
             script_custom = ""
@@ -86,7 +86,7 @@ def save_html(self, html):
         file_name = "generico.html"
         
     # Caricamento del template HTML
-    with open("./template/template.html", encoding='utf-8') as file:
+    with open("./template/template_schedule.html", encoding='utf-8') as file:
         template = Template(file.read())
 
     html_content = template.render(data)  
