@@ -1,9 +1,9 @@
 import sys
-import os
 import shutil
 import platform
+import os
 
-from PyQt5.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QWidget, QTabWidget, QPushButton, QMessageBox, QLineEdit, QProgressBar, QTextEdit, QLabel
+from PyQt5.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QWidget, QTabWidget, QPushButton, QMessageBox, QLineEdit, QProgressBar, QTextEdit, QLabel, QFileDialog, QSizePolicy
 from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineProfile
 from PyQt5.QtWebEngineCore import QWebEngineUrlRequestInterceptor, QWebEngineUrlRequestInfo
 from PyQt5.QtCore import QUrl, QEventLoop, QTimer, Qt
@@ -16,11 +16,19 @@ from utils.update_software import check_for_updates
 from utils.pulizie import combine_html_pulizie, retrieve_content_pulizie
 from utils.testimonianza_pubblica import combine_html_testimonianza_pubbl, retrieve_content_testimonianza_pubbl, click_toggle_js_testimonianza_pubbl
 from utils.utility import show_alert, save_html, addProgressbar, clear_existing_widgets
+from utils.territorio import save_and_show_map_html_territorio, process_kml_file_territorio_coordinates, process_kml_file_territorio_ext_data
 
 CURRENT_VERSION = "1.0.1"  # Versione corrente dell'app
 GITHUB_RELEASES_API_URL = "https://api.github.com/repos/moguerri85/congregationToolsApp/releases/latest"
 
+class CustomWebEngineView(QWebEngineView):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.page().profile().setRequestInterceptor(self)
 
+    def interceptRequest(self, request):
+        print("Richiesta intercettata:", request.requestUrl())
+        
 # Interceptor per le richieste
 class RequestInterceptor(QWebEngineUrlRequestInterceptor):
     def interceptRequest(self, info: QWebEngineUrlRequestInfo):
@@ -74,10 +82,6 @@ class CongregationToolsApp(QMainWindow):
         self.cartoline_tab = QWidget()
         self.cartoline_layout = QVBoxLayout(self.cartoline_tab)
         
-        # Aggiungi un'etichetta di test
-        test_label = QLabel("Benvenuto nel tab 'Cartoline per Territori'")
-        self.cartoline_layout.addWidget(test_label)
-        
         self.cartoline_tab.setLayout(self.cartoline_layout)  # Imposta il layout del tab
         self.tabs.addTab(self.cartoline_tab, "Cartoline per Territori")
 
@@ -96,25 +100,54 @@ class CongregationToolsApp(QMainWindow):
         QWebEngineProfile.defaultProfile().setRequestInterceptor(interceptor)
 
         self.load_local_ViGeo()
-        self.add_cartoline_button()
+        self.setup_territorio()
 
         # Controlla aggiornamenti all'avvio
         message_update = ""
         message_update = check_for_updates(CURRENT_VERSION, GITHUB_RELEASES_API_URL)
         self.statusBar().showMessage(message_update)
 
-    def add_cartoline_button(self):
-        # Crea un QPushButton e aggiungilo al layout orizzontale
-        button = QPushButton("Mostra Ciao")
-        button.setFixedWidth(200)
-        button.setFixedHeight(30)
-        button.clicked.connect(self.show_ciao_message)
-        self.cartoline_layout.addWidget(button)  # Aggiungi al layout orizzontale
+    def setup_territorio(self):
+        self.horizontal_layout = QHBoxLayout()
+        self.vertical_layout = QVBoxLayout()
 
+        # Inizializza la QLabel per la mappa
+        self.map_view = QLabel("Mappa di OpenStreetMap qui")
+        self.vertical_layout.addWidget(self.map_view)  # Aggiungi al layout verticale
+
+        # Aggiungi il widget per la visualizzazione HTML
+        self.web_view_territorio = QWebEngineView(self)
+        # Imposta le dimensioni minime e massime, e lascia che il layout gestisca la larghezza
+        self.web_view_territorio.setMinimumHeight(200)
+        self.web_view_territorio.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.vertical_layout.addWidget(self.web_view_territorio)
+
+        # Aggiungi pulsante per selezionare file KML
+        select_kml_button = QPushButton("Seleziona file KML", self)
+        select_kml_button.clicked.connect(self.open_kml_file_dialog_territorio)
+        self.vertical_layout.addWidget(select_kml_button)
+
+        # Aggiungi una QLabel per mostrare il percorso del file KML selezionato
+        self.kml_file_path_label = QLabel("Nessun file KML selezionato")
+        self.vertical_layout.addWidget(self.kml_file_path_label)
+
+        # Aggiungi il layout verticale al layout principale
+        self.cartoline_layout.addLayout(self.vertical_layout)
+
+    def open_kml_file_dialog_territorio(self):
+        # Dialogo per selezionare un file KML
+        file_path, _ = QFileDialog.getOpenFileName(self, "Seleziona file KML", "", "KML Files (*.kml)")
         
+        if file_path:
+            # Aggiorna il percorso del file KML selezionato nella QLabel
+            self.kml_file_path_label.setText(f"File KML selezionato: {file_path}")
 
-    def show_ciao_message(self):
-        QMessageBox.information(self, "Messaggio", "Ciao")
+            # Processa il file KML e genera la mappa
+            coordinates = process_kml_file_territorio_coordinates(file_path)
+            extended_data = process_kml_file_territorio_ext_data(file_path)
+
+            if coordinates:
+                save_and_show_map_html_territorio(self, coordinates, extended_data)
 
     def load_page(self, url):
         self.view.setUrl(QUrl(url))
