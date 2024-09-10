@@ -3,7 +3,7 @@ import shutil
 import platform
 import os
 
-from PyQt5.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QWidget, QTabWidget, QPushButton, QMessageBox, QLineEdit, QProgressBar, QTextEdit, QLabel, QFileDialog, QSizePolicy
+from PyQt5.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QWidget, QTabWidget, QPushButton, QMessageBox, QLineEdit, QProgressBar, QTextEdit, QLabel, QFileDialog, QDoubleSpinBox, QSpinBox
 from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineProfile
 from PyQt5.QtWebEngineCore import QWebEngineUrlRequestInterceptor, QWebEngineUrlRequestInfo
 from PyQt5.QtCore import QUrl, QEventLoop, QTimer, Qt
@@ -16,7 +16,7 @@ from utils.update_software import check_for_updates
 from utils.pulizie import combine_html_pulizie, retrieve_content_pulizie
 from utils.testimonianza_pubblica import combine_html_testimonianza_pubbl, retrieve_content_testimonianza_pubbl, click_toggle_js_testimonianza_pubbl
 from utils.utility import show_alert, save_html, addProgressbar, clear_existing_widgets
-from utils.territorio import save_and_show_map_html_territorio, process_kml_file_territorio_coordinates, process_kml_file_territorio_ext_data
+from utils.territorio import generate_leaflet_map_html, save_temp_and_show_map_html_territorio, process_kml_file_territorio_coordinates, process_kml_file_territorio_ext_data, process_kml_file_territorio_locality_number
 
 CURRENT_VERSION = "1.0.1"  # Versione corrente dell'app
 GITHUB_RELEASES_API_URL = "https://api.github.com/repos/moguerri85/congregationToolsApp/releases/latest"
@@ -107,48 +107,6 @@ class CongregationToolsApp(QMainWindow):
         message_update = check_for_updates(CURRENT_VERSION, GITHUB_RELEASES_API_URL)
         self.statusBar().showMessage(message_update)
 
-    def setup_territorio(self):
-        self.horizontal_layout = QHBoxLayout()
-        self.vertical_layout = QVBoxLayout()
-
-        # Inizializza la QLabel per la mappa
-        self.map_view = QLabel("Mappa di OpenStreetMap qui")
-        self.vertical_layout.addWidget(self.map_view)  # Aggiungi al layout verticale
-
-        # Aggiungi il widget per la visualizzazione HTML
-        self.web_view_territorio = QWebEngineView(self)
-        # Imposta le dimensioni minime e massime, e lascia che il layout gestisca la larghezza
-        self.web_view_territorio.setMinimumHeight(200)
-        self.web_view_territorio.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.vertical_layout.addWidget(self.web_view_territorio)
-
-        # Aggiungi pulsante per selezionare file KML
-        select_kml_button = QPushButton("Seleziona file KML", self)
-        select_kml_button.clicked.connect(self.open_kml_file_dialog_territorio)
-        self.vertical_layout.addWidget(select_kml_button)
-
-        # Aggiungi una QLabel per mostrare il percorso del file KML selezionato
-        self.kml_file_path_label = QLabel("Nessun file KML selezionato")
-        self.vertical_layout.addWidget(self.kml_file_path_label)
-
-        # Aggiungi il layout verticale al layout principale
-        self.cartoline_layout.addLayout(self.vertical_layout)
-
-    def open_kml_file_dialog_territorio(self):
-        # Dialogo per selezionare un file KML
-        file_path, _ = QFileDialog.getOpenFileName(self, "Seleziona file KML", "", "KML Files (*.kml)")
-        
-        if file_path:
-            # Aggiorna il percorso del file KML selezionato nella QLabel
-            self.kml_file_path_label.setText(f"File KML selezionato: {file_path}")
-
-            # Processa il file KML e genera la mappa
-            coordinates = process_kml_file_territorio_coordinates(file_path)
-            extended_data = process_kml_file_territorio_ext_data(file_path)
-
-            if coordinates:
-                save_and_show_map_html_territorio(self, coordinates, extended_data)
-
     def load_page(self, url):
         self.view.setUrl(QUrl(url))
 
@@ -172,7 +130,89 @@ class CongregationToolsApp(QMainWindow):
             self.setup_testimonianza_pubblica()           
         else:
             self.statusBar().showMessage("")
-        
+
+    def setup_territorio(self):        
+        self.kml_loaded = False  # Indica se un file KML è stato caricato
+
+        self.vertical_layout = QVBoxLayout()
+
+        # Inizializza la QLabel per la mappa
+        self.map_view = QLabel("Cartolina qui")
+        self.vertical_layout.addWidget(self.map_view)  # Aggiungi al layout verticale
+
+        # Crea un layout orizzontale per i pulsanti e il QSpinBox
+        button_layout = QHBoxLayout()
+        button_layout.setAlignment(Qt.AlignCenter)  # Center-align 
+
+        # Aggiungi pulsante per selezionare file KML
+        select_kml_button = QPushButton("Seleziona file KML", self)
+        select_kml_button.clicked.connect(self.open_kml_file_dialog_territorio)
+        button_layout.addWidget(select_kml_button)
+
+        # Aggiungi pulsante per salvare la mappa
+        self.save_map_button = QPushButton("Salva Cartolina", self)
+        self.save_map_button.setEnabled(False)  # Disabilita all'inizio
+        self.save_map_button.clicked.connect(self.save_map_to_folder)
+        button_layout.addWidget(self.save_map_button)
+
+        self.vertical_layout.addLayout(button_layout)
+
+        button_operazione_layout = QHBoxLayout()
+        button_operazione_layout.setAlignment(Qt.AlignCenter)  # Center-align 
+
+        # Layout for rotation spinner and label
+        rotation_layout = QHBoxLayout()
+        rotation_label = QLabel("Rotazione:")
+        rotation_layout.addWidget(rotation_label)
+        self.rotation_spinner = self.create_spinner_territorio(-360, 360, 0, self.update_map)
+        self.rotation_spinner.setEnabled(False)  # Disabilita all'inizio
+        rotation_layout.addWidget(self.rotation_spinner)
+        button_operazione_layout.addLayout(rotation_layout)
+
+        # Layout for zoom spinner and label
+        zoom_layout = QHBoxLayout()
+        zoom_label = QLabel("Zoom:")
+        zoom_layout.addWidget(zoom_label)
+        self.zoom_spinner = self.create_double_spinner_territorio(1.0, 25.0, 18.0, 0.1, self.update_map)
+        self.zoom_spinner.setEnabled(False)  # Disabilita all'inizio
+        zoom_layout.addWidget(self.zoom_spinner)
+        button_operazione_layout.addLayout(zoom_layout)
+
+        self.vertical_layout.addLayout(button_operazione_layout)
+
+        # Aggiungi una QLabel per mostrare il percorso del file KML selezionato
+        self.kml_file_path_label = QLabel("Nessun file KML selezionato")
+        self.vertical_layout.addWidget(self.kml_file_path_label)
+
+        # Aggiungi il layout verticale al layout principale
+        self.cartoline_layout.addLayout(self.vertical_layout)
+
+        # Inizializzazione del QWebEngineView
+        self.web_view_territorio = QWebEngineView()
+
+        window_size = self.size()
+        self.web_view_territorio.setFixedSize(int(window_size.width() * 0.75), int(window_size.height() * 0.75))
+
+        self.vertical_layout.addWidget(self.web_view_territorio)
+        self.coordinates = []
+        self.extended_data = []
+        self.extended_data_locality_number = []
+
+    def create_spinner_territorio(self, min_value, max_value, initial_value, callback):
+        spinner = QSpinBox()
+        spinner.setRange(min_value, max_value)
+        spinner.setValue(initial_value)
+        spinner.valueChanged.connect(callback)
+        return spinner
+
+    def create_double_spinner_territorio(self, min_value, max_value, initial_value, step, callback):
+        spinner = QDoubleSpinBox()
+        spinner.setRange(min_value, max_value)
+        spinner.setValue(initial_value)
+        spinner.setSingleStep(step)
+        spinner.valueChanged.connect(callback)
+        return spinner
+
     def setup_weekend(self):
         self.horizontal_layout = QHBoxLayout()
         self.add_button("Genera Stampa Fine Settimana", self.load_schedule_fineSettimana)
@@ -435,6 +475,75 @@ class CongregationToolsApp(QMainWindow):
             self.progress_bar.setValue(60)  # Set progress to 60%
             combined_html = combine_html_fine_settimana(self, self.content, html)
             save_html(self, combined_html)
+
+####################################################################
+################## TERRITORIO
+
+    def update_map(self):
+        angle = self.rotation_spinner.value()
+        zoom = self.zoom_spinner.value()
+        self.load_map_with_rotation(angle, zoom)
+
+    def load_map_with_rotation(self, angle, zoom):
+        # Carica e aggiorna la mappa con la rotazione
+        save_temp_and_show_map_html_territorio(self, self.coordinates, self.extended_data, self.extended_data_locality_number, angle, zoom)
+
+    def open_kml_file_dialog_territorio(self):
+        # Dialogo per selezionare un file KML
+        file_path, _ = QFileDialog.getOpenFileName(self, "Seleziona file KML", "", "KML Files (*.kml)")
+        
+        if file_path:
+            # Aggiorna il percorso del file KML selezionato nella QLabel
+            self.kml_file_path_label.setText(f"File KML selezionato: {file_path}")
+
+            # Processa il file KML e genera la mappa
+            self.coordinates = process_kml_file_territorio_coordinates(file_path)
+            self.extended_data = process_kml_file_territorio_ext_data(file_path)
+            self.extended_data_locality_number = process_kml_file_territorio_locality_number(file_path)
+            rotation_angle = 0 #lo inizializzo a 0
+            zoom = 18
+            if self.coordinates:
+                save_temp_and_show_map_html_territorio(self, self.coordinates, self.extended_data, self.extended_data_locality_number, rotation_angle, zoom)
+            self.kml_loaded = True  # Imposta il flag come caricato
+            self.toggle_spinners_territorio(True)  # Abilita gli spinner
+        else:
+            self.kml_loaded = False  # In caso di fallimento o annullamento
+            self.toggle_spinners_territorio(False)  # Disabilita gli spinner
+            
+    def toggle_spinners_territorio(self, enabled):
+        self.rotation_spinner.setEnabled(enabled)
+        self.zoom_spinner.setEnabled(enabled)
+        self.save_map_button.setEnabled(enabled)
+                    
+    def save_map_to_folder(self):
+        # Ottieni il percorso della cartella di destinazione
+        default_folder = os.path.join(os.getenv('APPDATA'), 'CongregationToolsApp', 'territori')
+        
+        # Verifica se la cartella esiste
+        if not os.path.exists(default_folder):
+            os.makedirs(default_folder)
+
+        # Assicurati che extended_data_locality_number contenga almeno due elementi
+        if len(self.extended_data_locality_number) >= 2:
+            file_name = self.extended_data_locality_number[1] + "_" + self.extended_data_locality_number[0] + ".html"
+            file_path = os.path.join(default_folder, file_name)
+            
+            if file_name:
+                try:
+                    # Salva il file nella posizione selezionata
+                    with open(file_path, 'w') as file:
+                        file.write(self.html_content)  # Assicurati che self.html_content contenga il contenuto HTML
+                    QMessageBox.information(self, "Salvataggio Completato", f"File salvato con successo in: {file_path}")
+                except Exception as e:
+                    QMessageBox.critical(self, "Errore", f"Impossibile salvare il file: {e}")
+        else:
+            QMessageBox.warning(self, "Errore", "Dati insufficienti per generare il nome del file.")
+
+####################################################################
+################## VIGEO
+
+
+
 
     def load_local_ViGeo(self):
         url = QUrl.fromLocalFile(os.path.abspath(os.path.join(os.path.dirname(__file__), "./ViGeo/index.html")))

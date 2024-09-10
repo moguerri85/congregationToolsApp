@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Mappa KML</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ol3/3.19.1/ol.css" />
+    <link rel="stylesheet" type="text/css" href="../template/css/cssTerritorio.css">
+    <link href="http://fonts.googleapis.com/css?family=Ubuntu+Condensed|Lato:400,400italic,700" rel="stylesheet"
+        type="text/css">
+    <style>
+
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ol3/3.19.1/ol.js"></script>
+</head>
+
+<body>
+    <table style="width:100%; padding-top: 6mm">
+        <tr>
+            <td colspan="4">
+                <p class="s1">Piantina di territorio</p>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding-left: 9mm; width:60mm; text-align:left">
+                <p class="s2"><span style=""><b>Localit&agrave; </b></span><span class="s2"> {{extended_data_locality_number[0]}}</span></p>
+            </td>
+            <td style="width:35mm; text-align:left">
+                <p class="s2"><span style=""><b>Terr. N. </b></span><span class="s2"> {{extended_data_locality_number[1]}}</span></p>
+            </td>
+        </tr>
+        <tr>
+            <td style="text-align: left; flex: 1; margin-top: 7mm; height: 53mm" colspan="4">
+                <div id="map"></div>
+            </td>
+        </tr>
+        <tr></tr>
+        <tr>
+            <td style="padding-left: 9mm; padding-right: 9mm;" colspan="5">
+                <p class="s5">Tenete questa cartolina nella busta. Non la sciupate, non vi fate segni e non la piegate.
+                    Ogni volta che il territorio &egrave; stato percorso interamente, informate il fratello che si
+                    occupa dello schedario dei territori.</p>
+            </td>
+        </tr>
+    </table>
+    <p class="s6" style="text-indent: 0pt; margin-left: 12mm; margin-right: 11mm; margin-top: 10px; text-align: left;">
+        S-12-I &nbsp;&nbsp; &nbsp; 12/86</p>
+
+    <script>
+        // Creazione della mappa con OpenLayers
+        var map = new ol.Map({
+            target: 'map',
+            layers: [
+                new ol.layer.Tile({
+                    source: new ol.source.OSM()
+                })
+            ],
+            view: new ol.View({
+                center: ol.proj.fromLonLat([{{ lat_center }}, {{ lon_center }}]),
+            zoom: {{ zoom }},
+            rotation: {{ rotation_angle }} * Math.PI / 180 // Rotazione della mappa in radianti
+            })
+        });
+
+        // Funzione per aggiungere poligoni alla mappa
+        function addPolygons(polygons) {
+            var features = polygons.map(function (polygon) {
+                return new ol.Feature({
+                    geometry: new ol.geom.Polygon([polygon.map(coord => ol.proj.fromLonLat(coord))])                    
+                });
+            });
+
+            var vectorSource = new ol.source.Vector({
+                features: features
+            });
+
+            var vectorLayer = new ol.layer.Vector({
+                source: vectorSource,
+                style: stylesPoligoni
+            });
+
+            map.addLayer(vectorLayer);
+        }
+
+        var stylesPoligoni = new ol.style.Style({
+            fill: new ol.style.Fill({
+                color: [0, 0, 255, 0.1]
+            }),
+            stroke: new ol.style.Stroke({
+                color: [255, 0, 0, 0.5],
+                width: 4
+            })
+        });
+
+        // Funzione per aggiungere marker alla mappa
+        function addMarkers(extendedData) {
+            var features = extendedData.map(function (data) {
+                var lon = parseFloat(data[0][0]);
+                var lat = parseFloat(data[0][1]);
+                var label = data[1];
+
+                return new ol.Feature({
+                    geometry: new ol.geom.Point(ol.proj.fromLonLat([lon, lat])),
+                    label: label
+                });
+            });
+
+            var vectorSource = new ol.source.Vector({
+                features: features
+            });
+
+            var vectorLayer = new ol.layer.Vector({
+                source: vectorSource,
+                style: function (feature) {
+                    return new ol.style.Style({
+                        text: new ol.style.Text({
+							text: feature.get('label'),
+							font: 'bold 14px sans-serif',
+							fill: new ol.style.Fill({
+								color: '#000' // Colore del testo
+							})
+						}),
+						image: new ol.style.Icon({
+							src: 'data:image/svg+xml;base64,' + btoa(`
+								<svg xmlns="http://www.w3.org/2000/svg" width="260" height="160">
+									<rect x="0" y="0" width="260" height="160" fill="yellow" stroke="black" stroke-width="2"/>
+								</svg>
+							`),
+							scale: 0.1 // Scala l'icona per adattarla alle dimensioni del testo
+						})
+                    });
+                }
+            });
+
+            map.addLayer(vectorLayer);
+        }
+
+        // Aggiungi poligoni e marker
+        addPolygons({{ polygons| tojson | safe }});
+        addMarkers({{ extended_data| tojson | safe }});
+    </script>
+</body>
+
+</html>

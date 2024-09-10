@@ -1,0 +1,125 @@
+* {
+    margin: 0;
+    text-indent: 0;
+}
+
+body {
+    border:1px solid black; 
+    text-align:center;
+    width:146mm; 
+    height: 95mm;
+}
+
+.s1 {
+    color: black;
+    font-family: "Times New Roman", serif;
+    font-style: normal;
+    font-weight: bold;
+    text-decoration: none;
+    font-size: 13pt;
+}
+
+.s2 {
+    color: black;
+    font-family: "Times New Roman", serif;
+    font-style: normal;
+    font-weight: normal;
+    text-decoration: none;
+    font-size: 11pt;
+}
+
+.s3 {
+    color: black;
+    font-family: "Times New Roman", serif;
+    font-style: normal;
+    font-weight: normal;
+    text-decoration: none;
+    font-size: 4pt;
+}
+
+.s4 {
+    color: black;
+    font-family: Arial, sans-serif;
+    font-style: normal;
+    font-weight: bold;
+    text-decoration: none;
+    font-size: 8pt;
+}
+
+.s6 {
+    color: black;
+    font-family: "Times New Roman", serif;
+    font-style: normal;
+    font-weight: bold;
+    text-decoration: none;
+    font-size: 7pt;
+}
+
+p {
+    color: black;
+    font-family: "Times New Roman", serif;
+    font-style: normal;
+    font-weight: normal;
+    text-decoration: none;
+    margin: 0pt;
+    font-size: 11px
+}
+
+.street {
+    flex: 30%;
+}
+
+.number {
+    flex: 5%;
+}
+
+.name {
+    flex: 45%;
+}
+
+.type {
+    flex: 20%;
+}
+
+.repeat_class {
+    display: flex;
+    flex: 100%;
+    flex-wrap: wrap;
+    margin: 0;
+}
+
+.obliquo {
+
+    -webkit-transform: rotate(-37deg);
+
+    -moz-transform: rotate(-37deg);
+
+    -o-transform: rotate(-37deg);
+
+    -ms-transform: rotate(-37deg);
+
+    transform: rotate(-37deg);
+}
+
+#map { height: 60mm; }
+
+.ol-unselectable{ height: 53mm;}
+
+.custom-icon {
+    background-color: yellow;
+    border-radius: 3px;
+    padding: 5px;
+    display: block;
+    text-align: center;
+    line-height: 1.2;
+    color: black;
+    font-size: 12px;
+    font-weight: bold;
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.5);
+    max-width: 150px;
+    width: 20px !important;
+}
+
+.ol-overlaycontainer-stopevent{
+    display: none;
+}

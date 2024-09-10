@@ -1,7 +1,8 @@
 import os
 import xml.etree.ElementTree as ET
 from PyQt5.QtCore import QUrl, QTimer
-from jinja2 import Template
+from jinja2 import Environment, FileSystemLoader
+import json
 
 def process_kml_file_territorio_coordinates(file_path):
     tree = ET.parse(file_path)
@@ -56,100 +57,94 @@ def process_kml_file_territorio_ext_data(file_path):
 
     return extended_data
 
-def generate_leaflet_map_html(coordinates, extended_data):
-    map_template = """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Mappa KML</title>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-        <style>
-            #map { height: 100vh; }
-            .custom-icon {
-                background-color: yellow;
-                border-radius: 3px;
-                padding: 5px;
-                display: block;
-                text-align: center;
-                line-height: 1.2;
-                color: black;
-                font-size: 12px;
-                font-weight: bold;
-                box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.5);
-                max-width: 150px;
-                width: 20px !important;
-            }
-        </style>
-    </head>
-    <body>
-        <div id="map"></div>
-        <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-        <script>
-            var map = L.map('map').setView([{{ lat_center }}, {{ lon_center }}], 19);
+def process_kml_file_territorio_locality_number(file_path):
+    tree = ET.parse(file_path)
+    root = tree.getroot()
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19
-            }).addTo(map);
+    # Namespace del KML
+    namespace = {'kml': 'http://www.opengis.net/kml/2.2'}
 
-            function createCustomIcon(text) {
-                return L.divIcon({
-                    className: 'custom-icon',
-                    html: text
-                });
-            }
+    extended_data_locality_number = []
 
-            // Aggiungi i poligoni alla mappa
-            {% for polygon in polygons %}
-                L.polygon({{ polygon }}, {color: 'blue', weight: 2}).addTo(map);
-            {% endfor %}
+    for placemark in root.findall('.//kml:Placemark', namespace):
+        extended_data_node = placemark.find('.//kml:ExtendedData', namespace)
+        if extended_data_node is not None:
+            text_data = None
+            for data in extended_data_node.findall('.//kml:Data', namespace):
+                name = data.get('name')
+                value = data.find('.//kml:value', namespace)
+                if name == 'number' and value is not None:
+                    text_data = value.text.strip()  # Assicurati che il testo sia ben formattato
+                    extended_data_locality_number.append(text_data)
+                if name == 'locality' and value is not None:
+                    text_data = value.text.strip()  # Assicurati che il testo sia ben formattato
+                    extended_data_locality_number.append(text_data)
 
-            // Aggiungi solo le icone con il testo, senza marker visibili
-            {% for coord, text in extended_data %}
-                L.marker([{{ coord[0] }}, {{ coord[1] }}], {icon: createCustomIcon("{{ text }}")}).addTo(map);
-            {% endfor %}
-        </script>
-    </body>
-    </html>
-    """
+    return extended_data_locality_number
 
-    # Calcola il centro della mappa
+def generate_leaflet_map_html(coordinates, extended_data, extended_data_locality_number, rotation_angle, zoom):
+     # Percorso del template nella directory template di AppData
+    template_dir = os.path.join(os.getenv('APPDATA'), 'CongregationToolsApp', 'template')
+    
+    if not os.path.isdir(template_dir):
+        raise FileNotFoundError(f"La directory dei template non è stata trovata: {template_dir}")
+
+    env = Environment(loader=FileSystemLoader(template_dir, encoding='utf-8'))
+    
+    # Nome del template
+    template_name = 'template_territorio.html'
+    
+    try:
+        template = env.get_template(template_name)
+    except Exception as e:
+        raise FileNotFoundError(f"Impossibile caricare il template: {template_name}. Errore: {e}")
+
+
     if coordinates:
-        lat_center = sum(float(coord[0].strip()) for coord in coordinates) / len(coordinates)
-        lon_center = sum(float(coord[1].strip()) for coord in coordinates) / len(coordinates)
+        lat_center = sum(float(coord[1].strip()) for coord in coordinates) / len(coordinates)
+        lon_center = sum(float(coord[0].strip()) for coord in coordinates) / len(coordinates)
     else:
         lat_center = 0
         lon_center = 0
 
-    # Converti i dati estesi in una lista di tuple per Jinja2
-    extended_data_list = [((lat, lon), text) for (lat, lon), text in extended_data]
+    extended_data_list = [((lon, lat), text) for (lat, lon), text in extended_data]
 
     # Converti le coordinate dei poligoni in formato GeoJSON
-    # Assumiamo che ogni poligono sia una lista di coordinate
     polygons = []
     current_polygon = []
     for coord in coordinates:
         if len(current_polygon) > 0 and coord == coordinates[0]:  # Chiudi il poligono
             polygons.append(current_polygon)
             current_polygon = []
-        current_polygon.append([float(coord[0]), float(coord[1])])
+        current_polygon.append([float(coord[1]), float(coord[0])])
     if len(current_polygon) > 0:
         polygons.append(current_polygon)
 
-    template = Template(map_template)
-    html_content = template.render(coordinates=coordinates, lat_center=lat_center, lon_center=lon_center, extended_data=extended_data_list, polygons=polygons)
+    html_content = template.render(
+        coordinates=coordinates,
+        lat_center=lat_center,
+        lon_center=lon_center,
+        extended_data=extended_data_list,
+        extended_data_locality_number = extended_data_locality_number,
+        polygons=polygons,
+        rotation_angle=rotation_angle,
+        zoom=zoom
+    )
     return html_content
 
 
-def save_and_show_map_html_territorio(main_window, coordinates, extended_data):
-    html_content = generate_leaflet_map_html(coordinates, extended_data)
-    appdata_path = os.path.join(os.getenv('APPDATA'), 'CongregationToolsApp', 'territorio_map.html')
+def save_temp_and_show_map_html_territorio(main_window, coordinates, extended_data, extended_data_locality_number, rotation_angle, zoom):    
+    main_window.html_content = generate_leaflet_map_html(coordinates, extended_data, extended_data_locality_number, rotation_angle, zoom)
+    appdata_folder = os.path.join(os.getenv('APPDATA'), 'CongregationToolsApp', 'territori')
+    if not os.path.exists(appdata_folder):
+        os.makedirs(appdata_folder)
+
+    appdata_path = os.path.join(appdata_folder, 'territorio_map.html')
 
     def save_file_and_load():
         with open(appdata_path, 'w') as file:
-            file.write(html_content)
+            file.write(main_window.html_content)
         main_window.web_view_territorio.setUrl(QUrl.fromLocalFile(appdata_path))
-        main_window.kml_file_path_label.setText(f"File KML elaborato con successo: {appdata_path}")
+        main_window.kml_file_path_label.setText(f"File KML elaborato con successo")
 
     QTimer.singleShot(0, save_file_and_load)
