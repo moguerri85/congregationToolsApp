@@ -3,6 +3,8 @@ import xml.etree.ElementTree as ET
 from PyQt5.QtCore import QUrl, QTimer
 from jinja2 import Environment, FileSystemLoader
 import json
+from PyQt5.QtWidgets import QMessageBox
+
 
 def process_kml_file_territorio_coordinates(file_path):
     tree = ET.parse(file_path)
@@ -120,7 +122,7 @@ def generate_leaflet_map_html(coordinates, extended_data, extended_data_locality
     if len(current_polygon) > 0:
         polygons.append(current_polygon)
 
-    html_content = template.render(
+    html_content_territorio = template.render(
         coordinates=coordinates,
         lat_center=lat_center,
         lon_center=lon_center,
@@ -130,21 +132,52 @@ def generate_leaflet_map_html(coordinates, extended_data, extended_data_locality
         rotation_angle=rotation_angle,
         zoom=zoom
     )
-    return html_content
+    return html_content_territorio
 
 
 def save_temp_and_show_map_html_territorio(main_window, coordinates, extended_data, extended_data_locality_number, rotation_angle, zoom):    
-    main_window.html_content = generate_leaflet_map_html(coordinates, extended_data, extended_data_locality_number, rotation_angle, zoom)
-    appdata_folder = os.path.join(os.getenv('APPDATA'), 'CongregationToolsApp', 'territori')
-    if not os.path.exists(appdata_folder):
-        os.makedirs(appdata_folder)
+    # Genera il contenuto HTML della mappa
+    main_window.html_content_territorio = generate_leaflet_map_html(coordinates, extended_data, extended_data_locality_number, rotation_angle, zoom)
+    
+    if coordinates:
+        lat_center = sum(float(coord[1].strip()) for coord in coordinates) / len(coordinates)
+        lon_center = sum(float(coord[0].strip()) for coord in coordinates) / len(coordinates)
+    else:
+        lat_center = 0
+        lon_center = 0
 
-    appdata_path = os.path.join(appdata_folder, 'territorio_map.html')
-
+    
+    # Salva il contenuto HTML temporaneamente
+    appdata_path = os.path.join(os.getenv('APPDATA'), 'CongregationToolsApp', 'territori', 'territorio_map.html')
+    
     def save_file_and_load():
-        with open(appdata_path, 'w') as file:
-            file.write(main_window.html_content)
-        main_window.web_view_territorio.setUrl(QUrl.fromLocalFile(appdata_path))
-        main_window.kml_file_path_label.setText(f"File KML elaborato con successo")
+        try:
+            with open(appdata_path, 'w') as file:
+                file.write(main_window.html_content_territorio)
+            main_window.web_view_territorio.setUrl(QUrl.fromLocalFile(appdata_path))
+            main_window.kml_file_path_label.setText(f"File KML elaborato con successo")
+        except Exception as e:
+            print(f"Errore durante il caricamento della mappa: {e}")
 
     QTimer.singleShot(0, save_file_and_load)
+
+def update_html_file_list(self):
+    # Percorso della cartella 'territori'
+    territori_folder = os.path.join(os.getenv('APPDATA'), 'CongregationToolsApp', 'territori')
+
+    # Recupera la lista dei file HTML nella cartella
+    try:
+        html_files = [f for f in os.listdir(territori_folder) if f.endswith('.html')]
+
+        # Supponendo che tu abbia un QListWidget chiamato `html_file_list`
+        self.html_file_list.clear()
+        self.html_file_list.addItems(html_files)
+    except Exception as e:
+        QMessageBox.critical(self, "Errore", f"Errore durante l'aggiornamento della lista dei file: {e}")
+        
+def handle_print_result(self, success, pdf_path):
+    if success:
+        QMessageBox.information(self, "Salvataggio Completato", f"File PDF salvato con successo in: {pdf_path}")
+    else:
+        QMessageBox.critical(self, "Errore", "Impossibile salvare il file PDF.")
+

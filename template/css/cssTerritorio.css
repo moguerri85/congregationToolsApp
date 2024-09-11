@@ -88,37 +88,11 @@ p {
     margin: 0;
 }
 
-.obliquo {
-
-    -webkit-transform: rotate(-37deg);
-
-    -moz-transform: rotate(-37deg);
-
-    -o-transform: rotate(-37deg);
-
-    -ms-transform: rotate(-37deg);
-
-    transform: rotate(-37deg);
-}
-
 #map { height: 60mm; }
 
-.ol-unselectable{ height: 53mm;}
+#map_container{ height: 60mm; }
 
-.custom-icon {
-    background-color: yellow;
-    border-radius: 3px;
-    padding: 5px;
-    display: block;
-    text-align: center;
-    line-height: 1.2;
-    color: black;
-    font-size: 12px;
-    font-weight: bold;
-    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.5);
-    max-width: 150px;
-    width: 20px !important;
-}
+.ol-unselectable{ height: 53mm;}
 
 .ol-overlaycontainer-stopevent{
     display: none;
