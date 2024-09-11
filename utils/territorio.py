@@ -84,7 +84,7 @@ def process_kml_file_territorio_locality_number(file_path):
 
     return extended_data_locality_number
 
-def generate_leaflet_map_html(coordinates, extended_data, extended_data_locality_number, rotation_angle, zoom):
+def generate_leaflet_map_html(coordinates, extended_data, extended_data_locality_number, rotation_angle, zoom, center_lat, center_lon):
      # Percorso del template nella directory template di AppData
     template_dir = os.path.join(os.getenv('APPDATA'), 'CongregationToolsApp', 'template')
     
@@ -101,13 +101,17 @@ def generate_leaflet_map_html(coordinates, extended_data, extended_data_locality
     except Exception as e:
         raise FileNotFoundError(f"Impossibile caricare il template: {template_name}. Errore: {e}")
 
-
-    if coordinates:
-        lat_center = sum(float(coord[1].strip()) for coord in coordinates) / len(coordinates)
-        lon_center = sum(float(coord[0].strip()) for coord in coordinates) / len(coordinates)
+    if center_lat  is None and center_lon is None:
+        if coordinates:
+            lat_center = sum(float(coord[1].strip()) for coord in coordinates) / len(coordinates)
+            lon_center = sum(float(coord[0].strip()) for coord in coordinates) / len(coordinates)
+        else:
+            lat_center = 0
+            lon_center = 0
     else:
-        lat_center = 0
-        lon_center = 0
+            lat_center = center_lat
+            lon_center = center_lon
+
 
     extended_data_list = [((lon, lat), text) for (lat, lon), text in extended_data]
 
@@ -135,16 +139,20 @@ def generate_leaflet_map_html(coordinates, extended_data, extended_data_locality
     return html_content_territorio
 
 
-def save_temp_and_show_map_html_territorio(main_window, coordinates, extended_data, extended_data_locality_number, rotation_angle, zoom):    
+def save_temp_and_show_map_html_territorio(main_window, coordinates, extended_data, extended_data_locality_number, rotation_angle, zoom, center_lat, center_lon):    
     # Genera il contenuto HTML della mappa
-    main_window.html_content_territorio = generate_leaflet_map_html(coordinates, extended_data, extended_data_locality_number, rotation_angle, zoom)
+    main_window.html_content_territorio = generate_leaflet_map_html(coordinates, extended_data, extended_data_locality_number, rotation_angle, zoom, center_lat, center_lon)
     
-    if coordinates:
-        lat_center = sum(float(coord[1].strip()) for coord in coordinates) / len(coordinates)
-        lon_center = sum(float(coord[0].strip()) for coord in coordinates) / len(coordinates)
+    if center_lat  is None and center_lon is None:
+        if coordinates:
+            lat_center = sum(float(coord[1].strip()) for coord in coordinates) / len(coordinates)
+            lon_center = sum(float(coord[0].strip()) for coord in coordinates) / len(coordinates)
+        else:
+            lat_center = 0
+            lon_center = 0
     else:
-        lat_center = 0
-        lon_center = 0
+            lat_center = center_lat
+            lon_center = center_lon
 
     
     # Salva il contenuto HTML temporaneamente
@@ -181,3 +189,51 @@ def handle_print_result(self, success, pdf_path):
     else:
         QMessageBox.critical(self, "Errore", "Impossibile salvare il file PDF.")
 
+def move_map(self, direction):
+
+    move_distance = 10  # Distance to move in map units (OpenLayers uses EPSG:3857)
+
+    # JavaScript code to move the map and get the new center in EPSG:3857
+    js_code = f"""
+    var view = map.getView();
+    var current_center = view.getCenter();
+    var move_distance = {move_distance};
+
+    // Calculate new center based on direction
+    var new_center;
+    if ("{direction}" === "up") {{
+        new_center = [current_center[0], current_center[1] + move_distance];
+    }} else if ("{direction}" === "down") {{
+        new_center = [current_center[0], current_center[1] - move_distance];
+    }} else if ("{direction}" === "left") {{
+        new_center = [current_center[0] - move_distance, current_center[1]];
+    }} else if ("{direction}" === "right") {{
+        new_center = [current_center[0] + move_distance, current_center[1]];
+    }}
+
+    // Convert new center to EPSG:4326
+    var new_center_wgs84 = ol.proj.transform(new_center, 'EPSG:3857', 'EPSG:4326');
+
+    // Return the new center in EPSG:4326 as a comma-separated string
+    new_center_wgs84.join(',');
+    """
+
+    # Callback function to handle the new center coordinates
+    def handle_new_center(result):
+        if result:  # Check if result is not None
+            # result contains the new center coordinates in EPSG:4326 as a comma-separated string
+            try:
+                center_lat, center_lon = map(float, result.split(','))
+                # Update the map with the new center
+                angle = self.rotation_spinner.value()
+                zoom = self.zoom_spinner.value()
+                save_temp_and_show_map_html_territorio(self, self.coordinates, self.extended_data, self.extended_data_locality_number, angle, zoom, center_lat, center_lon)
+            except ValueError as e:
+                print(f"Error parsing coordinates: {e}")
+        else:
+            print("No result returned from JavaScript.")
+
+    # Execute JavaScript and get the result
+    self.web_view_territorio.page().runJavaScript(js_code, handle_new_center)
+
+    

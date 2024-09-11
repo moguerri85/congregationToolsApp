@@ -3,7 +3,7 @@ import shutil
 import platform
 import os
 
-from PyQt5.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QWidget, QTabWidget, QPushButton, QMessageBox, QLineEdit, QProgressBar, QLabel, QFileDialog, QDoubleSpinBox, QSpinBox, QListWidget, QListWidgetItem
+from PyQt5.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QWidget, QTabWidget, QPushButton, QMessageBox, QLineEdit, QProgressBar, QLabel, QFileDialog, QDoubleSpinBox, QSpinBox, QListWidget, QListWidgetItem, QGridLayout
 from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineProfile
 from PyQt5.QtWebEngineCore import QWebEngineUrlRequestInterceptor, QWebEngineUrlRequestInfo
 from PyQt5.QtCore import QUrl, QEventLoop, QTimer, Qt, QObject, QEvent
@@ -16,7 +16,7 @@ from utils.update_software import check_for_updates
 from utils.pulizie import combine_html_pulizie, retrieve_content_pulizie
 from utils.testimonianza_pubblica import combine_html_testimonianza_pubbl, retrieve_content_testimonianza_pubbl, click_toggle_js_testimonianza_pubbl
 from utils.utility import show_alert, save_html, addProgressbar, clear_existing_widgets
-from utils.territorio import handle_print_result, save_temp_and_show_map_html_territorio, process_kml_file_territorio_coordinates, process_kml_file_territorio_ext_data, process_kml_file_territorio_locality_number, update_html_file_list
+from utils.territorio import handle_print_result, save_temp_and_show_map_html_territorio, process_kml_file_territorio_coordinates, process_kml_file_territorio_ext_data, process_kml_file_territorio_locality_number, update_html_file_list, move_map
 
 
 CURRENT_VERSION = "1.0.1"  # Versione corrente dell'app
@@ -56,7 +56,7 @@ class CongregationToolsApp(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Scra - ViGeo")
-        self.setGeometry(100, 100, 800, 600)
+        self.setGeometry(100, 100, 800, 500)
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
         self.layout = QVBoxLayout(self.central_widget)
@@ -188,6 +188,35 @@ class CongregationToolsApp(QMainWindow):
         zoom_layout.addWidget(self.zoom_spinner)
         button_operazione_layout.addLayout(zoom_layout)
 
+        # Layout per le frecce direzionali
+        arrow_layout = QGridLayout()
+        
+        # Frecce di spostamento
+        self.up_button = QPushButton("↑", self)
+        self.up_button.setEnabled(False)
+        self.up_button.clicked.connect(lambda: move_map(self, "up"))
+        
+        self.down_button = QPushButton("↓", self)
+        self.down_button.setEnabled(False)
+        self.down_button.clicked.connect(lambda: move_map(self, "down"))
+        
+        self.left_button = QPushButton("←", self)
+        self.left_button.setEnabled(False)
+        self.left_button.clicked.connect(lambda: move_map(self, "left"))
+        
+        self.right_button = QPushButton("→", self)
+        self.right_button.setEnabled(False)
+        self.right_button.clicked.connect(lambda: move_map(self, "right"))
+        
+        # Posiziona i pulsanti nel layout a croce
+        arrow_layout.addWidget(self.up_button, 0, 1)
+        arrow_layout.addWidget(self.left_button, 1, 0)
+        arrow_layout.addWidget(self.right_button, 1, 2)
+        arrow_layout.addWidget(self.down_button, 2, 1)
+        
+        # Aggiungi il layout delle frecce al layout delle operazioni
+        button_operazione_layout.addLayout(arrow_layout)
+        
         self.vertical_layout.addLayout(button_operazione_layout)
 
         # Aggiungi una QLabel per mostrare il percorso del file KML selezionato
@@ -537,11 +566,8 @@ class CongregationToolsApp(QMainWindow):
     def update_map(self):
         angle = self.rotation_spinner.value()
         zoom = self.zoom_spinner.value()
-        self.load_map_with_rotation(angle, zoom)
-
-    def load_map_with_rotation(self, angle, zoom):
         # Carica e aggiorna la mappa con la rotazione
-        save_temp_and_show_map_html_territorio(self, self.coordinates, self.extended_data, self.extended_data_locality_number, angle, zoom)
+        save_temp_and_show_map_html_territorio(self, self.coordinates, self.extended_data, self.extended_data_locality_number, angle, zoom, self.center_lat, self.center_lon)
 
     def open_kml_file_dialog_territorio(self):
         # Dialogo per selezionare un file KML
@@ -550,7 +576,9 @@ class CongregationToolsApp(QMainWindow):
         self.coordinates= []
         self.extended_data= []
         self.extended_data_locality_number= []
-
+        self.center_lat = None
+        self.center_lon = None
+        
         if file_path:
             # Aggiorna il percorso del file KML selezionato nella QLabel
             self.kml_file_path_label.setText(f"File KML selezionato: {file_path}")
@@ -562,7 +590,7 @@ class CongregationToolsApp(QMainWindow):
             rotation_angle = 0 #lo inizializzo a 0
             zoom = 18
             if self.coordinates:
-                save_temp_and_show_map_html_territorio(self, self.coordinates, self.extended_data, self.extended_data_locality_number, rotation_angle, zoom)
+                save_temp_and_show_map_html_territorio(self, self.coordinates, self.extended_data, self.extended_data_locality_number, rotation_angle, zoom, self.center_lat, self.center_lon)
             self.kml_loaded = True  # Imposta il flag come caricato
             self.toggle_spinners_territorio(True)  # Abilita gli spinner
         else:
@@ -573,6 +601,10 @@ class CongregationToolsApp(QMainWindow):
         self.rotation_spinner.setEnabled(enabled)
         self.zoom_spinner.setEnabled(enabled)
         self.save_map_button.setEnabled(enabled)
+        self.up_button.setEnabled(enabled)
+        self.down_button.setEnabled(enabled)
+        self.left_button.setEnabled(enabled)
+        self.right_button.setEnabled(enabled)
                     
     def save_map_to_folder(self):
         # Ottieni il percorso della cartella di destinazione

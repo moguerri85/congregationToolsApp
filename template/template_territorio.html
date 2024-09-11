@@ -68,7 +68,7 @@ var map = new ol.Map({
         doubleClickZoom: false,
         shiftDragZoom: false,
         pinchZoom: false,
-        keyboard: false,
+        keyboard: true,  // Abilita la navigazione da tastiera
         altShiftDragRotate: false,
         pinchRotate: false
     })
@@ -171,18 +171,19 @@ function addMarkers(extendedData) {
 var polygonsLayer = addPolygons({{ polygons| tojson | safe }});
 var markersLayer = addMarkers({{ extended_data| tojson | safe }});
 
-// Funzione per gestire la visibilità e l'alternanza dei marker in base allo zoom
+// Funzione per gestire lo zoom e accentrare la mappa se viene rimosso troppo zoom
 function handleZoomChange() {
     var zoom = map.getView().getZoom();
-    var markerZoomThreshold = 16.5; // Example zoom threshold
+    var zoomThreshold = 16.5;  // Soglia di zoom, ad esempio 5
 
-    if (zoom < markerZoomThreshold) {
+    if (zoom < zoomThreshold) {
         // Rimuovi i marker alternati se lo zoom è inferiore alla soglia
         var features = markersLayer.getSource().getFeatures();
         var alternatingFeatures = alternateMarkers(features);
 
         markersLayer.getSource().clear(); // Clear current markers
         markersLayer.getSource().addFeatures(alternatingFeatures); // Add alternating markers
+
     } else {
         // Ritorna tutti i marker se lo zoom è al di sopra della soglia
         markersLayer.getSource().clear(); // Clear current markers
@@ -190,10 +191,7 @@ function handleZoomChange() {
     }
 }
 
-// Ascolta il cambiamento di risoluzione per gestire la visibilità dei marker
-map.getView().on('change:resolution', handleZoomChange);
-
-// Aggiungi un listener per assicurarti che la visibilità venga gestita anche al caricamento iniziale
+// Ascolta i cambiamenti di vista (movimento e zoom)
 map.on('moveend', handleZoomChange);
 
 // Forza un rendering della mappa
