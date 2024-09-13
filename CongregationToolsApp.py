@@ -1,5 +1,4 @@
 import sys
-import shutil
 import platform
 import os
 
@@ -15,7 +14,7 @@ from utils.fine_settimana import combine_html_fine_settimana
 from utils.update_software import check_for_updates
 from utils.pulizie import combine_html_pulizie, retrieve_content_pulizie
 from utils.testimonianza_pubblica import combine_html_testimonianza_pubbl, retrieve_content_testimonianza_pubbl, click_toggle_js_testimonianza_pubbl
-from utils.utility import show_alert, save_html, addProgressbar, clear_existing_widgets
+from utils.utility import show_alert, save_html, addProgressbar, clear_existing_widgets, ensure_folder_appdata
 from utils.territorio import handle_print_result, save_temp_and_show_map_html_territorio, process_kml_file_territorio_coordinates, process_kml_file_territorio_ext_data, process_kml_file_territorio_locality_number, update_html_file_list, move_map
 
 
@@ -68,7 +67,7 @@ class CongregationToolsApp(QMainWindow):
         self.tabs = QTabWidget()
         self.layout.addWidget(self.tabs)
 
-        # Tab per la visualizzazione web
+        # Tab per Hourglass
         self.web_tab = QWidget()
         self.web_layout = QVBoxLayout(self.web_tab)
         self.view = QWebEngineView()
@@ -80,14 +79,14 @@ class CongregationToolsApp(QMainWindow):
         # Connette i segnali di navigazione alla funzione di gestione
         self.view.urlChanged.connect(self.call_page)
 
-        # Nuovo Tab per Cartoline per Territori
+        # Tab per Cartoline per Territori
         self.cartoline_tab = QWidget()
         self.cartoline_layout = QVBoxLayout(self.cartoline_tab)
         
         self.cartoline_tab.setLayout(self.cartoline_layout)  # Imposta il layout del tab
         self.tabs.addTab(self.cartoline_tab, "Cartoline per Territori")
 
-        # Tab per il file HTML locale
+        # Tab per ViGeo
         self.local_html_view = QWebEngineView()
         interceptor = RequestInterceptor()
         self.local_html_view.page().profile().setRequestInterceptor(interceptor)
@@ -108,6 +107,11 @@ class CongregationToolsApp(QMainWindow):
         message_update = ""
         message_update = check_for_updates(CURRENT_VERSION, GITHUB_RELEASES_API_URL)
         self.statusBar().showMessage(message_update)
+
+        # Disable the ViGeo tab
+        vigeo_index = self.tabs.indexOf(self.local_tab)
+        if vigeo_index != -1:
+            self.tabs.setTabEnabled(vigeo_index, False)
 
     def load_page(self, url):
         self.view.setUrl(QUrl(url))
@@ -697,36 +701,7 @@ class CongregationToolsApp(QMainWindow):
         else:
             event.ignore()
 
-def ensure_folder_appdata():
-    # Ottieni il percorso della cartella APPDATA e aggiungi 'CongregationToolsApp'
-    appdata_path = os.path.join(os.getenv('APPDATA'), 'CongregationToolsApp')
 
-    # Verifica se la cartella esiste, altrimenti creala
-    if not os.path.exists(appdata_path):
-        try:
-            os.makedirs(appdata_path)
-            print(f"Cartella creata: {appdata_path}")
-        except OSError as e:
-            print(f"Errore durante la creazione della cartella: {e}")
-    else:
-        print(f"La cartella esiste già: {appdata_path}")
-
-    # Percorso della cartella 'template' che vuoi copiare
-    source_folder = './template'
-
-    # Destinazione in cui copiare la cartella 'template'
-    destination_folder = os.path.join(appdata_path, 'template')
-
-    # Copia la cartella 'template' nella cartella 'CongregationToolsApp'
-    try:
-        if os.path.exists(source_folder):
-            # Copia l'intera cartella con i file e le sottocartelle
-            shutil.copytree(source_folder, destination_folder)
-            print(f"Cartella '{source_folder}' copiata con successo in '{destination_folder}'")
-        else:
-            print(f"La cartella sorgente '{source_folder}' non esiste.")
-    except Exception as e:
-        print(f"Errore durante la copia della cartella: {e}")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

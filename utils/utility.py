@@ -1,6 +1,7 @@
 import os
 from PyQt5.QtWidgets import QMessageBox, QProgressBar, QPushButton, QLineEdit
 from jinja2 import Template
+import shutil
 
 
 def show_overlay(self):
@@ -192,3 +193,50 @@ def clear_layout(self, layout):
                     self.clear_layout(sub_layout)
                 # else:
                     # print(f"L'elemento {i} è None e non è né un widget né un layout.")  # Debug
+
+
+def ensure_folder_appdata():
+    # Ottieni il percorso della cartella APPDATA e aggiungi 'CongregationToolsApp'
+    appdata_path = os.path.join(os.getenv('APPDATA'), 'CongregationToolsApp')
+
+    def delete_contents_except_keep_folder(root_dir, keep_folder):
+        # Elenca tutti i file e le cartelle nella directory
+        for item in os.listdir(root_dir):
+            item_path = os.path.join(root_dir, item)
+            if item != keep_folder:
+                # Se è una cartella, rimuovila ricorsivamente
+                if os.path.isdir(item_path):
+                    shutil.rmtree(item_path)
+                # Se è un file, rimuovilo
+                else:
+                    os.remove(item_path)
+    
+    # Verifica se la cartella esiste
+    if os.path.exists(appdata_path):
+        # Svuota la cartella mantenendo la sottocartella 'territori'
+        delete_contents_except_keep_folder(appdata_path, 'territori')
+    else:
+        try:
+            os.makedirs(appdata_path)
+            print(f"Cartella creata: {appdata_path}")
+        except OSError as e:
+            print(f"Errore durante la creazione della cartella: {e}")
+
+    # Percorso della cartella 'template' che vuoi copiare
+    source_folder = './template'
+
+    # Destinazione in cui copiare la cartella 'template'
+    destination_folder = os.path.join(appdata_path, 'template')
+
+    # Copia la cartella 'template' nella cartella 'CongregationToolsApp'
+    try:
+        if os.path.exists(source_folder):
+            # Copia l'intera cartella con i file e le sottocartelle
+            shutil.copytree(source_folder, destination_folder)
+            print(f"Cartella '{source_folder}' copiata con successo in '{destination_folder}'")
+        else:
+            print(f"La cartella sorgente '{source_folder}' non esiste.")
+    except FileExistsError:
+        print(f"La cartella di destinazione '{destination_folder}' esiste già.")
+    except Exception as e:
+        print(f"Errore durante la copia della cartella: {e}")                    
