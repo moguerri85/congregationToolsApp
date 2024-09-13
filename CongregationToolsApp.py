@@ -165,7 +165,8 @@ class CongregationToolsApp(QMainWindow):
         # Aggiungi pulsante per salvare la mappa
         self.save_map_button = QPushButton("Salva Cartolina", self)
         self.save_map_button.setEnabled(False)  # Disabilita all'inizio
-        self.save_map_button.clicked.connect(self.save_map_to_folder)
+        self.save_map_button.clicked.connect(self.call_save_map_to_folder)
+        self.save_map = False
         button_layout.addWidget(self.save_map_button)
 
         self.vertical_layout.addLayout(button_layout)
@@ -557,15 +558,18 @@ class CongregationToolsApp(QMainWindow):
             os.makedirs(appdata_folder)
 
     def load_html_file_from_list(self, item):
+        self.save_map = False
+
         # Ottieni il nome del file cliccato
         file_name = item.text()
-        
         # Costruisci il percorso completo del file
         appdata_folder = os.path.join(os.getenv('APPDATA'), 'CongregationToolsApp', 'territori')
         file_path = os.path.join(appdata_folder, file_name)
-        
         # Carica il file nel QWebEngineView
         self.web_view_territorio.setUrl(QUrl.fromLocalFile(file_path))
+        self.toggle_spinners_territorio(False)
+        if(file_name=="territorio_map.html"):
+            self.toggle_spinners_territorio(True)
                     
     def update_map(self):
         angle = self.rotation_spinner.value()
@@ -609,60 +613,66 @@ class CongregationToolsApp(QMainWindow):
         self.down_button.setEnabled(enabled)
         self.left_button.setEnabled(enabled)
         self.right_button.setEnabled(enabled)
+
+    def call_save_map_to_folder(self):                
+        self.save_map = True
+        self.save_map_to_folder()
                     
     def save_map_to_folder(self):
-        # Ottieni il percorso della cartella di destinazione
-        default_folder = os.path.join(os.getenv('APPDATA'), 'CongregationToolsApp', 'territori')
+        if self.save_map:
+            # Ottieni il percorso della cartella di destinazione
+            default_folder = os.path.join(os.getenv('APPDATA'), 'CongregationToolsApp', 'territori')
 
-        # Verifica se la cartella esiste
-        if not os.path.exists(default_folder):
-            os.makedirs(default_folder)
+            # Verifica se la cartella esiste
+            if not os.path.exists(default_folder):
+                os.makedirs(default_folder)
 
-        if not self.html_content_territorio:
-            QMessageBox.warning(self, "Attenzione", "Nessun contenuto HTML da salvare.")
-            return
+            if not self.html_content_territorio:
+                QMessageBox.warning(self, "Attenzione", "Nessun contenuto HTML da salvare.")
+                return
 
-        file_name = ""
-        # Assicurati che extended_data_locality_number contenga almeno due elementi
-        if len(self.extended_data_locality_number) >= 2:
-            file_name = self.extended_data_locality_number[1] + "_" + self.extended_data_locality_number[0] + ".html"
-            file_path = os.path.join(default_folder, file_name)
+            file_name = ""
+            # Assicurati che extended_data_locality_number contenga almeno due elementi
+            if len(self.extended_data_locality_number) >= 2:
+                file_name = self.extended_data_locality_number[1] + "_" + self.extended_data_locality_number[0] + ".html"
+                file_path = os.path.join(default_folder, file_name)
 
-            if file_name:
-                try:
-                    # Salva il file HTML nella posizione di destinazione
-                    with open(file_path, 'w') as file:
-                        file.write(self.html_content_territorio)
+                if file_name:
+                    try:
+                        # Apri una finestra di dialogo per selezionare il percorso di salvataggio del PDF
+                        options = QFileDialog.Options()
+                        pdf_path, _ = QFileDialog.getSaveFileName(self, "Salva Mappa come PDF", default_folder, "PDF Files (*.pdf)", options=options)
 
-                    # Apri una finestra di dialogo per selezionare il percorso di salvataggio del PDF
-                    options = QFileDialog.Options()
-                    pdf_path, _ = QFileDialog.getSaveFileName(self, "Salva Mappa come PDF", default_folder, "PDF Files (*.pdf)", options=options)
+                        if pdf_path:
+                            # Salva il file HTML nella posizione di destinazione
+                            with open(file_path, 'w') as file:
+                                file.write(self.html_content_territorio)
+                                
+                            try:
+                                # Funzione per stampare la pagina in PDF
+                                def save_pdf_to_file(data):
+                                    try:
+                                        with open(pdf_path, 'wb') as f:
+                                            f.write(data)
+                                        handle_print_result(self, True, pdf_path)  # Chiamata alla funzione di successo
+                                    except Exception as e:
+                                        QMessageBox.critical(self, "Errore", f"Errore durante il salvataggio del PDF: {e}")
 
-                    if pdf_path:
-                        try:
-                            # Funzione per stampare la pagina in PDF
-                            def save_pdf_to_file(data):
-                                try:
-                                    with open(pdf_path, 'wb') as f:
-                                        f.write(data)
-                                    handle_print_result(self, True, pdf_path)  # Chiamata alla funzione di successo
-                                except Exception as e:
-                                    QMessageBox.critical(self, "Errore", f"Errore durante il salvataggio del PDF: {e}")
+                                # Assicurati che la mappa sia completamente renderizzata prima di generare il PDF
+                                def on_load_finished():
+                                    QTimer.singleShot(1000, lambda: page.printToPdf(save_pdf_to_file))
 
-                            # Assicurati che la mappa sia completamente renderizzata prima di generare il PDF
-                            def on_load_finished():
-                                QTimer.singleShot(1000, lambda: page.printToPdf(save_pdf_to_file))
-
-                            page = self.web_view_territorio.page()
-                            self.web_view_territorio.page().loadFinished.connect(on_load_finished)
-                            self.web_view_territorio.setUrl(QUrl.fromLocalFile(file_path))
-                            update_html_file_list(self)
-                        except Exception as e:
-                            QMessageBox.critical(self, "Errore", f"Impossibile salvare il file PDF: {e}")
-                    else:
-                        QMessageBox.warning(self, "Salvataggio Annullato", "Il salvataggio è stato annullato.")
-                except Exception as e:
-                    QMessageBox.critical(self, "Errore", f"Impossibile salvare il file HTML: {e}")
+                                page = self.web_view_territorio.page()
+                                self.web_view_territorio.page().loadFinished.connect(on_load_finished)
+                                self.web_view_territorio.setUrl(QUrl.fromLocalFile(file_path))
+                                update_html_file_list(self)
+                                self.save_map = False
+                            except Exception as e:
+                                QMessageBox.critical(self, "Errore", f"Impossibile salvare il file PDF: {e}")
+                        else:
+                            QMessageBox.warning(self, "Salvataggio Annullato", "Il salvataggio è stato annullato.")
+                    except Exception as e:
+                        QMessageBox.critical(self, "Errore", f"Impossibile salvare il file HTML: {e}")
 
 
 

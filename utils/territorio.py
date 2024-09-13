@@ -139,9 +139,9 @@ def generate_leaflet_map_html(coordinates, extended_data, extended_data_locality
     return html_content_territorio
 
 
-def save_temp_and_show_map_html_territorio(main_window, coordinates, extended_data, extended_data_locality_number, rotation_angle, zoom, center_lat, center_lon):    
+def save_temp_and_show_map_html_territorio(self, coordinates, extended_data, extended_data_locality_number, rotation_angle, zoom, center_lat, center_lon):    
     # Genera il contenuto HTML della mappa
-    main_window.html_content_territorio = generate_leaflet_map_html(coordinates, extended_data, extended_data_locality_number, rotation_angle, zoom, center_lat, center_lon)
+    self.html_content_territorio = generate_leaflet_map_html(coordinates, extended_data, extended_data_locality_number, rotation_angle, zoom, center_lat, center_lon)
     
     if center_lat  is None and center_lon is None:
         if coordinates:
@@ -161,9 +161,11 @@ def save_temp_and_show_map_html_territorio(main_window, coordinates, extended_da
     def save_file_and_load():
         try:
             with open(appdata_path, 'w') as file:
-                file.write(main_window.html_content_territorio)
-            main_window.web_view_territorio.setUrl(QUrl.fromLocalFile(appdata_path))
-            main_window.kml_file_path_label.setText(f"File KML elaborato con successo")
+                file.write(self.html_content_territorio)
+            self.web_view_territorio.setUrl(QUrl.fromLocalFile(appdata_path))
+            self.kml_file_path_label.setText(f"File KML elaborato con successo")
+            update_html_file_list(self)
+
         except Exception as e:
             print(f"Errore durante il caricamento della mappa: {e}")
 
@@ -184,10 +186,11 @@ def update_html_file_list(self):
         QMessageBox.critical(self, "Errore", f"Errore durante l'aggiornamento della lista dei file: {e}")
         
 def handle_print_result(self, success, pdf_path):
-    if success:
-        QMessageBox.information(self, "Salvataggio Completato", f"File PDF salvato con successo in: {pdf_path}")
-    else:
-        QMessageBox.critical(self, "Errore", "Impossibile salvare il file PDF.")
+    if self.save_map:
+        if success:
+            QMessageBox.information(self, "Salvataggio Completato", f"File PDF salvato con successo in: {pdf_path}")
+        else:
+            QMessageBox.critical(self, "Errore", "Impossibile salvare il file PDF.")
 
 def move_map(self, direction):
 
@@ -202,13 +205,13 @@ def move_map(self, direction):
     // Calculate new center based on direction
     var new_center;
     if ("{direction}" === "up") {{
-        new_center = [current_center[0], current_center[1] + move_distance];
-    }} else if ("{direction}" === "down") {{
         new_center = [current_center[0], current_center[1] - move_distance];
+    }} else if ("{direction}" === "down") {{
+        new_center = [current_center[0], current_center[1] + move_distance];
     }} else if ("{direction}" === "left") {{
-        new_center = [current_center[0] - move_distance, current_center[1]];
-    }} else if ("{direction}" === "right") {{
         new_center = [current_center[0] + move_distance, current_center[1]];
+    }} else if ("{direction}" === "right") {{
+        new_center = [current_center[0] - move_distance, current_center[1]];
     }}
 
     // Convert new center to EPSG:4326

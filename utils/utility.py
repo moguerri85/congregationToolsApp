@@ -199,23 +199,25 @@ def ensure_folder_appdata():
     # Ottieni il percorso della cartella APPDATA e aggiungi 'CongregationToolsApp'
     appdata_path = os.path.join(os.getenv('APPDATA'), 'CongregationToolsApp')
 
-    def delete_contents_except_keep_folder(root_dir, keep_folder):
-        # Elenca tutti i file e le cartelle nella directory
-        for item in os.listdir(root_dir):
-            item_path = os.path.join(root_dir, item)
-            if item != keep_folder:
-                # Se è una cartella, rimuovila ricorsivamente
-                if os.path.isdir(item_path):
-                    shutil.rmtree(item_path)
-                # Se è un file, rimuovilo
-                else:
-                    os.remove(item_path)
-    
     # Verifica se la cartella esiste
     if os.path.exists(appdata_path):
-        # Svuota la cartella mantenendo la sottocartella 'territori'
-        delete_contents_except_keep_folder(appdata_path, 'territori')
+        # Svuota la cartella esistente tranne la cartella 'territori'
+        for item in os.listdir(appdata_path):
+            item_path = os.path.join(appdata_path, item)
+            if item != 'territori':
+                if os.path.isdir(item_path):
+                    shutil.rmtree(item_path)  # Rimuove le cartelle e il loro contenuto
+                else:
+                    os.remove(item_path)  # Rimuove i file
+            else:
+                # Gestisci la cartella 'territori'
+                territori_path = item_path
+                # Elimina solo il file 'territori_map.html'
+                map_file_path = os.path.join(territori_path, 'territorio_map.html')
+                if os.path.exists(map_file_path):
+                    os.remove(map_file_path)
     else:
+        # Crea la cartella se non esiste
         try:
             os.makedirs(appdata_path)
             print(f"Cartella creata: {appdata_path}")
@@ -239,4 +241,4 @@ def ensure_folder_appdata():
     except FileExistsError:
         print(f"La cartella di destinazione '{destination_folder}' esiste già.")
     except Exception as e:
-        print(f"Errore durante la copia della cartella: {e}")                    
+        print(f"Errore durante la copia della cartella: {e}")                   
