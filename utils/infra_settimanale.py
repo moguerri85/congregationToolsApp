@@ -42,16 +42,16 @@ function getContent() {
 getContent();
 """
             
-def perform_click_infraSettimanale_tab(self):
+def perform_click_infraSettimanale(self):
     """Esegue il clic sul pulsante con la classe 'bi bi-arrow-right-square'."""
     self.view.page().runJavaScript(click_button_with_delay_js_infraSettimanale)
 
-def retrieve_content_infraSettimanale_tab(self, index):
+def retrieve_content_infraSettimanale(self, index):
     """Recupera il contenuto dell'elemento mainContent e lo aggiunge all'array."""
     self.view.page().runJavaScript(retrieve_content_js_infraSettimanale, 
-        lambda content: add_content_to_array_infraSettimanale_tab(self, content, index))
+        lambda content: add_content_to_array_infraSettimanale(self, content, index))
     
-def add_content_to_array_infraSettimanale_tab(self, content, index):
+def add_content_to_array_infraSettimanale(self, content, index):
     """Aggiunge il contenuto recuperato all'array e aggiorna la barra di progresso."""
     if content:
         self.content_array.append(content)
@@ -60,7 +60,7 @@ def add_content_to_array_infraSettimanale_tab(self, content, index):
     progress = int(((index + 1) / self.num_clicks) * 100)
     self.progress_bar.setValue(progress)
     if index < self.num_clicks:
-        perform_click_infraSettimanale_tab(self)
+        perform_click_infraSettimanale(self)
 
 def combine_html_infrasettimale(html):
     #soup = BeautifulSoup(html, 'html.parser')

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Mappa KML</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../template/css/ol.css" />
+    <link rel="stylesheet" type="text/css" href="../template/css/cssTerritorio.css">
+    <link href="http://fonts.googleapis.com/css?family=Ubuntu+Condensed|Lato:400,400italic,700" rel="stylesheet"
+        type="text/css">
+    <style>
+
+    </style>
+    <script src="../template/js/ol.js"></script>
+</head>
+
+<body>
+    <table style="width:100%; padding-top: 6mm">
+        <tr>
+            <td colspan="4">
+                <p class="s1">Piantina di territorio</p>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding-left: 9mm; width:60mm; text-align:left">
+                <p class="s2"><span style=""><b>Localit&agrave; </b></span><span class="s2"> {{extended_data_locality_number[1]}}</span></p>
+            </td>
+            <td style="width:35mm; text-align:left">
+                <p class="s2"><span style=""><b>Terr. N. </b></span><span class="s2"> {{extended_data_locality_number[0]}}</span></p>
+            </td>
+        </tr>
+        <tr>
+            <td style="text-align: left; flex: 1; margin-top: 7mm; height: 53mm" colspan="4">
+                <div id="map_container"><div id="map"></div></div>
+            </td>
+        </tr>
+        <tr></tr>
+        <tr>
+            <td style="padding-left: 9mm; padding-right: 9mm;" colspan="5">
+                <p class="s5">Tenete questa cartolina nella busta. Non la sciupate, non vi fate segni e non la piegate.
+                    Ogni volta che il territorio &egrave; stato percorso interamente, informate il fratello che si
+                    occupa dello schedario dei territori.</p>
+            </td>
+        </tr>
+    </table>
+    <p class="s6" style="text-indent: 0pt; margin-left: 12mm; margin-right: 11mm; margin-top: 10px; text-align: left;">
+        S-12-I &nbsp;&nbsp; &nbsp; 12/86</p>
+
+    <script>
+        // Creazione della mappa con OpenLayers
+var map = new ol.Map({
+    target: 'map',
+    layers: [
+        new ol.layer.Tile({
+            source: new ol.source.OSM()
+        })
+    ],
+    view: new ol.View({
+        center: ol.proj.fromLonLat([{{lat_center}}, {{lon_center}}]),
+        zoom: {{ zoom }},
+        rotation: {{ rotation_angle }} * Math.PI / 180 // Rotazione della mappa in radianti
+    }),
+    interactions: ol.interaction.defaults({
+        // Disabilita tutte le interazioni del mouse
+        dragPan: false,
+        mouseWheelZoom: false,
+        doubleClickZoom: false,
+        shiftDragZoom: false,
+        pinchZoom: false,
+        keyboard: true,  // Abilita la navigazione da tastiera
+        altShiftDragRotate: false,
+        pinchRotate: false
+    })
+});
+
+// Funzione per aggiungere poligoni alla mappa
+function addPolygons(polygons) {
+    var features = polygons.map(function (polygon) {
+        return new ol.Feature({
+            geometry: new ol.geom.Polygon([polygon.map(coord => ol.proj.fromLonLat(coord))])
+        });
+    });
+
+    var vectorSource = new ol.source.Vector({
+        features: features
+    });
+
+    var vectorLayer = new ol.layer.Vector({
+        source: vectorSource,
+        style: stylesPoligoni
+    });
+
+    map.addLayer(vectorLayer);
+    return vectorLayer; // Return the vector layer to manage its visibility
+}
+
+var stylesPoligoni = new ol.style.Style({
+    fill: new ol.style.Fill({
+        color: [0, 0, 255, 0.1]
+    }),
+    stroke: new ol.style.Stroke({
+        color: [255, 0, 0, 0.5],
+        width: 4
+    })
+});
+
+// Funzione per rimuovere markers in modo alternato
+function alternateMarkers(features) {
+    var filteredFeatures = [];
+    
+    for (var i = 0; i < features.length; i++) {
+        // Keep every other marker (alternating pattern)
+        if (i % 2 === 0) {
+            filteredFeatures.push(features[i]);
+        }
+    }
+
+    return filteredFeatures;
+}
+
+// Funzione per aggiungere marker alla mappa
+function addMarkers(extendedData) {
+    var features = extendedData.map(function (data) {
+        var lon = parseFloat(data[0][0]);
+        var lat = parseFloat(data[0][1]);
+        var label = data[1];
+
+        return new ol.Feature({
+            geometry: new ol.geom.Point(ol.proj.fromLonLat([lon, lat])),
+            label: label
+        });
+    });
+
+    var vectorSource = new ol.source.Vector({
+        features: features
+    });
+
+    var vectorLayer = new ol.layer.Vector({
+        source: vectorSource,
+        style: function (feature) {
+            return new ol.style.Style({
+                image: new ol.style.Icon({
+                    src: 'data:image/svg+xml;base64,' + btoa(`
+                        <svg xmlns="http://www.w3.org/2000/svg" width="260" height="160">
+                            <rect x="0" y="0" width="260" height="160" fill="yellow" stroke="black" stroke-width="2"/>
+                        </svg>
+                    `),
+                    scale: 0.1,
+                    anchor: [0.1, 0.6],  // Anchor position of the icon (relative to the center)
+                    offsetX: 10,  // Offset orizzontale dell'icona (in pixel)
+                    offsetY: 0  // Offset verticale dell'icona (in pixel)
+                }),
+                text: new ol.style.Text({
+                    text: feature.get('label'),
+                    font: 'bold 12px sans-serif',
+                    fill: new ol.style.Fill({
+                        color: '#000'
+                    }),
+                    offsetX: 10,  // Offset orizzontale del testo (in pixel)
+                    offsetY: 0  // Offset verticale del testo (in pixel)
+                })
+            });
+        }
+    });
+
+    map.addLayer(vectorLayer);
+    return vectorLayer; // Return the vector layer to manage its visibility
+}
+
+var polygonsLayer = addPolygons({{ polygons| tojson | safe }});
+var markersLayer = addMarkers({{ extended_data| tojson | safe }});
+
+// Funzione per gestire lo zoom e accentrare la mappa se viene rimosso troppo zoom
+function handleZoomChange() {
+    var zoom = map.getView().getZoom();
+    var zoomThreshold = 16.5;  // Soglia di zoom, ad esempio 5
+
+    if (zoom < zoomThreshold) {
+        // Rimuovi i marker alternati se lo zoom è inferiore alla soglia
+        var features = markersLayer.getSource().getFeatures();
+        var alternatingFeatures = alternateMarkers(features);
+
+        markersLayer.getSource().clear(); // Clear current markers
+        markersLayer.getSource().addFeatures(alternatingFeatures); // Add alternating markers
+
+    } else {
+        // Ritorna tutti i marker se lo zoom è al di sopra della soglia
+        markersLayer.getSource().clear(); // Clear current markers
+        markersLayer.getSource().addFeatures(addMarkers({{ extended_data| tojson | safe }}).getSource().getFeatures());
+    }
+}
+
+// Ascolta i cambiamenti di vista (movimento e zoom)
+map.on('moveend', handleZoomChange);
+
+// Forza un rendering della mappa
+map.renderSync();
+
+    </script>
+</body>
+
+</html>

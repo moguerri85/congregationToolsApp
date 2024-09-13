@@ -1,6 +1,7 @@
 import os
-from PyQt5.QtWidgets import QMessageBox, QProgressBar, QPushButton
+from PyQt5.QtWidgets import QMessageBox, QProgressBar, QPushButton, QLineEdit
 from jinja2 import Template
+import shutil
 
 
 def show_overlay(self):
@@ -51,36 +52,42 @@ def save_html(self, html):
         # Handle the error, e.g., provide a default CSS or exit the program                    
         
     url = self.view.url().toString()
-    if "/avattendant" in url: 
+    if "/scheduling/avattendant" in url: 
         with open("./template/css/cssAVUscieri.css", 'r') as css:
             style_custom = css.read()
         script_custom = ""
         data = {"scraped_data": html, "programma": "Audio\\Video e Uscieri", "logo_bibbia": logo_bibbia, "css_content": css_content, "style_custom": style_custom, "script_custom": script_custom}
         file_name = "audio_video_uscieri.html"
-    elif "/wm" in url: 
+    elif "/scheduling/wm" in url: 
         with open("./template/css/cssFineSettimana.css", 'r') as css:
             style_custom = css.read()
             script_custom = ""
         data = {"scraped_data": html, "programma": "Adunanza del fine settimana", "logo_bibbia": logo_bibbia, "css_content": css_content, "style_custom": style_custom, "script_custom": script_custom}
         file_name = "fine_settimana.html"
-    elif "/mm" in url: 
+    elif "/scheduling/mm" in url: 
         with open("./template/css/cssInfrasettimanale.css", 'r') as css:
             style_custom = css.read()
             script_custom = ""
         data = {"scraped_data": html, "programma": "Adunanza Infrasettimanale", "logo_bibbia": logo_bibbia, "css_content": css_content, "style_custom": style_custom, "script_custom": script_custom}
         file_name = "infrasettimanale.html" 
-    elif "/cleaning" in url: 
+    elif "/scheduling/cleaning" in url: 
         with open("./template/css/cssPulizie.css", 'r') as css:
             style_custom = css.read()
             script_custom = ""
         data = {"scraped_data": html, "programma": "Pulizie", "logo_bibbia": logo_bibbia, "css_content": css_content, "style_custom": style_custom, "script_custom": script_custom}
-        file_name = "pulizie.html"        
+        file_name = "pulizie.html"    
+    elif "/scheduling/publicWitnessing" in url: 
+        with open("./template/css/cssPublicWitnessing.css", 'r') as css:
+            style_custom = css.read()
+            script_custom = ""
+        data = {"scraped_data": html, "programma": "Testimonianza Pubblica", "logo_bibbia": logo_bibbia, "css_content": css_content, "style_custom": style_custom, "script_custom": script_custom}
+        file_name = "testimonianza_pubblica.html"         
     else:
         data = {"scraped_data": html, "programma": "Generico", "logo_bibbia": logo_bibbia, "css_content": css_content}
         file_name = "generico.html"
         
     # Caricamento del template HTML
-    with open("./template/template.html", encoding='utf-8') as file:
+    with open("./template/template_schedule.html", encoding='utf-8') as file:
         template = Template(file.read())
 
     html_content = template.render(data)  
@@ -130,3 +137,106 @@ def save_html(self, html):
     # Rimuovi tutti i QPushButton dal layout
     for widget_edit in self.central_widget.findChildren(QProgressBar):
         widget_edit.setParent(None)  # Rimuove il QProgressBar dal layout    
+
+
+def clear_existing_widgets(self):
+    # Assicurati che il layout esista
+    if self.web_layout is None:
+        # print("Il layout 'web_layout' non è stato impostato.")
+        return
+
+    # Verifica se ci sono widget nel layout
+    if self.web_layout.count() == 0:
+        # print("Il layout è vuoto.")
+        return
+
+    # Itera sugli elementi del layout in ordine inverso
+    for i in reversed(range(self.web_layout.count())):
+        item = self.web_layout.itemAt(i)
+        if item is not None:
+            widget = item.widget()
+            if widget is not None:
+                if isinstance(widget, (QPushButton, QLineEdit)):
+                    # print(f"Rimuovendo widget: {widget}")  # Debug
+                    self.web_layout.removeWidget(widget)  # Rimuove il widget dal layout
+                    widget.deleteLater()  # Elimina il widget in modo sicuro
+                # else:
+                    # print(f"L'elemento {i} è un widget di tipo {type(widget)} e non è un QPushButton/QLineEdit.")  # Debug
+            else:
+                layout = item.layout()
+                if layout is not None:
+                    # print(f"L'elemento {i} è un layout di tipo {type(layout)}.")  # Debug
+                    # Se è un layout, puoi anche rimuovere i widget da esso
+                    clear_layout(self, layout)
+                # else:
+                    # print(f"L'elemento {i} è None e non è né un widget né un layout.")  # Debug
+        # else:
+            # print(f"Item {i} è None.")  # Debug
+
+def clear_layout(self, layout):
+    """Rimuove tutti i widget da un layout specificato."""
+    if layout is None:
+        return
+
+    for i in reversed(range(layout.count())):
+        item = layout.itemAt(i)
+        if item is not None:
+            widget = item.widget()
+            if widget is not None:
+                # print(f"Rimuovendo widget dal layout annidato: {widget}")  # Debug
+                layout.removeWidget(widget)
+                widget.deleteLater()
+            else:
+                sub_layout = item.layout()
+                if sub_layout is not None:
+                    # print(f"L'elemento {i} è un layout annidato di tipo {type(sub_layout)}.")  # Debug
+                    self.clear_layout(sub_layout)
+                # else:
+                    # print(f"L'elemento {i} è None e non è né un widget né un layout.")  # Debug
+
+
+def ensure_folder_appdata():
+    # Ottieni il percorso della cartella APPDATA e aggiungi 'CongregationToolsApp'
+    appdata_path = os.path.join(os.getenv('APPDATA'), 'CongregationToolsApp')
+
+    def delete_contents_except_keep_folder(root_dir, keep_folder):
+        # Elenca tutti i file e le cartelle nella directory
+        for item in os.listdir(root_dir):
+            item_path = os.path.join(root_dir, item)
+            if item != keep_folder:
+                # Se è una cartella, rimuovila ricorsivamente
+                if os.path.isdir(item_path):
+                    shutil.rmtree(item_path)
+                # Se è un file, rimuovilo
+                else:
+                    os.remove(item_path)
+    
+    # Verifica se la cartella esiste
+    if os.path.exists(appdata_path):
+        # Svuota la cartella mantenendo la sottocartella 'territori'
+        delete_contents_except_keep_folder(appdata_path, 'territori')
+    else:
+        try:
+            os.makedirs(appdata_path)
+            print(f"Cartella creata: {appdata_path}")
+        except OSError as e:
+            print(f"Errore durante la creazione della cartella: {e}")
+
+    # Percorso della cartella 'template' che vuoi copiare
+    source_folder = './template'
+
+    # Destinazione in cui copiare la cartella 'template'
+    destination_folder = os.path.join(appdata_path, 'template')
+
+    # Copia la cartella 'template' nella cartella 'CongregationToolsApp'
+    try:
+        if os.path.exists(source_folder):
+            # Copia l'intera cartella con i file e le sottocartelle
+            shutil.copytree(source_folder, destination_folder)
+            print(f"Cartella '{source_folder}' copiata con successo in '{destination_folder}'")
+        else:
+            print(f"La cartella sorgente '{source_folder}' non esiste.")
+    except FileExistsError:
+        print(f"La cartella di destinazione '{destination_folder}' esiste già.")
+    except Exception as e:
+        print(f"Errore durante la copia della cartella: {e}")                    
