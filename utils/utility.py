@@ -2,6 +2,7 @@ import os
 from PyQt5.QtWidgets import QMessageBox, QProgressBar, QPushButton, QLineEdit
 from jinja2 import Template
 import shutil
+import platform
 
 
 def show_overlay(self):
@@ -242,3 +243,19 @@ def ensure_folder_appdata():
         print(f"La cartella di destinazione '{destination_folder}' esiste già.")
     except Exception as e:
         print(f"Errore durante la copia della cartella: {e}")                   
+
+def handle_download(download):
+        # Mostra una finestra di dialogo di download
+        # Utilizzando os
+        home_directory_os = os.path.expanduser("~")
+        desktop_directory_os = os.path.join(home_directory_os, "Desktop")
+        system_name = platform.system()
+        if(system_name=="Windows"):
+            download.setPath(desktop_directory_os +"/"+ download.suggestedFileName())
+        else:    
+            download.setPath(home_directory_os +"/"+ download.suggestedFileName())
+        
+        download.accept()
+        # Crea e mostra il messaggio di avviso
+        show_alert("Download avvenuto con successo!")       
+         
