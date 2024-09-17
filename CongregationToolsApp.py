@@ -103,6 +103,21 @@ def refresh_access_token(client_id, refresh_token):
         print(f"Errore durante il refresh del token di accesso: {e}")
         return None
 
+# Funzione per ottenere informazioni dell'account dell'utente
+def get_user_info(access_token):
+    url = "https://api.dropboxapi.com/2/users/get_current_account"
+    headers = {
+        "Authorization": f"Bearer {access_token}"
+    }
+    try:
+        response = requests.post(url, headers=headers)
+        response.raise_for_status()
+        user_info = response.json()
+        return user_info.get("name", {}).get("given_name", ""), user_info.get("name", {}).get("surname", "")
+    except requests.exceptions.RequestException as e:
+        print(f"Errore durante il recupero delle informazioni dell'utente: {e}")
+        return "", ""
+
 # Interceptor per le richieste
 class RequestInterceptor(QWebEngineUrlRequestInterceptor):
     def interceptRequest(self, info: QWebEngineUrlRequestInfo):
@@ -304,6 +319,10 @@ class CongregationToolsApp(QMainWindow):
         self.benvenuto_layout.removeWidget(self.view)
         self.view.deleteLater()  # Rimuovi il widget dal layout e dalla memoria
         
+        # Ottieni nome e cognome dell'utente
+        if self.access_token:
+            self.user_name, self.user_surname = get_user_info(self.access_token)
+
         # Aggiorna il messaggio di benvenuto
         if hasattr(self, 'user_name') and hasattr(self, 'user_surname'):
             self.welcome_label.setText(f"Benvenuto {self.user_name} {self.user_surname}! Puoi accedere ai tuoi strumenti.")
