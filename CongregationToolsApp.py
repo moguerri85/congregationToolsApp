@@ -3,10 +3,15 @@ import base64
 import hashlib
 import os
 import requests
+import pickle
+
 from PyQt5.QtWidgets import QPushButton, QApplication, QMainWindow, QVBoxLayout, QWidget, QTabWidget, QMessageBox, QAction, QToolBar
 from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineProfile
 from PyQt5.QtWebEngineCore import QWebEngineUrlRequestInterceptor, QWebEngineUrlRequestInfo
 from PyQt5.QtCore import QUrl, Qt
+from PyQt5.QtGui import QGuiApplication
+
+
 from PyQt5.QtGui import QPainter, QColor, QIcon
 
 from hourglass.hourglass_manager import (
@@ -37,14 +42,28 @@ def generate_code_challenge(code_verifier):
     ).decode('utf-8').rstrip('=')
     return code_challenge
 
+def save_tokens(access_token, refresh_token):
+    appdata_path = os.path.join(os.getenv('APPDATA'), 'CongregationToolsApp')
+    local_file_pkl= appdata_path+'/tokens.pkl'
+    with open(local_file_pkl, "wb") as f:
+        pickle.dump((access_token, refresh_token), f)
+
+def load_tokens():
+    appdata_path = os.path.join(os.getenv('APPDATA'), 'CongregationToolsApp')
+    local_file_pkl= appdata_path+'/tokens.pkl'
+    try:
+        with open(local_file_pkl, "rb") as f:
+            return pickle.load(f)
+    except FileNotFoundError:
+        return None, None
+
 # Funzioni per l'autenticazione con Dropbox
 def initiate_authentication(client_id, code_challenge):
     redirect_uri = "http://localhost:5000/callback"
     auth_url = (
-        f"https://www.dropbox.com/oauth2/authorize?"
-        f"client_id={client_id}&response_type=code&"
+        f"https://www.dropbox.com/oauth2/authorize?client_id={client_id}&response_type=code&"
         f"redirect_uri={redirect_uri}&code_challenge={code_challenge}&"
-        f"code_challenge_method=S256"
+        f"code_challenge_method=S256&token_access_type=offline"
     )
     return auth_url
 
@@ -61,10 +80,28 @@ def exchange_code_for_tokens(client_id, code_verifier, code, redirect_uri):
         response = requests.post(url, data=data)
         response.raise_for_status()
         tokens = response.json()
-        return tokens["access_token"], tokens.get("refresh_token")
+        return tokens.get("access_token"), tokens.get("refresh_token")
     except requests.exceptions.RequestException as e:
         print(f"Errore durante lo scambio del codice di autorizzazione: {e}")
+        if e.response is not None:
+            print(f"Risposta dell'errore: {e.response.text}")
         return None, None
+
+def refresh_access_token(client_id, refresh_token):
+    url = "https://api.dropbox.com/oauth2/token"
+    data = {
+        "grant_type": "refresh_token",
+        "client_id": client_id,
+        "refresh_token": refresh_token
+    }
+    try:
+        response = requests.post(url, data=data)
+        response.raise_for_status()
+        tokens = response.json()
+        return tokens.get("access_token")
+    except requests.exceptions.RequestException as e:
+        print(f"Errore durante il refresh del token di accesso: {e}")
+        return None
 
 # Interceptor per le richieste
 class RequestInterceptor(QWebEngineUrlRequestInterceptor):
@@ -118,7 +155,34 @@ class CongregationToolsApp(QMainWindow):
 
         # Variabile per tenere traccia dello stato del login
         self.logged_in = False
+        # Carica i token salvati
+        self.access_token, self.refresh_token = load_tokens()
+        self.logged_in = self.access_token is not None
+        if self.logged_in:
+            self.view = QWebEngineView()
+            self.update_welcome_layout_after_login()
+            self.show_other_tabs()
+            self.update_dropbox_button_to_logout()    
 
+        self.center()  # Centratura della finestra
+
+    def center(self):
+        # Ottieni le dimensioni dello schermo
+        screen = QGuiApplication.primaryScreen()
+        screen_geometry = screen.availableGeometry()
+        screen_center = screen_geometry.center()
+
+        # Ottieni la geometria della finestra
+        window_geometry = self.frameGeometry()
+
+        # Calcola la posizione centrata tenendo conto delle dimensioni della finestra
+        x = screen_center.x() - window_geometry.width() // 2
+        y = 50 #screen_center.y() - window_geometry.height() // 2
+
+        print(y)
+
+        # Imposta la geometria della finestra
+        self.setGeometry(x, y, window_geometry.width(), window_geometry.height())
 
     def add_toolbar(self):
         # Crea la barra degli strumenti
@@ -136,7 +200,7 @@ class CongregationToolsApp(QMainWindow):
 
 
     def handle_dropbox_login(self):
-        # Pulizia del layout esistente, escludendo il welcome_label
+        # Pulizia del layout esistente
         clear_layout(self.benvenuto_layout, exclude_widgets=[self.welcome_label])
 
         # Aggiorna il testo dell'etichetta
@@ -171,30 +235,47 @@ class CongregationToolsApp(QMainWindow):
                 self.view.urlChanged.disconnect(self.handle_dropbox_auth_url_change)
                 self.update_welcome_layout_after_login()
 
+                # Salva i token per un uso futuro
+                self.access_token = access_token
+                self.refresh_token = refresh_token
+                save_tokens(self.access_token, self.refresh_token)
+                
                 # Cambia lo stato di login
                 self.logged_in = True
 
+                # Cambia le variabili del nome e cognome dell'utente (dovresti ottenere questi dati tramite l'API di Dropbox o un altro metodo)
+                self.user_name = "Nome"     # Sostituisci con il nome dell'utente
+                self.user_surname = "Cognome"  # Sostituisci con il cognome dell'utente
+
                 # Aggiorna il pulsante della barra degli strumenti in "Logout"
                 self.update_dropbox_button_to_logout()
-
-    def update_dropbox_button_to_logout(self):
-        # Aggiorna l'icona e il testo del pulsante in "Logout"
-        self.dropbox_login_action.setIcon(self.logout_icon)
-        self.dropbox_login_action.setText("Logout Dropbox")
-        self.dropbox_login_action.triggered.disconnect(self.handle_dropbox_login)
-        self.dropbox_login_action.triggered.connect(self.handle_dropbox_logout)
 
     def handle_dropbox_logout(self):
         # Implementa la logica di logout (es. rimuovere il token, ripulire lo stato)
         print("Logged out from Dropbox.")
         # Resetta lo stato di login
         self.logged_in = False
+        self.access_token = None
+        self.refresh_token = None        
         # Rimuovi tutti i tab tranne il tab di benvenuto
         self.remove_all_tabs()
         
         setup_benvenuto_tab(self)
         # Aggiorna il pulsante della barra degli strumenti in "Login"
         self.update_dropbox_button_to_login()
+        save_tokens(None, None)  # Rimuovi i token salvati
+
+    def use_access_token(self):
+        if not self.access_token:
+            if self.refresh_token:
+                new_access_token = refresh_access_token("4purifuc7efvwld", self.refresh_token)
+                if new_access_token:
+                    self.access_token = new_access_token
+                    save_tokens(self.access_token, self.refresh_token)
+                else:
+                    print("Impossibile aggiornare il token di accesso.")
+            else:
+                print("Nessun token di accesso o refresh token disponibili.")
 
     def remove_all_tabs(self):
         # Ottieni il numero totale dei tab
@@ -211,20 +292,30 @@ class CongregationToolsApp(QMainWindow):
         self.dropbox_login_action.triggered.disconnect(self.handle_dropbox_logout)
         self.dropbox_login_action.triggered.connect(self.handle_dropbox_login)
 
+    def update_dropbox_button_to_logout(self):
+        # Aggiorna l'icona e il testo del pulsante in "Logout"
+        self.dropbox_login_action.setIcon(self.logout_icon)
+        self.dropbox_login_action.setText("Logout Dropbox")
+        self.dropbox_login_action.triggered.disconnect(self.handle_dropbox_login)
+        self.dropbox_login_action.triggered.connect(self.handle_dropbox_logout)
+
     def update_welcome_layout_after_login(self):
         # Rimuovi il web view e aggiorna il layout dopo il login
         self.benvenuto_layout.removeWidget(self.view)
         self.view.deleteLater()  # Rimuovi il widget dal layout e dalla memoria
-
-        # Aggiorna il messaggio di benvenuto
-        self.welcome_label.setText("Login effettuato con successo! Puoi accedere ai tuoi strumenti.")
         
+        # Aggiorna il messaggio di benvenuto
+        if hasattr(self, 'user_name') and hasattr(self, 'user_surname'):
+            self.welcome_label.setText(f"Benvenuto {self.user_name} {self.user_surname}! Puoi accedere ai tuoi strumenti.")
+        else:
+            self.welcome_label.setText("Benvenuto! Puoi accedere ai tuoi strumenti.")
+
         # Aggiungi un pulsante per visualizzare gli altri tab
-        show_tabs_button = QPushButton("Visualizza Strumenti", self)
-        show_tabs_button.setStyleSheet("padding: 10px; font-size: 16px;")
-        self.benvenuto_layout.addWidget(show_tabs_button)
+        self.show_tabs_button = QPushButton("Visualizza Strumenti", self)
+        self.show_tabs_button.setStyleSheet("padding: 10px; font-size: 16px;")
+        self.benvenuto_layout.addWidget(self.show_tabs_button)
         # Connetti il pulsante per mostrare gli altri tab
-        show_tabs_button.clicked.connect(self.show_other_tabs)
+        self.show_tabs_button.clicked.connect(self.show_other_tabs)
         
         # Cambia il layout aggiungendo nuovi strumenti se necessario
         self.welcome_label.setStyleSheet("font-size: 18px; color: green;")
@@ -233,6 +324,11 @@ class CongregationToolsApp(QMainWindow):
         # Rimuovi il tab di benvenuto (o tenerlo visibile)
         #self.tabs.removeTab(self.tabs.indexOf(self.benvenuto_tab))
         
+        # Rimuovi il pulsante 'show_tabs_button' se esiste
+        if hasattr(self, 'show_tabs_button'):
+            self.benvenuto_layout.removeWidget(self.show_tabs_button)
+            self.show_tabs_button.deleteLater()
+
         # Aggiungi il tab 
         setup_hourglass_tab(self)
 

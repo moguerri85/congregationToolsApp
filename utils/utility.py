@@ -183,18 +183,18 @@ def ensure_folder_appdata():
 
     # Verifica se la cartella esiste
     if os.path.exists(appdata_path):
-        # Svuota la cartella esistente tranne la cartella 'territori'
+        # Svuota la cartella esistente tranne la cartella 'territori' e il file 'tokens.pkl'
         for item in os.listdir(appdata_path):
             item_path = os.path.join(appdata_path, item)
-            if item != 'territori':
+            if item != 'territori' and item != 'tokens.pkl':
                 if os.path.isdir(item_path):
                     shutil.rmtree(item_path)  # Rimuove le cartelle e il loro contenuto
                 else:
                     os.remove(item_path)  # Rimuove i file
-            else:
+            elif item == 'territori':
                 # Gestisci la cartella 'territori'
                 territori_path = item_path
-                # Elimina solo il file 'territori_map.html'
+                # Elimina solo il file 'territorio_map.html'
                 map_file_path = os.path.join(territori_path, 'territorio_map.html')
                 if os.path.exists(map_file_path):
                     os.remove(map_file_path)
@@ -223,7 +223,8 @@ def ensure_folder_appdata():
     except FileExistsError:
         print(f"La cartella di destinazione '{destination_folder}' esiste già.")
     except Exception as e:
-        print(f"Errore durante la copia della cartella: {e}")                   
+        print(f"Errore durante la copia della cartella: {e}")
+                 
 
 def handle_download(download):
         # Mostra una finestra di dialogo di download
