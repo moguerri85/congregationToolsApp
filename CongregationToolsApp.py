@@ -116,18 +116,24 @@ class CongregationToolsApp(QMainWindow):
         message_update = check_for_updates(CURRENT_VERSION, GITHUB_RELEASES_API_URL)
         self.statusBar().showMessage(message_update)
 
+        # Variabile per tenere traccia dello stato del login
+        self.logged_in = False
+
+
     def add_toolbar(self):
         # Crea la barra degli strumenti
-        toolbar = QToolBar("Main Toolbar")
-        self.addToolBar(toolbar)
+        self.toolbar = QToolBar("Main Toolbar")
+        self.addToolBar(self.toolbar)
 
         # Aggiungi un'icona (logo) al pulsante di login
-        dropbox_icon = QIcon("./dropbox_icon.png")  # Assicurati che l'immagine sia disponibile in questo percorso
+        self.dropbox_icon = QIcon("./dropbox_icon.png")  # Assicurati che l'immagine sia disponibile in questo percorso
+        self.logout_icon = QIcon("./logout_icon.png")    # Aggiungi un'icona per il logout
 
         # Aggiungi un'azione per la login di Dropbox con l'icona
-        dropbox_login_action = QAction(dropbox_icon, "Login Dropbox", self)
-        dropbox_login_action.triggered.connect(self.handle_dropbox_login)
-        toolbar.addAction(dropbox_login_action)
+        self.dropbox_login_action = QAction(self.dropbox_icon, "Login Dropbox", self)
+        self.dropbox_login_action.triggered.connect(self.handle_dropbox_login)
+        self.toolbar.addAction(self.dropbox_login_action)
+
 
     def handle_dropbox_login(self):
         # Pulizia del layout esistente, escludendo il welcome_label
@@ -135,14 +141,10 @@ class CongregationToolsApp(QMainWindow):
 
         # Aggiorna il testo dell'etichetta
         self.welcome_label.setText("Effettua il login con Dropbox...")
-        
-        # Aggiungi il welcome_label al layout
         if self.welcome_label not in [self.benvenuto_layout.itemAt(i).widget() for i in range(self.benvenuto_layout.count())]:
             self.benvenuto_layout.addWidget(self.welcome_label)
-        
-        # Forza la visibilità dell'etichetta
         self.welcome_label.show()
-        
+
         # Inizializza l'autenticazione
         client_id = "4purifuc7efvwld"  # Sostituisci con il tuo client_id
         auth_url = initiate_authentication(client_id, self.code_challenge)
@@ -150,44 +152,64 @@ class CongregationToolsApp(QMainWindow):
         # Carica l'URL di autenticazione nella QWebEngineView
         self.view = QWebEngineView()
         self.view.setUrl(QUrl(auth_url))
-
-        # Connetti il cambio di URL per catturare il codice di autorizzazione
         self.view.urlChanged.connect(self.handle_dropbox_auth_url_change)
 
         # Aggiungi la QWebEngineView al layout di benvenuto
         self.benvenuto_layout.addWidget(self.view)
-
-        # Aggiorna il layout
         self.benvenuto_layout.update()
         self.view.show()
-
 
     def handle_dropbox_auth_url_change(self, url):
         url_str = url.toString()
 
         if "code=" in url_str:
-            # Ottieni il codice di autorizzazione dall'URL
             code = url_str.split("code=")[1].split("&")[0]
-            print(f"Authorization Code: {code}")
-
-            # Scambia il codice di autorizzazione con un token di accesso
             access_token, refresh_token = exchange_code_for_tokens("4purifuc7efvwld", self.code_verifier, code, "http://localhost:5000/callback")
-            print(f"Access Token: {access_token}")
-
+            
             if access_token:
-                # Disconnetti il segnale per evitare chiamate multiple
+                # Disconnetti il segnale e aggiorna il layout dopo il login
                 self.view.urlChanged.disconnect(self.handle_dropbox_auth_url_change)
-
-                # Aggiorna il layout di benvenuto
                 self.update_welcome_layout_after_login()
 
-            else:
-                print("Failed to get access token.")
+                # Cambia lo stato di login
+                self.logged_in = True
+
+                # Aggiorna il pulsante della barra degli strumenti in "Logout"
+                self.update_dropbox_button_to_logout()
+
+    def update_dropbox_button_to_logout(self):
+        # Aggiorna l'icona e il testo del pulsante in "Logout"
+        self.dropbox_login_action.setIcon(self.logout_icon)
+        self.dropbox_login_action.setText("Logout Dropbox")
+        self.dropbox_login_action.triggered.disconnect(self.handle_dropbox_login)
+        self.dropbox_login_action.triggered.connect(self.handle_dropbox_logout)
+
+    def handle_dropbox_logout(self):
+        # Implementa la logica di logout (es. rimuovere il token, ripulire lo stato)
+        print("Logged out from Dropbox.")
+        # Resetta lo stato di login
+        self.logged_in = False
+        # Rimuovi tutti i tab tranne il tab di benvenuto
+        self.remove_all_tabs()
         
-        elif "error" in url_str:
-            # Gestisci eventuali errori di autenticazione
-            print("Error during authentication.")
-            self.view.urlChanged.disconnect(self.handle_dropbox_auth_url_change)
+        setup_benvenuto_tab(self)
+        # Aggiorna il pulsante della barra degli strumenti in "Login"
+        self.update_dropbox_button_to_login()
+
+    def remove_all_tabs(self):
+        # Ottieni il numero totale dei tab
+        total_tabs = self.tabs.count()
+
+        # Rimuovi i tab a partire dall'ultimo verso il primo
+        for i in range(total_tabs - 1, -1, -1):
+            self.tabs.removeTab(i)
+
+    def update_dropbox_button_to_login(self):
+        # Ripristina l'icona e il testo del pulsante in "Login"
+        self.dropbox_login_action.setIcon(self.dropbox_icon)
+        self.dropbox_login_action.setText("Login Dropbox")
+        self.dropbox_login_action.triggered.disconnect(self.handle_dropbox_logout)
+        self.dropbox_login_action.triggered.connect(self.handle_dropbox_login)
 
     def update_welcome_layout_after_login(self):
         # Rimuovi il web view e aggiorna il layout dopo il login
@@ -235,6 +257,7 @@ class CongregationToolsApp(QMainWindow):
 
         # Imposta il tab predefinito da mostrare (ad esempio Hourglass)
         self.tabs.setCurrentIndex(0)
+
 
     def handle_load_finished(self, ok):
         if ok:

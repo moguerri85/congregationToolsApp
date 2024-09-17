@@ -8,6 +8,7 @@ def setup_benvenuto_tab(self):
     # Inizializza l'etichetta di benvenuto
     self.welcome_label = QLabel("Benvenuto! Effettua il login con Dropbox per continuare.")
     self.welcome_label.setAlignment(Qt.AlignCenter)
+    self.welcome_label.setStyleSheet("font-size: 18px; color: grey;")
 
     self.benvenuto_layout.addWidget(self.welcome_label)
 
