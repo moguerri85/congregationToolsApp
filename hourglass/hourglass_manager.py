@@ -2,17 +2,17 @@ from PyQt5.QtWidgets import QProgressBar
 from PyQt5.QtCore import QEventLoop, QTimer
 
 from hourglass.ui_hourglass import setup_av_attendant, setup_cleaning, setup_groups, setup_infra_week, setup_testimonianza_pubblica, setup_weekend
-from utils.av_uscieri import combine_html_av_uscieri, retrieve_content_av_uscieri
-from utils.fine_settimana import combine_html_fine_settimana
-from utils.infra_settimanale import click_expand_js_infraSettimanale, click_toggle_js_infraSettimanale, combine_html_infrasettimale, retrieve_content_infraSettimanale
-from utils.pulizie import combine_html_pulizie, retrieve_content_pulizie
+from hourglass.av_uscieri import combine_html_av_uscieri, retrieve_content_av_uscieri
+from hourglass.fine_settimana import combine_html_fine_settimana
+from hourglass.infra_settimanale import click_expand_js_infraSettimanale, click_toggle_js_infraSettimanale, combine_html_infrasettimale, retrieve_content_infraSettimanale
+from hourglass.pulizie import combine_html_pulizie, retrieve_content_pulizie
 from utils.utility import addProgressbar, clear_existing_widgets, save_html, show_alert
-from utils.testimonianza_pubblica import click_toggle_js_testimonianza_pubbl, combine_html_testimonianza_pubbl, retrieve_content_testimonianza_pubbl
+from hourglass.testimonianza_pubblica import click_toggle_js_testimonianza_pubbl, combine_html_testimonianza_pubbl, retrieve_content_testimonianza_pubbl
 
 def setup_schedule(self, url):
     self.__dict__.pop('content', None)
     url = self.view.url().toString()
-    
+
     setup_methods = {
         "/scheduling/wm": setup_weekend,
         "/scheduling/mm": setup_infra_week,
@@ -274,4 +274,6 @@ def handle_timeout_testimonianza_pubblica(self):
 
         self.timer.stop()
 
-
+def load_schedule_gruppi_servizio(self):
+    # Implementa la logica per caricare e gestire il tab dei gruppi di servizio
+    pass

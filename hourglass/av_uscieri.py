@@ -1,7 +1,5 @@
 from bs4 import BeautifulSoup, Tag
 
-
-
 click_button_with_delay_js_av_uscieri = """
 var arrowButton = document.querySelector('.bi.bi-arrow-right-square');
 if (arrowButton) {

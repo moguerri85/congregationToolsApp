@@ -1,75 +1,118 @@
-from PyQt5.QtWidgets import  QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit
+from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget, QLabel, QPushButton, QLineEdit
+from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtCore import Qt
 
+def setup_hourglass_tab(self):
+    self.hourglass_tab = QWidget()
+    self.hourglass_layout = QVBoxLayout(self.hourglass_tab)
+
+    # Crea e configura il QWebEngineView
+    self.view = QWebEngineView()
+    self.hourglass_layout.addWidget(self.view)
+
+    # Imposta il layout per il tab
+    self.hourglass_tab.setLayout(self.hourglass_layout)
+
+    # Aggiungi il tab ai tab widget
+    self.tabs.addTab(self.hourglass_tab, "Hourglass")
+
 def setup_weekend(self):
-    self.vertical_layout = QVBoxLayout()
+    horizontal_layout = QHBoxLayout()
+    horizontal_layout.setContentsMargins(0, 0, 0, 0)  # Rimuove i margini interni
+    horizontal_layout.setSpacing(10)  # Spazio tra gli elementi
+
+    # Crea e configura il pulsante
     button = QPushButton("Genera Stampa Fine Settimana")
     button.setFixedWidth(200)
     button.setFixedHeight(30)
     button.clicked.connect(self.call_load_schedule_fineSettimana)
-    self.vertical_layout.addWidget(button)
-    self.vertical_layout.setAlignment(Qt.AlignCenter)
-    self.web_layout.addLayout(self.vertical_layout)
     
+    horizontal_layout.addWidget(button)
+    horizontal_layout.setAlignment(Qt.AlignCenter)
+    self.hourglass_layout.addLayout(horizontal_layout)
+
 def setup_infra_week(self):
-    self.vertical_layout = QVBoxLayout()
+    horizontal_layout = QHBoxLayout()
+    horizontal_layout.setContentsMargins(0, 0, 0, 0)
+    horizontal_layout.setSpacing(10)
+
+    # Aggiungi il campo di testo e il pulsante
+    add_text_field(self, "Numero di settimane:", horizontal_layout)
     button = QPushButton("Genera Stampa Infrasettimanale")
-    add_text_field(self, "Numero di settimane:")
     button.setFixedWidth(200)
     button.setFixedHeight(30)
     button.clicked.connect(lambda: self.call_load_schedule_infraSettimanale(self.text_field))
-    self.vertical_layout.addWidget(button)
-    self.vertical_layout.setAlignment(Qt.AlignCenter)
-    self.web_layout.addLayout(self.vertical_layout)
+    
+    horizontal_layout.addWidget(button)
+    horizontal_layout.setAlignment(Qt.AlignCenter)
+    self.hourglass_layout.addLayout(horizontal_layout)
 
 def setup_av_attendant(self):
-    self.vertical_layout = QVBoxLayout()
-    add_text_field(self, "Numero di mesi:")
-    button = QPushButton("Genera Stampa Incarchi")
+    horizontal_layout = QHBoxLayout()
+    horizontal_layout.setContentsMargins(0, 0, 0, 0)
+    horizontal_layout.setSpacing(10)
+
+    # Aggiungi il campo di testo e il pulsante
+    add_text_field(self, "Numero di mesi:", horizontal_layout)
+    button = QPushButton("Genera Stampa Incarichi")
     button.setFixedWidth(200)
     button.setFixedHeight(30)
     button.clicked.connect(lambda: self.call_load_schedule_av_uscieri(self.text_field))
-    self.vertical_layout.addWidget(button)
-    self.vertical_layout.setAlignment(Qt.AlignCenter)
-    self.web_layout.addLayout(self.vertical_layout)
+    
+    horizontal_layout.addWidget(button)
+    horizontal_layout.setAlignment(Qt.AlignCenter)
+    self.hourglass_layout.addLayout(horizontal_layout)
 
 def setup_cleaning(self):
-    self.vertical_layout = QVBoxLayout()
-    add_text_field(self, "Numero di mesi:")
+    horizontal_layout = QHBoxLayout()
+    horizontal_layout.setContentsMargins(0, 0, 0, 0)
+    horizontal_layout.setSpacing(10)
+
+    # Aggiungi il campo di testo e il pulsante
+    add_text_field(self, "Numero di mesi:", horizontal_layout)
     button = QPushButton("Genera Stampa Pulizie")
     button.setFixedWidth(200)
     button.setFixedHeight(30)
     button.clicked.connect(lambda: self.call_load_schedule_pulizie(self.text_field))
-    self.vertical_layout.addWidget(button)
-    # Center the horizontal layout within the web layout
-    self.vertical_layout.setAlignment(Qt.AlignCenter)
-    self.web_layout.addLayout(self.vertical_layout)
+    
+    horizontal_layout.addWidget(button)
+    horizontal_layout.setAlignment(Qt.AlignCenter)
+    self.hourglass_layout.addLayout(horizontal_layout)
 
 def setup_testimonianza_pubblica(self):
-    self.vertical_layout = QVBoxLayout()
-    add_text_field(self, "Numero di mesi:")
+    horizontal_layout = QHBoxLayout()
+    horizontal_layout.setContentsMargins(0, 0, 0, 0)
+    horizontal_layout.setSpacing(10)
+
+    # Aggiungi il campo di testo e il pulsante
+    add_text_field(self, "Numero di mesi:", horizontal_layout)
     button = QPushButton("Genera Stampa Testimonianza Pubblica")
     button.setFixedWidth(200)
     button.setFixedHeight(30)
     button.clicked.connect(lambda: self.call_load_schedule_testimonianza_pubblica(self.text_field))
-    self.vertical_layout.addWidget(button)
-    self.vertical_layout.setAlignment(Qt.AlignCenter)
-    self.web_layout.addLayout(self.vertical_layout)
+    
+    horizontal_layout.addWidget(button)
+    horizontal_layout.setAlignment(Qt.AlignCenter)
+    self.hourglass_layout.addLayout(horizontal_layout)
 
 def setup_groups(self):
-    from hourglass.hourglass_manager import load_schedule_gruppi_servizio
+    horizontal_layout = QHBoxLayout()
+    horizontal_layout.setContentsMargins(0, 0, 0, 0)
+    horizontal_layout.setSpacing(10)
+
+    # Crea e configura il pulsante
     button = QPushButton("Genera Stampa Gruppi di Servizio")
     button.setFixedWidth(200)
     button.setFixedHeight(30)
-    button.clicked.connect(load_schedule_gruppi_servizio(self))
-    self.vertical_layout.addWidget(button)
+    button.clicked.connect(self.call_load_schedule_gruppi_servizio)
+    
+    horizontal_layout.addWidget(button)
+    horizontal_layout.setAlignment(Qt.AlignCenter)
+    self.hourglass_layout.addLayout(horizontal_layout)
 
-def add_text_field(self, label_text):
-    self.text_field_layout = QVBoxLayout()  # Layout per il campo di testo
-    self.text_field = QLineEdit()  # Crea il campo di testo
-    self.text_field.setPlaceholderText(label_text)  # Imposta il testo di segnaposto
-    self.text_field.setFixedWidth(200)  # Imposta la larghezza fissa
-    self.text_field.setFixedHeight(30)  # Imposta l'altezza fissa
-    self.text_field_layout.addWidget(self.text_field)  # Aggiungi il campo di testo al layout
-    self.text_field_layout.setAlignment(Qt.AlignCenter)
-    self.web_layout.addLayout(self.text_field_layout)  # Aggiungi il layout del campo di testo al layout principale
+def add_text_field(self, label_text, horizontal_layout):
+    self.text_field = QLineEdit()
+    self.text_field.setPlaceholderText(label_text)
+    self.text_field.setFixedWidth(200)
+    self.text_field.setFixedHeight(30)
+    horizontal_layout.addWidget(self.text_field)

@@ -1,7 +1,6 @@
 from bs4 import BeautifulSoup
 from datetime import datetime
 
-
 retrieve_content_js_pulizie = """
 function getContent() {
     return document.getElementById('mainContent').innerHTML;
