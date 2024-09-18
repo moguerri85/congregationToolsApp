@@ -194,8 +194,6 @@ class CongregationToolsApp(QMainWindow):
         x = screen_center.x() - window_geometry.width() // 2
         y = 50 #screen_center.y() - window_geometry.height() // 2
 
-        print(y)
-
         # Imposta la geometria della finestra
         self.setGeometry(x, y, window_geometry.width(), window_geometry.height())
 
