@@ -1,5 +1,5 @@
-from PyQt5.QtWidgets import (QVBoxLayout, QComboBox, QHBoxLayout, QLabel, QListWidget, QPushButton, QTabWidget, QWidget, QCalendarWidget,
-                             QTextEdit, QMessageBox, QRadioButton, QButtonGroup, QSizePolicy)
+from PyQt5.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel, QListWidget, QPushButton, QTabWidget, QWidget, QCalendarWidget,
+                             QTextEdit, QMessageBox, QRadioButton, QButtonGroup, QSizePolicy, QComboBox)
 from PyQt5.QtCore import Qt, QSize
 
 from utils.espositore_manager import add_person, add_tipologia, display_person_details, remove_person, remove_tipologia, update_person_availability, update_week_display
@@ -75,6 +75,8 @@ def setup_espositore_tab(app):
     # Crea un layout verticale per ogni giorno
     days_of_week = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"]
     
+    app.day_buttons = {}  # Dizionario per memorizzare i pulsanti dei giorni
+
     for day in days_of_week:
         day_widget = QWidget()
         day_layout = QVBoxLayout(day_widget)  # Layout verticale per ogni giorno
@@ -89,10 +91,15 @@ def setup_espositore_tab(app):
         square_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         square_button.setFixedSize(QSize(60, 60))  # Dimensione fissa
         square_button.setStyleSheet("background-color: lightgray; border: 1px solid black;")  # Stile del quadrato
+        
+        # Collega il clic del pulsante a una funzione
+        square_button.clicked.connect(lambda _, d=day: show_day_dialog(app, d))
+        
         day_layout.addWidget(square_button)
         
         day_widget.setLayout(day_layout)
         app.week_layout.addWidget(day_widget)
+        app.day_buttons[day] = square_button
 
     right_layout.addWidget(app.week_widget)
     setup_week_layout(app)
@@ -155,6 +162,59 @@ def toggle_week_or_calendar(app):
     else:
         app.week_widget.hide()
         app.calendar.hide()
+
+def show_day_dialog(app, day):
+    try:
+        dialog = QWidget()
+        dialog.setWindowTitle(f"Seleziona Tipologia e Fascia Oraria per {day}")
+        layout = QVBoxLayout(dialog)
+
+        # Tipologia
+        tipologia_label = QLabel("Seleziona la tipologia:")
+        layout.addWidget(tipologia_label)
+        
+        tipologia_combo = QComboBox()
+        for tipologia in app.tipologia_schedule.keys():
+            # Filtra le tipologie disponibili per il giorno
+            if day in app.tipologia_schedule[tipologia]:
+                tipologia_combo.addItem(tipologia)
+        layout.addWidget(tipologia_combo)
+
+        # Fascia oraria
+        fascia_label = QLabel("Seleziona la fascia oraria:")
+        layout.addWidget(fascia_label)
+        
+        fascia_combo = QComboBox()
+        layout.addWidget(fascia_combo)
+
+        def update_fasce():
+            selected_tipologia = tipologia_combo.currentText()
+            if selected_tipologia in app.tipologia_schedule and day in app.tipologia_schedule[selected_tipologia]:
+                fasce = app.tipologia_schedule[selected_tipologia][day]
+                fascia_combo.clear()
+                fascia_combo.addItems(fasce)
+
+        tipologia_combo.currentIndexChanged.connect(update_fasce)
+        update_fasce()
+
+        confirm_button = QPushButton("Conferma")
+        confirm_button.clicked.connect(lambda: update_day_selection(app, day, tipologia_combo.currentText(), fascia_combo.currentText(), dialog))
+        layout.addWidget(confirm_button)
+
+        dialog.setLayout(layout)
+        dialog.show()
+
+    except Exception as e:
+        QMessageBox.critical(app, "Errore", f"Si è verificato un errore: {str(e)}")
+
+def update_day_selection(app, day, tipologia, fascia, dialog):
+    try:
+        # Esegui qui l'aggiornamento della selezione
+        # ad esempio, salva la selezione per il giorno specificato
+        print(f"Selezionato per {day}: Tipologia={tipologia}, Fascia={fascia}")
+        dialog.accept()  # Chiudi il dialogo
+    except Exception as e:
+        QMessageBox.critical(app, "Errore", f"Si è verificato un errore: {str(e)}")
 
 def show_availability_dialog(app, date):
     try:

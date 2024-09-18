@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import (QInputDialog, QMessageBox, QWidget, QVBoxLayout, QLabel, QPushButton,
-                             QHBoxLayout, QGridLayout)
+                             QHBoxLayout, QGridLayout, QDialog, QFormLayout, QComboBox, QDialogButtonBox)
 from PyQt5.QtCore import Qt
 
 def add_person(app):
@@ -30,9 +30,16 @@ def display_person_details(app, item):
         app.current_person = person_name
         
         if person_name in app.person_schedule:
-            details = "\n".join([f"Data: {date}, Fasce Orarie: {', '.join([f['fascia_oraria'] for f in fasce])}" 
-                                 for date, fasce in app.person_schedule[person_name].items()])
-            app.detail_text.setText(details)
+            details = []
+            for date, fasce in app.person_schedule[person_name].items():
+                day_details = f"Data: {date}"
+                for fascia in fasce:
+                    tipologia = fascia['tipologia']
+                    fascia_oraria = fascia['fascia_oraria']
+                    day_details += f"\n - Tipologia: {tipologia}, Fascia Oraria: {fascia_oraria}"
+                details.append(day_details)
+                
+            app.detail_text.setText("\n".join(details))
         else:
             app.detail_text.setText("Nessun dettaglio disponibile.")
         
