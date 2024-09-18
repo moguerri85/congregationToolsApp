@@ -1,182 +1,159 @@
-from PyQt5.QtWidgets import (QInputDialog, QMessageBox, QWidget, QVBoxLayout, QLabel, QPushButton,
-                             QHBoxLayout, QGridLayout, QDialog, QFormLayout, QComboBox, QDialogButtonBox)
+from PyQt5.QtWidgets import (QMessageBox, QInputDialog, 
+                             QListWidgetItem)
 from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QMessageBox
+
+from utils.espositore_utils import save_data, update_person_details, update_week_display
 
 def add_person(app):
     try:
-        text, ok = QInputDialog.getText(app, "Aggiungi Proclamatore", "Nome del Proclamatore:")
-        if ok and text:
-            app.person_list.addItem(text)
-            app.person_schedule[text] = {}
-            update_turni_table(app)
+        # Mostra una finestra di input per il nome della persona
+        name, ok = QInputDialog.getText(app, "Aggiungi Proclamatore", "Nome del Proclamatore:")
+        
+        if ok and name:
+            # Genera un ID univoco per la persona (ad esempio, un contatore o UUID)
+            person_id = str(len(app.people) + 1)
+            
+            # Aggiungi la persona al dizionario
+            app.people[person_id] = name
+            
+            # Aggiungi la persona alla lista visuale
+            item = QListWidgetItem(name)
+            item.setData(Qt.UserRole, person_id)
+            app.person_list.addItem(item)
+            
+            # Salva i dati
+            save_data(app)
+            
     except Exception as e:
         QMessageBox.critical(app, "Errore", f"Si è verificato un errore: {str(e)}")
 
+
 def remove_person(app):
+    selected_item = app.person_list.currentItem()
+    if not selected_item:
+        QMessageBox.critical(app, "Errore", "Nessun proclamatore selezionato!")
+        return
+    
+    person_id = selected_item.data(Qt.UserRole)
+    if person_id in app.people:
+        del app.people[person_id]
+        del app.person_schedule[person_id]
+        app.person_list.takeItem(app.person_list.row(selected_item))
+        update_person_details(app, person_id)
+        save_data(app)
+    else:
+        QMessageBox.critical(app, "Errore", "Errore nel trovare l'ID del proclamatore!")
+
+def add_tipologia(app):
     try:
-        selected_item = app.person_list.currentItem()
-        if selected_item:
-            person_name = selected_item.text()
-            app.person_list.takeItem(app.person_list.row(selected_item))
-            if person_name in app.person_schedule:
-                del app.person_schedule[person_name]
-            update_turni_table(app)
+        text, ok = QInputDialog.getText(app, "Aggiungi Tipologia", "Nome della Tipologia:")
+        if ok and text:
+            # Genera un ID unico per la tipologia
+            tipologia_id = str(len(app.tipologia_schedule) + 1)
+            app.tipologia_schedule[tipologia_id] = {"nome": text, "fasce": []}
+
+            # Aggiungi la tipologia alla lista
+            item = QListWidgetItem(text)
+            item.setData(Qt.UserRole, tipologia_id)
+            app.tipologie_list.addItem(item)
+            save_data(app)  # Salva i dati dopo aver aggiunto una tipologia
+            
     except Exception as e:
-        QMessageBox.critical(app, "Errore", f"Si è verificato un errore: {str(e)}")
+        print(f"Errore durante l'aggiunta della tipologia: {e}")
+
+def modify_selected_tipologia(app):
+    try:
+        current_item = app.tipologie_list.currentItem()
+        if current_item:
+            tipologia_id = current_item.data(Qt.UserRole)
+            modify_tipologia(app, tipologia_id)
+    except Exception as e:
+        print(f"Errore durante la selezione della tipologia da modificare: {e}")
+
+def modify_tipologia(app, tipologia_id):
+    try:
+        current_name = app.tipologia_schedule.get(tipologia_id, {}).get("nome", "")
+        new_name, ok = QInputDialog.getText(app, "Modifica Tipologia", "Nome della Tipologia:", text=current_name)
+        if ok and new_name:
+            app.tipologia_schedule[tipologia_id]["nome"] = new_name
+
+            # Aggiorna la lista delle tipologie
+            for index in range(app.tipologie_list.count()):
+                item = app.tipologie_list.item(index)
+                if item.data(Qt.UserRole) == tipologia_id:
+                    item.setText(new_name)
+                    break
+            save_data(app)  # Salva i dati dopo aver modificato una tipologia
+            
+    except Exception as e:
+        print(f"Errore durante la modifica della tipologia: {e}")
+
+def remove_tipologia(app):
+    selected_item = app.tipologie_list.currentItem()
+    if not selected_item:
+        QMessageBox.critical(app, "Errore", "Nessuna tipologia selezionata!")
+        return
+    
+    tipologia_id = selected_item.data(Qt.UserRole)
+    if tipologia_id in app.tipologia_schedule:
+        del app.tipologia_schedule[tipologia_id]
+        for person_id in app.person_schedule:
+            for day in app.person_schedule[person_id]:
+                if app.person_schedule[person_id][day]["tipologia"] == tipologia_id:
+                    del app.person_schedule[person_id][day]
+        app.tipologie_list.takeItem(app.tipologie_list.row(selected_item))
+        update_week_display(app, None)
+        save_data(app)  # Salva i dati dopo aver eliminato una tipologia
+        
+    else:
+        QMessageBox.critical(app, "Errore", "Errore nel trovare l'ID della tipologia!")
 
 def display_person_details(app, item):
     try:
-        person_name = item.text()
-        app.current_person = person_name
+        # Ottieni l'ID del proclamatore selezionato
+        person_id = item.data(Qt.UserRole)
+        person = app.person_schedule.get(person_id, {})
         
-        if person_name in app.person_schedule:
-            details = []
-            for date, fasce in app.person_schedule[person_name].items():
-                day_details = f"Data: {date}"
-                for fascia in fasce:
-                    tipologia = fascia['tipologia']
-                    fascia_oraria = fascia['fascia_oraria']
-                    day_details += f"\n - Tipologia: {tipologia}, Fascia Oraria: {fascia_oraria}"
-                details.append(day_details)
-                
-            app.detail_text.setText("\n".join(details))
+        # Aggiorna i dettagli del proclamatore
+        app.detail_text.clear()
+        
+        if person:
+            app.detail_text.append(f"Nome: {person.get('name', 'N/A')}")
+            app.detail_text.append(f"ID: {person_id}")
+            
+            # Mostra la disponibilità per la tipologia
+            availability = person.get('availability', {})
+            if availability:
+                for tipologia, giorni in availability.items():
+                    app.detail_text.append(f"\nTipologia: {tipologia}")
+                    for giorno, fasce in giorni.items():
+                        app.detail_text.append(f"  Giorno: {giorno}")
+                        for fascia in fasce:
+                            app.detail_text.append(f"    Fascia: {fascia}")
+            else:
+                app.detail_text.append("Nessuna disponibilità disponibile.")
         else:
-            app.detail_text.setText("Nessun dettaglio disponibile.")
-        
-        update_turni_table(app)
+            app.detail_text.append("Dettagli non disponibili per il proclamatore selezionato.")
+            
     except Exception as e:
         QMessageBox.critical(app, "Errore", f"Si è verificato un errore: {str(e)}")
 
-def update_person_availability(app, date, tipologia, fascia_oraria, dialog):
+def update_person_availability(app, date, tipologia, fascia, dialog):
     try:
-        person_name = app.person_list.currentItem().text()
-        if person_name not in app.person_schedule:
-            app.person_schedule[person_name] = {}
+        if tipologia not in app.tipologia_schedule:
+            app.tipologia_schedule[tipologia] = {}
+        if date not in app.tipologia_schedule[tipologia]:
+            app.tipologia_schedule[tipologia][date] = []
 
-        if date not in app.person_schedule[person_name]:
-            app.person_schedule[person_name][date] = []
+        # Aggiungi la fascia oraria
+        app.tipologia_schedule[tipologia][date].append(fascia)
 
-        app.person_schedule[person_name][date].append({
-            'tipologia': tipologia,
-            'fascia_oraria': fascia_oraria
-        })
-        
-        dialog.close()
-        display_person_details(app, app.person_list.currentItem())
-        update_turni_table(app)
+        # Aggiorna la visualizzazione
+        update_week_display(app, app.tipologie_list.currentItem().text())
+
+        # Chiudi il dialogo
+        dialog.accept()
+
     except Exception as e:
-        QMessageBox.critical(app, "Errore", f"Si è verificato un errore: {str(e)}")
-
-def add_tipologia(app):
-    new_tipologia, ok = QInputDialog.getText(app, 'Nuova Tipologia', 'Inserisci il nome della tipologia:')
-    if ok and new_tipologia:
-        app.tipologie_list.addItem(new_tipologia)
-        app.tipologia_schedule[new_tipologia] = {}
-        update_week_display(app, new_tipologia)
-
-def remove_tipologia(app):
-    try:
-        selected_item = app.tipologie_list.currentItem()
-        if selected_item:
-            tipologia_name = selected_item.text()
-            app.tipologie_list.takeItem(app.tipologie_list.row(selected_item))
-            if tipologia_name in app.tipologia_schedule:
-                del app.tipologia_schedule[tipologia_name]
-            update_turni_table(app)
-            clear_week_display(app)
-    except Exception as e:
-        QMessageBox.critical(app, "Errore", f"Si è verificato un errore: {str(e)}")
-
-def update_turni_table(app):
-    try:
-        if app.turni_table.layout():
-            while app.turni_table.layout().count():
-                item = app.turni_table.layout().takeAt(0)
-                widget = item.widget()
-                if widget:
-                    widget.deleteLater()
-
-        main_layout = QVBoxLayout()
-        for tipologia, settimane in app.tipologia_schedule.items():
-            tipologia_layout = QVBoxLayout()
-
-            tipologia_label = QLabel(f"Tipologia: {tipologia}")
-            tipologia_label.setAlignment(Qt.AlignCenter)
-            tipologia_layout.addWidget(tipologia_label)
-
-            for settimana, giorni in settimane.items():
-                settimana_label = QLabel(f"Settimana: {settimana}")
-                settimana_label.setAlignment(Qt.AlignCenter)
-                tipologia_layout.addWidget(settimana_label)
-
-                settimana_layout = QGridLayout()
-                days = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"]
-
-                for i, day in enumerate(days):
-                    button = QPushButton(day)
-                    button.setFixedSize(60, 60)
-                    button.setStyleSheet("background-color: lightgrey; border: 1px solid black;")
-                    settimana_layout.addWidget(button, i // 7, i % 7)
-
-                    if day in giorni:
-                        for fascia_oraria in giorni[day]:
-                            button.setText(f"{day}\n{fascia_oraria}")
-
-                settimana_frame = QWidget()
-                settimana_frame.setLayout(settimana_layout)
-                tipologia_layout.addWidget(settimana_frame)
-
-            tipologia_widget = QWidget()
-            tipologia_widget.setLayout(tipologia_layout)
-            main_layout.addWidget(tipologia_widget)
-
-        app.turni_table.setLayout(main_layout)
-    except Exception as e:
-        QMessageBox.critical(app, "Errore", f"Si è verificato un errore: {str(e)}")
-
-def save_fascia_oraria(app, tipologia, day, fascia_oraria):
-    if tipologia not in app.tipologia_schedule:
-        app.tipologia_schedule[tipologia] = {}
-    if day not in app.tipologia_schedule[tipologia]:
-        app.tipologia_schedule[tipologia][day] = []
-    app.tipologia_schedule[tipologia][day].append(fascia_oraria)
-    update_week_display(app, tipologia)
-
-def update_week_display(app, tipologia):
-    clear_week_display(app)
-    
-    week_layout = QHBoxLayout()
-    days_of_week = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"]
-
-    day_buttons = {}
-    for day in days_of_week:
-        day_button = QPushButton(day)
-        day_button.setFixedSize(100, 100)
-        day_buttons[day] = day_button
-        day_button.clicked.connect(lambda _, d=day: add_fascia_to_day(app, tipologia, d))
-        week_layout.addWidget(day_button)
-
-    week_display_widget = QWidget()
-    week_display_widget.setLayout(week_layout)
-    app.week_display.setLayout(QVBoxLayout())
-    app.week_display.layout().addWidget(week_display_widget)
-
-    if tipologia in app.tipologia_schedule:
-        for day, fasce in app.tipologia_schedule[tipologia].items():
-            for button in day_buttons.values():
-                if button.text().startswith(day):
-                    button.setText(f"{day}\n" + "\n".join(fasce))
-
-def clear_week_display(app):
-    if app.week_display.layout() is not None:
-        while app.week_display.layout().count():
-            item = app.week_display.layout().takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                widget.deleteLater()
-
-def add_fascia_to_day(app, tipologia, day):
-    fascia_oraria, ok = QInputDialog.getText(app, f'Aggiungi Fascia Oraria per {day}', 'Inserisci la fascia oraria:')
-    if ok and fascia_oraria:
-        save_fascia_oraria(app, tipologia, day, fascia_oraria)
-        update_week_display(app, tipologia)
+        QMessageBox.critical(app, "Errore", f"Si è verificato un errore durante l'aggiornamento della disponibilità: {str(e)}")

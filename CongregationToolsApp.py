@@ -211,7 +211,6 @@ class CongregationToolsApp(QMainWindow):
         self.dropbox_login_action.triggered.connect(self.handle_dropbox_login)
         self.toolbar.addAction(self.dropbox_login_action)
 
-
     def handle_dropbox_login(self):
         # Pulizia del layout esistente
         clear_layout(self.benvenuto_layout, exclude_widgets=[self.welcome_label])
