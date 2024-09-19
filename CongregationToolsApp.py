@@ -7,7 +7,7 @@ import pickle
 
 from PyQt5.QtWidgets import (QPushButton, QApplication, QMainWindow, 
                              QVBoxLayout, QWidget, QTabWidget, 
-                             QMessageBox, QAction, QToolBar, QTableWidget, QListWidget)
+                             QMessageBox, QAction, QToolBar, QTextEdit, QListWidget)
 from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineProfile
 from PyQt5.QtWebEngineCore import QWebEngineUrlRequestInterceptor, QWebEngineUrlRequestInfo
 from PyQt5.QtCore import QUrl, Qt
@@ -23,6 +23,7 @@ from hourglass.hourglass_manager import (
 )
 
 from hourglass.ui_hourglass import setup_hourglass_tab
+from utils.espositore_utils import load_data
 from utils.ui_benvenuto import setup_benvenuto_tab
 from utils.ui_espositore import setup_espositore_tab
 from utils.ui_vigeo import setup_vigeo_tab
@@ -155,6 +156,8 @@ class CongregationToolsApp(QMainWindow):
         self.setCentralWidget(self.central_widget)
         self.layout = QVBoxLayout(self.central_widget)
 
+        self.benvenuto_layout = QVBoxLayout()  # Aggiungi questa riga nel costruttore
+
         # Aggiungi l'overlay
         self.overlay = OverlayWidget(self)
 
@@ -188,8 +191,13 @@ class CongregationToolsApp(QMainWindow):
             self.view = QWebEngineView()
             self.update_welcome_layout_after_login()
             self.show_other_tabs()
-            self.update_dropbox_button_to_logout()    
-
+            self.update_dropbox_button_to_logout()
+        else:
+            save_tokens(None, None) 
+            self.remove_all_tabs()
+            # Aggiorna il pulsante della barra degli strumenti in "Login"
+            self.update_dropbox_button_to_login()
+            
         self.center()  # Centratura della finestra
 
     def center(self):
@@ -272,6 +280,12 @@ class CongregationToolsApp(QMainWindow):
 
                 # Aggiorna il pulsante della barra degli strumenti in "Logout"
                 self.update_dropbox_button_to_logout()
+            else:                
+                save_tokens(None, None) 
+                self.remove_all_tabs()
+                setup_benvenuto_tab(self)
+                # Aggiorna il pulsante della barra degli strumenti in "Login"
+                self.update_dropbox_button_to_login()    
 
     def handle_dropbox_logout(self):
         # Implementa la logica di logout (es. rimuovere il token, ripulire lo stato)

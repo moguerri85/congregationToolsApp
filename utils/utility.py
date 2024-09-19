@@ -140,7 +140,7 @@ def save_html(self, html):
         widget_edit.setParent(None)  # Rimuove il QProgressBar dal layout    
 
 def clear_existing_widgets(self):
-    print("pulisco!")
+    print("clear_existing_widgets!")
     if self.hourglass_layout is None:
         return
 
