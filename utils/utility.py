@@ -186,7 +186,7 @@ def ensure_folder_appdata():
         # Svuota la cartella esistente tranne la cartella 'territori' e il file 'tokens.pkl'
         for item in os.listdir(appdata_path):
             item_path = os.path.join(appdata_path, item)
-            if item != 'territori' and item != 'tokens.pkl':
+            if item != 'territori' and item != 'tokens.pkl' and item != 'espositore_data.json':
                 if os.path.isdir(item_path):
                     shutil.rmtree(item_path)  # Rimuove le cartelle e il loro contenuto
                 else:

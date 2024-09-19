@@ -5,7 +5,9 @@ import os
 import requests
 import pickle
 
-from PyQt5.QtWidgets import QPushButton, QApplication, QMainWindow, QVBoxLayout, QWidget, QTabWidget, QMessageBox, QAction, QToolBar
+from PyQt5.QtWidgets import (QPushButton, QApplication, QMainWindow, 
+                             QVBoxLayout, QWidget, QTabWidget, 
+                             QMessageBox, QAction, QToolBar, QTableWidget, QListWidget)
 from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineProfile
 from PyQt5.QtWebEngineCore import QWebEngineUrlRequestInterceptor, QWebEngineUrlRequestInfo
 from PyQt5.QtCore import QUrl, Qt
@@ -28,6 +30,11 @@ from utils.update_software import check_for_updates
 from utils.utility import clear_layout, ensure_folder_appdata
 from utils.ui_territorio import load_html_file_from_list, setup_territorio_tab
 from utils.kml_manager import open_kml_file_dialog_territorio, update_map, save_map_to_folder
+
+import logging
+
+# Configura il logging
+logging.basicConfig(filename='app.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 CURRENT_VERSION = "1.0.1"  # Versione corrente dell'app
 GITHUB_RELEASES_API_URL = "https://api.github.com/repos/moguerri85/congregationToolsApp/releases/latest"
@@ -170,6 +177,10 @@ class CongregationToolsApp(QMainWindow):
 
         # Variabile per tenere traccia dello stato del login
         self.logged_in = False
+        self.week_display = QWidget()  # Inizializza week_display come un QWidget
+        self.tipologie_list = QListWidget()  # Inizializza tipologie_list come QListWidget
+        self.person_list = QListWidget()  # Inizializza person_list come 
+        
         # Carica i token salvati
         self.access_token, self.refresh_token = load_tokens()
         self.logged_in = self.access_token is not None
