@@ -1,9 +1,4 @@
 import sys
-import base64
-import hashlib
-import os
-import requests
-import pickle
 
 from PyQt5.QtWidgets import (QPushButton, QApplication, QMainWindow, 
                              QVBoxLayout, QWidget, QTabWidget, 
@@ -18,11 +13,12 @@ from PyQt5.QtGui import QPainter, QColor, QIcon
 
 from hourglass.hourglass_manager import (
     handle_finesettimana_html, handle_timeout_av_uscieri, handle_timeout_infraSettimanale, handle_timeout_pulizie,
-    handle_timeout_testimonianza_pubblica, load_schedule_av_uscieri, load_schedule_gruppi_servizio, load_schedule_infraSettimanale, check_content_fineSettimana,
+    handle_timeout_testimonianza_pubblica, load_schedule_av_uscieri, load_schedule_infraSettimanale, check_content_fineSettimana,
     load_schedule_fineSettimana, load_schedule_pulizie, load_schedule_testimonianza_pubblica, scrape_content_fineSettimana, setup_schedule
 )
 
 from hourglass.ui_hourglass import setup_hourglass_tab
+from utils.auth_utility import exchange_code_for_tokens, generate_code_challenge, generate_code_verifier, get_user_info, initiate_authentication, load_tokens, save_tokens
 from utils.espositore_utils import load_data
 from utils.ui_benvenuto import setup_benvenuto_tab
 from utils.ui_espositore import setup_espositore_tab
@@ -39,92 +35,6 @@ logging.basicConfig(filename='app.log', level=logging.INFO, format='%(asctime)s 
 
 CURRENT_VERSION = "1.0.1"  # Versione corrente dell'app
 GITHUB_RELEASES_API_URL = "https://api.github.com/repos/moguerri85/congregationToolsApp/releases/latest"
-
-# Funzioni per PKCE
-def generate_code_verifier():
-    return base64.urlsafe_b64encode(os.urandom(32)).decode('utf-8').rstrip('=')
-
-def generate_code_challenge(code_verifier):
-    code_challenge = base64.urlsafe_b64encode(
-        hashlib.sha256(code_verifier.encode()).digest()
-    ).decode('utf-8').rstrip('=')
-    return code_challenge
-
-def save_tokens(access_token, refresh_token):
-    appdata_path = os.path.join(os.getenv('APPDATA'), 'CongregationToolsApp')
-    local_file_pkl= appdata_path+'/tokens.pkl'
-    with open(local_file_pkl, "wb") as f:
-        pickle.dump((access_token, refresh_token), f)
-
-def load_tokens():
-    appdata_path = os.path.join(os.getenv('APPDATA'), 'CongregationToolsApp')
-    local_file_pkl= appdata_path+'/tokens.pkl'
-    try:
-        with open(local_file_pkl, "rb") as f:
-            return pickle.load(f)
-    except FileNotFoundError:
-        return None, None
-
-# Funzioni per l'autenticazione con Dropbox
-def initiate_authentication(client_id, code_challenge):
-    redirect_uri = "http://localhost:5000/callback"
-    auth_url = (
-        f"https://www.dropbox.com/oauth2/authorize?client_id={client_id}&response_type=code&"
-        f"redirect_uri={redirect_uri}&code_challenge={code_challenge}&"
-        f"code_challenge_method=S256&token_access_type=offline"
-    )
-    return auth_url
-
-def exchange_code_for_tokens(client_id, code_verifier, code, redirect_uri):
-    url = "https://api.dropbox.com/oauth2/token"
-    data = {
-        "code": code,
-        "grant_type": "authorization_code",
-        "client_id": client_id,
-        "code_verifier": code_verifier,
-        "redirect_uri": redirect_uri
-    }
-    try:
-        response = requests.post(url, data=data)
-        response.raise_for_status()
-        tokens = response.json()
-        return tokens.get("access_token"), tokens.get("refresh_token")
-    except requests.exceptions.RequestException as e:
-        print(f"Errore durante lo scambio del codice di autorizzazione: {e}")
-        if e.response is not None:
-            print(f"Risposta dell'errore: {e.response.text}")
-        return None, None
-
-def refresh_access_token(client_id, refresh_token):
-    url = "https://api.dropbox.com/oauth2/token"
-    data = {
-        "grant_type": "refresh_token",
-        "client_id": client_id,
-        "refresh_token": refresh_token
-    }
-    try:
-        response = requests.post(url, data=data)
-        response.raise_for_status()
-        tokens = response.json()
-        return tokens.get("access_token")
-    except requests.exceptions.RequestException as e:
-        print(f"Errore durante il refresh del token di accesso: {e}")
-        return None
-
-# Funzione per ottenere informazioni dell'account dell'utente
-def get_user_info(access_token):
-    url = "https://api.dropboxapi.com/2/users/get_current_account"
-    headers = {
-        "Authorization": f"Bearer {access_token}"
-    }
-    try:
-        response = requests.post(url, headers=headers)
-        response.raise_for_status()
-        user_info = response.json()
-        return user_info.get("name", {}).get("given_name", ""), user_info.get("name", {}).get("surname", "")
-    except requests.exceptions.RequestException as e:
-        print(f"Errore durante il recupero delle informazioni dell'utente: {e}")
-        return "", ""
 
 # Interceptor per le richieste
 class RequestInterceptor(QWebEngineUrlRequestInterceptor):
@@ -171,8 +81,8 @@ class CongregationToolsApp(QMainWindow):
         self.add_toolbar()
 
         # Genera code verifier e code challenge
-        self.code_verifier = generate_code_verifier()
-        self.code_challenge = generate_code_challenge(self.code_verifier)
+        self.code_verifier = generate_code_verifier(self)
+        self.code_challenge = generate_code_challenge(self, self.code_verifier)
 
         # Controlla aggiornamenti all'avvio
         message_update = check_for_updates(CURRENT_VERSION, GITHUB_RELEASES_API_URL)
@@ -184,8 +94,10 @@ class CongregationToolsApp(QMainWindow):
         self.tipologie_list = QListWidget()  # Inizializza tipologie_list come QListWidget
         self.person_list = QListWidget()  # Inizializza person_list come 
         
+        self.is_logged_in = False  # Attributo per tenere traccia dello stato di login
+
         # Carica i token salvati
-        self.access_token, self.refresh_token = load_tokens()
+        self.access_token, self.refresh_token = load_tokens(self)
         self.logged_in = self.access_token is not None
         if self.logged_in:
             self.view = QWebEngineView()
@@ -193,10 +105,11 @@ class CongregationToolsApp(QMainWindow):
             self.show_other_tabs()
             self.update_dropbox_button_to_logout()
         else:
-            save_tokens(None, None) 
+            save_tokens(self, None, None) 
             self.remove_all_tabs()
             # Aggiorna il pulsante della barra degli strumenti in "Login"
             self.update_dropbox_button_to_login()
+            setup_benvenuto_tab(self)
             
         self.center()  # Centratura della finestra
 
@@ -242,7 +155,7 @@ class CongregationToolsApp(QMainWindow):
 
         # Inizializza l'autenticazione
         client_id = "4purifuc7efvwld"  # Sostituisci con il tuo client_id
-        auth_url = initiate_authentication(client_id, self.code_challenge)
+        auth_url = initiate_authentication(self, client_id, self.code_challenge)
 
         # Carica l'URL di autenticazione nella QWebEngineView
         self.view = QWebEngineView()
@@ -259,7 +172,7 @@ class CongregationToolsApp(QMainWindow):
 
         if "code=" in url_str:
             code = url_str.split("code=")[1].split("&")[0]
-            access_token, refresh_token = exchange_code_for_tokens("4purifuc7efvwld", self.code_verifier, code, "http://localhost:5000/callback")
+            access_token, refresh_token = exchange_code_for_tokens(self, "4purifuc7efvwld", self.code_verifier, code, "http://localhost:5000/callback")
             
             if access_token:
                 # Disconnetti il segnale e aggiorna il layout dopo il login
@@ -269,7 +182,7 @@ class CongregationToolsApp(QMainWindow):
                 # Salva i token per un uso futuro
                 self.access_token = access_token
                 self.refresh_token = refresh_token
-                save_tokens(self.access_token, self.refresh_token)
+                save_tokens(self, self.access_token, self.refresh_token)
                 
                 # Cambia lo stato di login
                 self.logged_in = True
@@ -281,7 +194,7 @@ class CongregationToolsApp(QMainWindow):
                 # Aggiorna il pulsante della barra degli strumenti in "Logout"
                 self.update_dropbox_button_to_logout()
             else:                
-                save_tokens(None, None) 
+                save_tokens(self, None, None) 
                 self.remove_all_tabs()
                 setup_benvenuto_tab(self)
                 # Aggiorna il pulsante della barra degli strumenti in "Login"
@@ -300,15 +213,15 @@ class CongregationToolsApp(QMainWindow):
         setup_benvenuto_tab(self)
         # Aggiorna il pulsante della barra degli strumenti in "Login"
         self.update_dropbox_button_to_login()
-        save_tokens(None, None)  # Rimuovi i token salvati
+        save_tokens(self, None, None)  # Rimuovi i token salvati
 
     def use_access_token(self):
         if not self.access_token:
             if self.refresh_token:
-                new_access_token = refresh_access_token("4purifuc7efvwld", self.refresh_token)
+                new_access_token = self.refresh_access_token("4purifuc7efvwld", self.refresh_token)
                 if new_access_token:
                     self.access_token = new_access_token
-                    save_tokens(self.access_token, self.refresh_token)
+                    save_tokens(self, self.access_token, self.refresh_token)
                 else:
                     print("Impossibile aggiornare il token di accesso.")
             else:
@@ -326,14 +239,26 @@ class CongregationToolsApp(QMainWindow):
         # Ripristina l'icona e il testo del pulsante in "Login"
         self.dropbox_login_action.setIcon(self.dropbox_icon)
         self.dropbox_login_action.setText("Login Dropbox")
-        self.dropbox_login_action.triggered.disconnect(self.handle_dropbox_logout)
+
+        # Se l'azione di logout è connessa, disconnettila
+        if self.is_logged_in:
+            self.dropbox_login_action.triggered.disconnect(self.handle_dropbox_logout)
+            self.is_logged_in = False  # Aggiorna lo stato
+
+        # Ricollega il segnale per il login
         self.dropbox_login_action.triggered.connect(self.handle_dropbox_login)
 
     def update_dropbox_button_to_logout(self):
         # Aggiorna l'icona e il testo del pulsante in "Logout"
         self.dropbox_login_action.setIcon(self.logout_icon)
         self.dropbox_login_action.setText("Logout Dropbox")
-        self.dropbox_login_action.triggered.disconnect(self.handle_dropbox_login)
+
+        # Se l'azione di login è connessa, disconnettila
+        if not self.is_logged_in:
+            self.dropbox_login_action.triggered.disconnect(self.handle_dropbox_login)
+            self.is_logged_in = True  # Aggiorna lo stato
+
+        # Ricollega il segnale per il logout
         self.dropbox_login_action.triggered.connect(self.handle_dropbox_logout)
 
     def update_welcome_layout_after_login(self):
@@ -343,7 +268,7 @@ class CongregationToolsApp(QMainWindow):
         
         # Ottieni nome e cognome dell'utente
         if self.access_token:
-            self.user_name, self.user_surname = get_user_info(self.access_token)
+            self.user_name, self.user_surname = get_user_info(self, self.access_token)
 
         # Aggiorna il messaggio di benvenuto
         if hasattr(self, 'user_name') and hasattr(self, 'user_surname'):
@@ -463,6 +388,7 @@ class CongregationToolsApp(QMainWindow):
             event.accept()
         else:
             event.ignore()
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
