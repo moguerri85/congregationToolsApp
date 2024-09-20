@@ -1,6 +1,6 @@
 [Setup]
 AppName=CongregationToolsApp
-AppVersion=1.0.1
+AppVersion=1.0.2
 DefaultDirName={pf}\CongregationToolsApp
 DefaultGroupName=CongregationToolsApp
 PrivilegesRequired=admin 
@@ -16,6 +16,8 @@ Source: "build\exe.win-amd64-3.12\*"; DestDir: "{app}"; Flags: ignoreversion rec
 
 ; Assicurati di includere l'icona
 Source: ".\icon.ico"; DestDir: "{app}"
+Source: ".\dropbox_icon.png"; DestDir: "{app}"
+Source: ".\logout_icon.png"; DestDir: "{app}"
 
 [UninstallDelete]
 

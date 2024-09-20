@@ -1,6 +1,6 @@
 import os
 from PyQt5.QtCore import QUrl
-from utils.utility import handle_download
+from utils.utility import handle_download, show_alert
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtWidgets import QVBoxLayout, QWidget
 
@@ -14,7 +14,9 @@ def setup_vigeo_tab(self):
         self.local_tab.setLayout(self.local_layout)  # Imposta il layout del tab
         self.tabs.addTab(self.local_tab, "ViGeo")
 
-        url = QUrl.fromLocalFile(os.path.abspath(os.path.join(os.path.dirname(__file__), "../ViGeo/index.html")))
+        appdata_path = os.path.join(os.getenv('APPDATA'), 'CongregationToolsApp')
+        local_file = os.path.join(appdata_path, 'ViGeo', 'index.html')
+        url = QUrl.fromLocalFile(local_file)
         self.local_html_view.setUrl(url)
         
         # Collega il segnale di richiesta di download

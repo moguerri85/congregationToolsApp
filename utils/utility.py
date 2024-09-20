@@ -183,10 +183,10 @@ def ensure_folder_appdata():
 
     # Verifica se la cartella esiste
     if os.path.exists(appdata_path):
-        # Svuota la cartella esistente tranne la cartella 'territori' e il file 'tokens.pkl'
+        # Svuota la cartella esistente tranne le cartelle 'territori', 'ViGeo' e i file 'tokens.pkl', 'espositore_data.json'
         for item in os.listdir(appdata_path):
             item_path = os.path.join(appdata_path, item)
-            if item != 'territori' and item != 'tokens.pkl' and item != 'espositore_data.json':
+            if item not in ['territori', 'ViGeo', 'tokens.pkl', 'espositore_data.json']:
                 if os.path.isdir(item_path):
                     shutil.rmtree(item_path)  # Rimuove le cartelle e il loro contenuto
                 else:
@@ -206,25 +206,39 @@ def ensure_folder_appdata():
         except OSError as e:
             print(f"Errore durante la creazione della cartella: {e}")
 
+    # Copia la cartella 'ViGeo' nella cartella 'CongregationToolsApp'
+    source_vigeo_folder = './ViGeo'  # Presumo che ViGeo sia nella root del progetto
+    destination_vigeo_folder = os.path.join(appdata_path, 'ViGeo')
+
+    try:
+        if os.path.exists(source_vigeo_folder):
+            shutil.copytree(source_vigeo_folder, destination_vigeo_folder)
+            print(f"Cartella 'ViGeo' copiata con successo in '{destination_vigeo_folder}'")
+        else:
+            print(f"La cartella 'ViGeo' non esiste nella sorgente.")
+    except FileExistsError:
+        print(f"La cartella 'ViGeo' esiste già nella destinazione.")
+    except Exception as e:
+        print(f"Errore durante la copia della cartella 'ViGeo': {e}")
+
     # Percorso della cartella 'template' che vuoi copiare
-    source_folder = './template'
+    source_template_folder = './template'
 
     # Destinazione in cui copiare la cartella 'template'
-    destination_folder = os.path.join(appdata_path, 'template')
+    destination_template_folder = os.path.join(appdata_path, 'template')
 
     # Copia la cartella 'template' nella cartella 'CongregationToolsApp'
     try:
-        if os.path.exists(source_folder):
+        if os.path.exists(source_template_folder):
             # Copia l'intera cartella con i file e le sottocartelle
-            shutil.copytree(source_folder, destination_folder)
-            print(f"Cartella '{source_folder}' copiata con successo in '{destination_folder}'")
+            shutil.copytree(source_template_folder, destination_template_folder)
+            print(f"Cartella '{source_template_folder}' copiata con successo in '{destination_template_folder}'")
         else:
-            print(f"La cartella sorgente '{source_folder}' non esiste.")
+            print(f"La cartella sorgente '{source_template_folder}' non esiste.")
     except FileExistsError:
-        print(f"La cartella di destinazione '{destination_folder}' esiste già.")
+        print(f"La cartella di destinazione '{destination_template_folder}' esiste già.")
     except Exception as e:
-        print(f"Errore durante la copia della cartella: {e}")
-                 
+        print(f"Errore durante la copia della cartella 'template': {e}")          
 
 def handle_download(download):
         # Mostra una finestra di dialogo di download

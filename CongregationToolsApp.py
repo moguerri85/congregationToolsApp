@@ -31,9 +31,9 @@ from utils.kml_manager import open_kml_file_dialog_territorio, update_map, save_
 import logging
 
 # Configura il logging
-logging.basicConfig(filename='app.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+#logging.basicConfig(filename='app.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-CURRENT_VERSION = "1.0.1"  # Versione corrente dell'app
+CURRENT_VERSION = "1.0.2"  # Versione corrente dell'app
 GITHUB_RELEASES_API_URL = "https://api.github.com/repos/moguerri85/congregationToolsApp/releases/latest"
 
 # Interceptor per le richieste
@@ -169,36 +169,22 @@ class CongregationToolsApp(QMainWindow):
 
     def handle_dropbox_auth_url_change(self, url):
         url_str = url.toString()
-
         if "code=" in url_str:
             code = url_str.split("code=")[1].split("&")[0]
-            access_token, refresh_token = exchange_code_for_tokens(self, "4purifuc7efvwld", self.code_verifier, code, "http://localhost:5000/callback")
-            
-            if access_token:
-                # Disconnetti il segnale e aggiorna il layout dopo il login
-                self.view.urlChanged.disconnect(self.handle_dropbox_auth_url_change)
-                self.update_welcome_layout_after_login()
-
-                # Salva i token per un uso futuro
-                self.access_token = access_token
-                self.refresh_token = refresh_token
-                save_tokens(self, self.access_token, self.refresh_token)
-                
-                # Cambia lo stato di login
-                self.logged_in = True
-
-                # Cambia le variabili del nome e cognome dell'utente (dovresti ottenere questi dati tramite l'API di Dropbox o un altro metodo)
-                self.user_name = "Nome"     # Sostituisci con il nome dell'utente
-                self.user_surname = "Cognome"  # Sostituisci con il cognome dell'utente
-
-                # Aggiorna il pulsante della barra degli strumenti in "Logout"
-                self.update_dropbox_button_to_logout()
-            else:                
-                save_tokens(self, None, None) 
-                self.remove_all_tabs()
-                setup_benvenuto_tab(self)
-                # Aggiorna il pulsante della barra degli strumenti in "Login"
-                self.update_dropbox_button_to_login()    
+            try:
+                access_token, refresh_token = exchange_code_for_tokens(self, "4purifuc7efvwld", self.code_verifier, code, "http://localhost:5000/callback")
+                if access_token:
+                    self.logged_in = True
+                    self.access_token = access_token
+                    self.refresh_token = refresh_token
+                    save_tokens(self, self.access_token, self.refresh_token)
+                    self.update_welcome_layout_after_login()
+                else:
+                    raise Exception("Access token not received.")
+            except Exception as e:
+                logging.error(f"Error during login: {str(e)}")
+                QMessageBox.critical(self, "Login Error", "Failed to login. Please try again.")
+   
 
     def handle_dropbox_logout(self):
         # Implementa la logica di logout (es. rimuovere il token, ripulire lo stato)
