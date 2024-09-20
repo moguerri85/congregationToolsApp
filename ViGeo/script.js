@@ -300,15 +300,15 @@
     }
 
     function handleShow(event){
-        document.getElementById('header').style.display = "revert-layer";
+        document.getElementById('header').style.display = "block";
         show.style.display = "none";
-        hide.style.display = "revert-layer";
+        hide.style.display = "block";
     }
     
-    function handleHide(event){
+    function handleHide(event){        
         document.getElementById('header').style.display = "none";
         hide.style.display = "none";
-        show.style.display = "revert-layer";
+        show.style.display = "block";
     }
     
     function handleAddComponente(event) {
