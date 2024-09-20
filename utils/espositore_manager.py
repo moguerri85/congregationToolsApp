@@ -49,18 +49,18 @@ def add_tipologia(app):
     try:
         text, ok = QInputDialog.getText(app, "Aggiungi Tipologia", "Nome della Tipologia:")
         if ok and text:
-            # Genera un ID unico per la tipologia
-            tipologia_id = str(len(app.tipologia_schedule) + 1)
-            app.tipologia_schedule[tipologia_id] = {"nome": text, "fasce": []}
-
-            # Aggiungi la tipologia alla lista
-            item = QListWidgetItem(text)
-            item.setData(Qt.UserRole, tipologia_id)
-            app.tipologie_list.addItem(item)
-            save_data(app)  # Salva i dati dopo aver aggiunto una tipologia
-            
+            tipologia_id = str(len(app.tipologia_schedule) + 1)  # Genera ID unico
+            app.tipologia_schedule[tipologia_id] = {"nome": text, "fasce": {}}
+            update_list_widget(app.tipologie_list, text, tipologia_id)
+            save_data(app)
     except Exception as e:
-        print(f"Errore durante l'aggiunta della tipologia: {e}")
+        QMessageBox.critical(app, "Errore", f"Errore durante l'aggiunta della tipologia: {e}")
+
+def update_list_widget(list_widget, text, item_id):
+    """Aggiunge un nuovo elemento al QListWidget con l'ID associato."""
+    item = QListWidgetItem(text)
+    item.setData(Qt.UserRole, item_id)  # Imposta l'ID come dato utente
+    list_widget.addItem(item)
 
 def modify_selected_tipologia(app):
     try:
