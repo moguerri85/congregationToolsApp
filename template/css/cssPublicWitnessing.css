@@ -31,6 +31,7 @@ tr{
 
 .colonna_postazione {
     text-align: left;
+    max-width: 100px;
 }
 
 .colonna_data {

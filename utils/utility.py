@@ -2,6 +2,7 @@ import os
 from PyQt5.QtWidgets import QMessageBox, QProgressBar, QPushButton, QLineEdit
 from jinja2 import Template
 import shutil
+import platform
 
 
 def show_overlay(self):
@@ -138,40 +139,26 @@ def save_html(self, html):
     for widget_edit in self.central_widget.findChildren(QProgressBar):
         widget_edit.setParent(None)  # Rimuove il QProgressBar dal layout    
 
-
 def clear_existing_widgets(self):
-    # Assicurati che il layout esista
-    if self.web_layout is None:
-        # print("Il layout 'web_layout' non è stato impostato.")
+    print("clear_existing_widgets!")
+    if self.hourglass_layout is None:
         return
 
-    # Verifica se ci sono widget nel layout
-    if self.web_layout.count() == 0:
-        # print("Il layout è vuoto.")
+    if self.hourglass_layout.count() == 0:
         return
 
-    # Itera sugli elementi del layout in ordine inverso
-    for i in reversed(range(self.web_layout.count())):
-        item = self.web_layout.itemAt(i)
+    for i in reversed(range(self.hourglass_layout.count())):
+        item = self.hourglass_layout.itemAt(i)
         if item is not None:
             widget = item.widget()
             if widget is not None:
                 if isinstance(widget, (QPushButton, QLineEdit)):
-                    # print(f"Rimuovendo widget: {widget}")  # Debug
-                    self.web_layout.removeWidget(widget)  # Rimuove il widget dal layout
-                    widget.deleteLater()  # Elimina il widget in modo sicuro
-                # else:
-                    # print(f"L'elemento {i} è un widget di tipo {type(widget)} e non è un QPushButton/QLineEdit.")  # Debug
+                    self.hourglass_layout.removeWidget(widget)
+                    widget.deleteLater()
             else:
                 layout = item.layout()
                 if layout is not None:
-                    # print(f"L'elemento {i} è un layout di tipo {type(layout)}.")  # Debug
-                    # Se è un layout, puoi anche rimuovere i widget da esso
                     clear_layout(self, layout)
-                # else:
-                    # print(f"L'elemento {i} è None e non è né un widget né un layout.")  # Debug
-        # else:
-            # print(f"Item {i} è None.")  # Debug
 
 def clear_layout(self, layout):
     """Rimuove tutti i widget da un layout specificato."""
@@ -183,17 +170,12 @@ def clear_layout(self, layout):
         if item is not None:
             widget = item.widget()
             if widget is not None:
-                # print(f"Rimuovendo widget dal layout annidato: {widget}")  # Debug
                 layout.removeWidget(widget)
                 widget.deleteLater()
             else:
                 sub_layout = item.layout()
                 if sub_layout is not None:
-                    # print(f"L'elemento {i} è un layout annidato di tipo {type(sub_layout)}.")  # Debug
-                    self.clear_layout(sub_layout)
-                # else:
-                    # print(f"L'elemento {i} è None e non è né un widget né un layout.")  # Debug
-
+                    clear_layout(self, sub_layout)
 
 def ensure_folder_appdata():
     # Ottieni il percorso della cartella APPDATA e aggiungi 'CongregationToolsApp'
@@ -201,18 +183,18 @@ def ensure_folder_appdata():
 
     # Verifica se la cartella esiste
     if os.path.exists(appdata_path):
-        # Svuota la cartella esistente tranne la cartella 'territori'
+        # Svuota la cartella esistente tranne le cartelle 'territori', 'ViGeo' e i file 'tokens.pkl', 'espositore_data.json'
         for item in os.listdir(appdata_path):
             item_path = os.path.join(appdata_path, item)
-            if item != 'territori':
+            if item not in ['territori', 'ViGeo', 'tokens.pkl', 'espositore_data.json']:
                 if os.path.isdir(item_path):
                     shutil.rmtree(item_path)  # Rimuove le cartelle e il loro contenuto
                 else:
                     os.remove(item_path)  # Rimuove i file
-            else:
+            elif item == 'territori':
                 # Gestisci la cartella 'territori'
                 territori_path = item_path
-                # Elimina solo il file 'territori_map.html'
+                # Elimina solo il file 'territorio_map.html'
                 map_file_path = os.path.join(territori_path, 'territorio_map.html')
                 if os.path.exists(map_file_path):
                     os.remove(map_file_path)
@@ -224,21 +206,59 @@ def ensure_folder_appdata():
         except OSError as e:
             print(f"Errore durante la creazione della cartella: {e}")
 
+    # Copia la cartella 'ViGeo' nella cartella 'CongregationToolsApp'
+    source_vigeo_folder = './ViGeo'  # Presumo che ViGeo sia nella root del progetto
+    destination_vigeo_folder = os.path.join(appdata_path, 'ViGeo')
+
+    try:
+        if os.path.exists(source_vigeo_folder):
+            shutil.copytree(source_vigeo_folder, destination_vigeo_folder)
+            print(f"Cartella 'ViGeo' copiata con successo in '{destination_vigeo_folder}'")
+        else:
+            print(f"La cartella 'ViGeo' non esiste nella sorgente.")
+    except FileExistsError:
+        print(f"La cartella 'ViGeo' esiste già nella destinazione.")
+    except Exception as e:
+        print(f"Errore durante la copia della cartella 'ViGeo': {e}")
+
     # Percorso della cartella 'template' che vuoi copiare
-    source_folder = './template'
+    source_template_folder = './template'
 
     # Destinazione in cui copiare la cartella 'template'
-    destination_folder = os.path.join(appdata_path, 'template')
+    destination_template_folder = os.path.join(appdata_path, 'template')
 
     # Copia la cartella 'template' nella cartella 'CongregationToolsApp'
     try:
-        if os.path.exists(source_folder):
+        if os.path.exists(source_template_folder):
             # Copia l'intera cartella con i file e le sottocartelle
-            shutil.copytree(source_folder, destination_folder)
-            print(f"Cartella '{source_folder}' copiata con successo in '{destination_folder}'")
+            shutil.copytree(source_template_folder, destination_template_folder)
+            print(f"Cartella '{source_template_folder}' copiata con successo in '{destination_template_folder}'")
         else:
-            print(f"La cartella sorgente '{source_folder}' non esiste.")
+            print(f"La cartella sorgente '{source_template_folder}' non esiste.")
     except FileExistsError:
-        print(f"La cartella di destinazione '{destination_folder}' esiste già.")
+        print(f"La cartella di destinazione '{destination_template_folder}' esiste già.")
     except Exception as e:
-        print(f"Errore durante la copia della cartella: {e}")                   
+        print(f"Errore durante la copia della cartella 'template': {e}")          
+
+def handle_download(download):
+        # Mostra una finestra di dialogo di download
+        # Utilizzando os
+        home_directory_os = os.path.expanduser("~")
+        desktop_directory_os = os.path.join(home_directory_os, "Desktop")
+        system_name = platform.system()
+        if(system_name=="Windows"):
+            download.setPath(desktop_directory_os +"/"+ download.suggestedFileName())
+        else:    
+            download.setPath(home_directory_os +"/"+ download.suggestedFileName())
+        
+        download.accept()
+        # Crea e mostra il messaggio di avviso
+        show_alert("Download avvenuto con successo!")       
+
+def clear_layout(layout, exclude_widgets=[]):
+    while layout.count():
+        item = layout.takeAt(0)
+        widget = item.widget()
+        if widget and widget not in exclude_widgets:
+            widget.deleteLater()
+                
