@@ -35,6 +35,7 @@ def initiate_authentication(self, client_id, code_challenge):
     auth_url = (
         f"https://www.dropbox.com/oauth2/authorize?client_id={client_id}&response_type=code&"
         f"redirect_uri={redirect_uri}&code_challenge={code_challenge}&"
+        f"scope=account_info.read+files.metadata.write+files.metadata.read+files.content.write+files.content.read+sharing.write+sharing.read&"
         f"code_challenge_method=S256&token_access_type=offline"
     )
     return auth_url
