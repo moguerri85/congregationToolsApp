@@ -178,13 +178,17 @@ class CongregationToolsApp(QMainWindow):
                     self.access_token = access_token
                     self.refresh_token = refresh_token
                     save_tokens(self, self.access_token, self.refresh_token)
+
+                    # Aggiorna immediatamente il pulsante del toolbar
+                    self.update_dropbox_button_to_logout()
+
+                    # Aggiorna il layout di benvenuto dopo il login
                     self.update_welcome_layout_after_login()
                 else:
                     raise Exception("Access token not received.")
             except Exception as e:
                 logging.error(f"Error during login: {str(e)}")
                 QMessageBox.critical(self, "Login Error", "Failed to login. Please try again.")
-   
 
     def handle_dropbox_logout(self):
         # Implementa la logica di logout (es. rimuovere il token, ripulire lo stato)
@@ -235,6 +239,7 @@ class CongregationToolsApp(QMainWindow):
         self.dropbox_login_action.triggered.connect(self.handle_dropbox_login)
 
     def update_dropbox_button_to_logout(self):
+        print("Cambio pulsante in Logout")
         # Aggiorna l'icona e il testo del pulsante in "Logout"
         self.dropbox_login_action.setIcon(self.logout_icon)
         self.dropbox_login_action.setText("Logout Dropbox")
