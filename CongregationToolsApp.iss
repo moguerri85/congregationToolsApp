@@ -18,6 +18,7 @@ Source: "build\exe.win-amd64-3.12\*"; DestDir: "{app}"; Flags: ignoreversion rec
 Source: ".\icon.ico"; DestDir: "{app}"
 Source: ".\dropbox_icon.png"; DestDir: "{app}"
 Source: ".\logout_icon.png"; DestDir: "{app}"
+Source: ".\load_data_icon.png"; DestDir: "{app}"
 
 [UninstallDelete]
 
