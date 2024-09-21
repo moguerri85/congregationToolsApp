@@ -33,7 +33,7 @@ import logging
 # Configura il logging
 #logging.basicConfig(filename='app.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-CURRENT_VERSION = "1.0.2"  # Versione corrente dell'app
+CURRENT_VERSION = "1.0.3"  # Versione corrente dell'app
 GITHUB_RELEASES_API_URL = "https://api.github.com/repos/moguerri85/congregationToolsApp/releases/latest"
 
 # Interceptor per le richieste
