@@ -1,6 +1,6 @@
 [Setup]
 AppName=CongregationToolsApp
-AppVersion=1.0.2
+AppVersion=1.0.3
 DefaultDirName={pf}\CongregationToolsApp
 DefaultGroupName=CongregationToolsApp
 PrivilegesRequired=admin 
