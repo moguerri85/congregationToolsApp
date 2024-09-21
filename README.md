@@ -2,7 +2,7 @@
 
 ## Congregation Tools App
 
-Congregation Tools App (Scra - ViGeo) is a PyQt5-based application designed to help manage congregation schedules and tasks. The application provides tools for generating HTML reports for various congregation activities such as weekend schedules, midweek schedules, AV attendants, cleaning tasks, and service groups. It integrates web content scraping, local HTML viewing, and file download handling, all within an easy-to-use GUI.
+...
 
 ## Features
 
@@ -46,7 +46,7 @@ Congregation Tools App (Scra - ViGeo) is a PyQt5-based application designed to h
 
 ## Congregation Tools App
 
-Congregation Tools App (Scra - ViGeo) è un'applicazione basata su PyQt5 progettata per aiutare nella gestione degli orari e delle attività della congregazione. L'app fornisce strumenti per generare report HTML per varie attività della congregazione, come programmi del fine settimana, programmi infrasettimanali, incarichi AV, attività di pulizia e gruppi di servizio. Integra lo scraping dei contenuti web, la visualizzazione di HTML locali e la gestione dei download di file, il tutto all'interno di una GUI facile da usare.
+...
 
 ## Funzionalità
 
