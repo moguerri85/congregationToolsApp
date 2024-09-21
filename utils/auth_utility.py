@@ -99,11 +99,11 @@ def get_user_info(self, access_token):
         if response.status_code == 401:
             print("Errore 401: Access token non valido o scaduto.")
             # Prova a rinnovare il token
-            new_access_token = self.refresh_access_token("4purifuc7efvwld", self.refresh_token)
+            new_access_token = refresh_access_token(self, "4purifuc7efvwld", self.refresh_token)
             if new_access_token:
                 self.access_token = new_access_token
-                self.save_tokens(new_access_token, self.refresh_token)
-                return self.get_user_info(new_access_token)  # Riprova con il nuovo 
+                save_tokens(self, new_access_token, self.refresh_token)
+                return get_user_info(self, new_access_token)  # Riprova con il nuovo 
             else:
                 print(f"Errore HTTP 2 : {e}")        
         print(f"Errore HTTP: {e}")

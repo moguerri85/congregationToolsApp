@@ -4,6 +4,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QMessageBox
 
 from utils.espositore_utils import save_data, update_person_details, update_week_display
+import uuid
 
 def add_person(app):
     try:
@@ -12,7 +13,7 @@ def add_person(app):
         
         if ok and name:
             # Genera un ID univoco per la persona (ad esempio, un contatore o UUID)
-            person_id = str(len(app.people) + 1)
+            person_id = str(uuid.uuid4())
             
             # Aggiungi la persona al dizionario
             app.people[person_id] = name
@@ -145,6 +146,8 @@ def update_person_availability(app, date, tipologia, fascia, dialog):
             app.tipologia_schedule[tipologia] = {}
         if date not in app.tipologia_schedule[tipologia]:
             app.tipologia_schedule[tipologia][date] = []
+        if fascia not in app.tipologia_schedule[tipologia][date]:
+            app.tipologia_schedule[tipologia][date].append(fascia)
 
         # Aggiungi la fascia oraria
         app.tipologia_schedule[tipologia][date].append(fascia)

@@ -18,7 +18,7 @@ from hourglass.hourglass_manager import (
 )
 
 from hourglass.ui_hourglass import setup_hourglass_tab
-from utils.auth_utility import exchange_code_for_tokens, generate_code_challenge, generate_code_verifier, get_user_info, initiate_authentication, load_tokens, save_tokens
+from utils.auth_utility import exchange_code_for_tokens, generate_code_challenge, generate_code_verifier, get_user_info, initiate_authentication, load_tokens, refresh_access_token, save_tokens
 from utils.espositore_utils import load_data
 from utils.ui_benvenuto import setup_benvenuto_tab
 from utils.ui_espositore import setup_espositore_tab
@@ -129,7 +129,7 @@ class CongregationToolsApp(QMainWindow):
         # Imposta la geometria della finestra
         self.setGeometry(x, y, window_geometry.width(), window_geometry.height())
 
-    def add_toolbar(self):
+    def add_toolbar(self): 
         # Crea la barra degli strumenti
         self.toolbar = QToolBar("Main Toolbar")
         self.addToolBar(self.toolbar)
@@ -142,6 +142,15 @@ class CongregationToolsApp(QMainWindow):
         self.dropbox_login_action = QAction(self.dropbox_icon, "Login Dropbox", self)
         self.dropbox_login_action.triggered.connect(self.handle_dropbox_login)
         self.toolbar.addAction(self.dropbox_login_action)
+
+        # Aggiungi un'azione per il caricamento dei dati
+        self.load_data_icon = QIcon("./load_data_icon.png")  # Sostituisci con il percorso dell'icona che desideri utilizzare
+        self.load_data_action = QAction(self.load_data_icon, "Carica Dati", self)
+        self.load_data_action.triggered.connect(self.call_load_data)  # Collega il pulsante alla funzione load_data senza chiamarla
+        self.toolbar.addAction(self.load_data_action)
+
+    def call_load_data(self):
+        load_data(self)
 
     def handle_dropbox_login(self):
         # Pulizia del layout esistente
@@ -208,7 +217,7 @@ class CongregationToolsApp(QMainWindow):
     def use_access_token(self):
         if not self.access_token:
             if self.refresh_token:
-                new_access_token = self.refresh_access_token("4purifuc7efvwld", self.refresh_token)
+                new_access_token = refresh_access_token(self, "4purifuc7efvwld", self.refresh_token)
                 if new_access_token:
                     self.access_token = new_access_token
                     save_tokens(self, self.access_token, self.refresh_token)

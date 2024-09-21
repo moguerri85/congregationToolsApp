@@ -2,9 +2,9 @@ import json
 import os
 
 from PyQt5.QtWidgets import (QMessageBox, QPushButton, QDialog, QVBoxLayout, QComboBox,
-                             QLabel, QTimeEdit, QWidget, QListWidget, QSizePolicy, QInputDialog)
+                             QLabel, QTimeEdit, QWidget, QListWidget, QSizePolicy, QInputDialog,
+                             QListWidgetItem)
 from PyQt5.QtCore import Qt, QSize
-
 
 SAVE_FILE = "espositore_data.json"
 
@@ -38,18 +38,55 @@ def save_data(app):
         QMessageBox.critical(app, "Errore", f"Si è verificato un errore durante il salvataggio: {str(e)}")
 
 def load_data(app):
+    """Carica i dati da un file JSON e li inserisce nelle strutture appropriate."""
     try:
         appdata_path = os.path.join(os.getenv('APPDATA'), 'CongregationToolsApp')
         local_file_jsn= appdata_path+'/'+SAVE_FILE
+        # Legge il file JSON
         with open(local_file_jsn, 'r') as file:
             data = json.load(file)
-            app.person_schedule = data.get("person_schedule", {})
-            app.people = data.get("people", {})
-            app.tipologie = data.get("tipologie", {})
-    except (FileNotFoundError, json.JSONDecodeError):
-        app.person_schedule = {}
+        
+        # Popola le persone (people)
+        app.people = data.get('people', {})
+        app.person_schedule = data.get('person_schedule', {})
+        app.tipologia_schedule = data.get('tipologia_schedule', {})
+        
+        # Aggiorna l'interfaccia utente
+        app.person_list.clear()
+        for person_id, name in app.people.items():
+            item = QListWidgetItem(name)
+            item.setData(Qt.UserRole, person_id)
+            app.person_list.addItem(item)
+        
+        # Popola le tipologie (tipologia_schedule)
+        app.tipologie_list.clear()
+        for tipologia_id, tipologia_data in app.tipologia_schedule.items():
+            nome_tipologia = tipologia_data.get('nome', 'Sconosciuto')
+            item = QListWidgetItem(nome_tipologia)
+            item.setData(Qt.UserRole, tipologia_id)
+            app.tipologie_list.addItem(item)
+        
+        # Aggiorna la visualizzazione della settimana
+        update_week_display(app, None)
+
+        # Stampa o logga un messaggio di conferma
+        print("Dati caricati con successo!")
+    
+    except FileNotFoundError:
+        # Se il file non esiste, si crea una struttura vuota
+        print(f"File {SAVE_FILE} non trovato, caricamento di default.")
         app.people = {}
-        app.tipologie = {}
+        app.person_schedule = {}
+        app.tipologia_schedule = {}
+    
+    except json.JSONDecodeError:
+        # Gestione degli errori di parsing JSON
+        print(f"Errore nel parsing del file {SAVE_FILE}. Verifica che il file sia un JSON valido.")
+    
+    except Exception as e:
+        # Gestione di altri errori
+        print(f"Errore durante il caricamento dei dati: {str(e)}")
+
 
 def update_person_details(app, person_id):
     if person_id in app.person_schedule:
