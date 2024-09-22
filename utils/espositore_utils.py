@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import (QMessageBox, QPushButton, QDialog, QVBoxLayout, QCo
                              QLabel, QTimeEdit, QWidget, QListWidget, QSizePolicy, QInputDialog,
                              QListWidgetItem)
 from PyQt5.QtCore import Qt, QSize
+from datetime import datetime
 
 SAVE_FILE = "espositore_data.json"
 
@@ -186,13 +187,25 @@ def update_week_display(app, tipologia_nome):
             
             square_button = QPushButton()
             square_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-            square_button.setFixedSize(QSize(60, 60))
+            square_button.setFixedSize(QSize(70, 60))
             square_button.setStyleSheet("background-color: lightgray; border: 1px solid black;")
             
             # Imposta il testo e il colore del quadrato in base alla tipologia
             if tipologia_id in app.tipologia_schedule and day_id in app.tipologia_schedule[tipologia_id]["fasce"]:
                 fasce = app.tipologia_schedule[tipologia_id]["fasce"][day_id]
-                square_button.setText(", ".join(fasce))
+
+                # Funzione per convertire il testo della fascia oraria in un oggetto datetime
+                def convert_to_time(fascia):
+                    try:
+                        return datetime.strptime(fascia.split('-')[0], '%H:%M')
+                    except ValueError:
+                        return datetime.max  # Se il formato non è valido, metti in fondo
+
+                # Ordina le fasce orarie
+                fasce.sort(key=convert_to_time)
+                
+                # Aggiungi le fasce al pulsante (separate da un'interruzione di riga)
+                square_button.setText("\n".join(fasce))
             else:
                 square_button.setText("")
 
@@ -206,32 +219,51 @@ def update_week_display(app, tipologia_nome):
     except Exception as e:
         print(f"Errore durante l'aggiornamento della settimana: {e}")
 
-def on_square_click(app, day, tipologia_id, button):
+def on_square_click(app, day_id, tipologia_id, button):
     try:
+        # Ottieni il nome del giorno dall'ID
+        day = ID_TO_DAY.get(day_id, day_id)  # Usa la mappa per ottenere il nome del giorno
+
+        # Ottieni il nome della tipologia dall'ID
+        tipologia_nome = app.tipologia_schedule.get(tipologia_id, {}).get("nome", "N/A")
+
         # Crea la finestra di dialogo per la gestione delle fasce orarie
         dialog = QDialog()
-        dialog.setWindowTitle(f"Gestisci Fasce Orarie per {day}")
+        dialog.setWindowTitle(f"Gestisci Fasce Orarie per {day} - {tipologia_nome}")
         layout = QVBoxLayout(dialog)
 
         # Lista delle fasce orarie
         fascia_list_widget = QListWidget()
-        fasce = app.tipologia_schedule.get(tipologia_id, {}).get(day, [])
+
+        # Recupera e ordina le fasce orarie
+        fasce = app.tipologia_schedule.get(tipologia_id, {}).get("fasce", {}).get(day_id, [])
+        
+        # Ordina le fasce orarie usando datetime
+        def convert_to_time(fascia):
+            try:
+                return datetime.strptime(fascia.split('-')[0], '%H:%M')
+            except ValueError:
+                return datetime.max  # Se c'è un errore, metti l'orario in fondo alla lista
+        
+        fasce.sort(key=convert_to_time)  # Ordina le fasce usando l'ora di inizio
+
+        # Aggiungi le fasce ordinate al widget
         fascia_list_widget.addItems(fasce)
         layout.addWidget(fascia_list_widget)
 
         # Pulsante per aggiungere una fascia oraria
         add_button = QPushButton("Aggiungi Fascia Oraria")
-        add_button.clicked.connect(lambda: add_fascia(app, day, tipologia_id, fascia_list_widget))
+        add_button.clicked.connect(lambda: add_fascia(app, day_id, tipologia_id, fascia_list_widget))
         layout.addWidget(add_button)
 
         # Pulsante per modificare la fascia oraria selezionata
         modify_button = QPushButton("Modifica Fascia Oraria")
-        modify_button.clicked.connect(lambda: modify_fascia(app, day, tipologia_id, fascia_list_widget))
+        modify_button.clicked.connect(lambda: modify_fascia(app, day_id, tipologia_id, fascia_list_widget))
         layout.addWidget(modify_button)
 
         # Pulsante per eliminare la fascia oraria selezionata
         delete_button = QPushButton("Elimina Fascia Oraria")
-        delete_button.clicked.connect(lambda: delete_fascia(app, day, tipologia_id, fascia_list_widget))
+        delete_button.clicked.connect(lambda: delete_fascia(app, day_id, tipologia_id, fascia_list_widget))
         layout.addWidget(delete_button)
 
         dialog.setLayout(layout)
@@ -240,13 +272,11 @@ def on_square_click(app, day, tipologia_id, button):
     except Exception as e:
         QMessageBox.critical(app, "Errore", f"Si è verificato un errore: {str(e)}")
 
-def add_fascia(app, day, tipologia_id, fascia_list_widget):
+
+def add_fascia(app, day_id, tipologia_id, fascia_list_widget):
     try:
         text, ok = QInputDialog.getText(app, "Aggiungi Fascia Oraria", "Inserisci fascia oraria (es. 1-2):")
         if ok and text:
-            # Usa l'ID del giorno
-            day_id = DAY_TO_ID.get(day, day)  # Converti il nome del giorno in ID, se applicabile
-            
             if tipologia_id not in app.tipologia_schedule:
                 app.tipologia_schedule[tipologia_id] = {
                     "nome": f"{tipologia_id}",  # Nome di default, può essere cambiato
@@ -265,16 +295,13 @@ def add_fascia(app, day, tipologia_id, fascia_list_widget):
     except Exception as e:
         QMessageBox.critical(app, "Errore", f"Si è verificato un errore durante l'aggiunta della fascia oraria: {str(e)}")
 
-def modify_fascia(app, day, tipologia_id, fascia_list_widget):
+def modify_fascia(app, day_id, tipologia_id, fascia_list_widget):
     try:
         selected_item = fascia_list_widget.currentItem()
         if selected_item:
             old_text = selected_item.text()
             new_text, ok = QInputDialog.getText(app, "Modifica Fascia Oraria", "Nuova fascia oraria:", text=old_text)
             if ok and new_text:
-                # Usa l'ID del giorno
-                day_id = DAY_TO_ID.get(day, day)
-                
                 fasce = app.tipologia_schedule[tipologia_id]["fasce"][day_id]
                 fasce[fasce.index(old_text)] = new_text
                 selected_item.setText(new_text)
@@ -298,7 +325,7 @@ def delete_fascia(app, day_id, tipologia_id, fascia_list_widget):
     except Exception as e:
         QMessageBox.critical(app, "Errore", f"Si è verificato un errore durante l'eliminazione della fascia oraria: {str(e)}")
 
-def update_day_square(app, day, tipologia_id):
+def update_day_square(app, day_id, tipologia_id):
     try:
         # Trova il quadrato del giorno corretto
         for index in range(app.week_display.layout().count()):
@@ -311,7 +338,7 @@ def update_day_square(app, day, tipologia_id):
                         if isinstance(child, QPushButton):
                             if child.property("tipologia_id") == tipologia_id:
                                 # Ottieni le fasce orarie per il giorno e la tipologia selezionati
-                                fasce = app.tipologia_schedule.get(tipologia_id, {}).get(day, [])
+                                fasce = app.tipologia_schedule.get(tipologia_id, {}).get("fasce", {}).get(day_id, [])
                                 child.setText(", ".join(fasce))
                                 break
         update_week_display(app, app.tipologie_list.currentItem().text())    

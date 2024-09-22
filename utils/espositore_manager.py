@@ -123,13 +123,29 @@ def display_person_details(app, item):
             app.detail_text.append(f"Nome: {person.get('name', 'N/A')}")
             app.detail_text.append(f"ID: {person_id}")
             
+            # Mappa degli ID dei giorni ai loro nomi
+            giorno_map = {
+                '1': 'Lunedì',
+                '2': 'Martedì',
+                '3': 'Mercoledì',
+                '4': 'Giovedì',
+                '5': 'Venerdì',
+                '6': 'Sabato',
+                '7': 'Domenica',
+            }
+
+            # Mappa degli ID delle tipologie ai loro nomi
+            tipologia_map = {tipologia_id: tipologia["nome"] for tipologia_id, tipologia in app.tipologia_schedule.items()}
+
             # Mostra la disponibilità per la tipologia
             availability = person.get('availability', {})
             if availability:
-                for tipologia, giorni in availability.items():
-                    app.detail_text.append(f"\nTipologia: {tipologia}")
-                    for giorno, fasce in giorni.items():
-                        app.detail_text.append(f"  Giorno: {giorno}")
+                for tipologia_id, giorni in availability.items():
+                    tipologia_nome = tipologia_map.get(tipologia_id, 'N/A')  # Ottieni il nome della tipologia
+                    app.detail_text.append(f"\nTipologia: {tipologia_nome}")
+                    for giorno_id, fasce in giorni.items():
+                        giorno_n = giorno_map.get(giorno_id, 'N/A')  # Ottieni il nome del giorno
+                        app.detail_text.append(f"  Giorno: {giorno_n}")
                         for fascia in fasce:
                             app.detail_text.append(f"    Fascia: {fascia}")
             else:
@@ -139,6 +155,7 @@ def display_person_details(app, item):
             
     except Exception as e:
         QMessageBox.critical(app, "Errore", f"Si è verificato un errore: {str(e)}")
+
 
 def update_person_availability(app, date, tipologia, fascia, dialog):
     try:
