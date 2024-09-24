@@ -160,23 +160,6 @@ def clear_existing_widgets(self):
                 if layout is not None:
                     clear_layout(self, layout)
 
-def clear_layout(self, layout):
-    """Rimuove tutti i widget da un layout specificato."""
-    if layout is None:
-        return
-
-    for i in reversed(range(layout.count())):
-        item = layout.itemAt(i)
-        if item is not None:
-            widget = item.widget()
-            if widget is not None:
-                layout.removeWidget(widget)
-                widget.deleteLater()
-            else:
-                sub_layout = item.layout()
-                if sub_layout is not None:
-                    clear_layout(self, sub_layout)
-
 def ensure_folder_appdata():
     # Ottieni il percorso della cartella APPDATA e aggiungi 'CongregationToolsApp'
     appdata_path = os.path.join(os.getenv('APPDATA'), 'CongregationToolsApp')
@@ -255,10 +238,20 @@ def handle_download(download):
         # Crea e mostra il messaggio di avviso
         show_alert("Download avvenuto con successo!")       
 
-def clear_layout(layout, exclude_widgets=[]):
-    while layout.count():
-        item = layout.takeAt(0)
-        widget = item.widget()
-        if widget and widget not in exclude_widgets:
-            widget.deleteLater()
+def clear_layout(self, layout):
+    """Rimuove tutti i widget da un layout specificato."""
+    if layout is None:
+        return
+
+    for i in reversed(range(layout.count())):
+        item = layout.itemAt(i)
+        if item is not None:
+            widget = item.widget()
+            if widget is not None:
+                layout.removeWidget(widget)
+                widget.deleteLater()
+            else:
+                sub_layout = item.layout()
+                if sub_layout is not None:
+                    clear_layout(self, sub_layout)            
                 
