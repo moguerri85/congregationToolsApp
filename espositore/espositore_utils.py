@@ -23,20 +23,20 @@ DAY_TO_ID = {
 # Mappatura inversa da ID a nome del giorno
 ID_TO_DAY = {v: k for k, v in DAY_TO_ID.items()}
 
+# Funzione per salvare i dati nel file JSON
 def save_data(app):
     try:
+        data = {
+            "people": app.people,
+            "tipologia_schedule": app.tipologia_schedule,
+            "person_schedule": app.person_schedule
+        }
         appdata_path = os.path.join(os.getenv('APPDATA'), 'CongregationToolsApp')
         local_file_jsn= appdata_path+'/'+SAVE_FILE
-        # Salva i dati in un file JSON
         with open(local_file_jsn, 'w') as f:
-            data = {
-                'people': app.people,
-                'tipologia_schedule': app.tipologia_schedule,
-                'person_schedule': app.person_schedule
-            }
-            json.dump(data, f, indent=4)
+            json.dump(data, f, indent=4)  # Salva i dati con indentazione per leggibilità
     except Exception as e:
-        QMessageBox.critical(app, "Errore", f"Si è verificato un errore durante il salvataggio: {str(e)}")
+        QMessageBox.critical(app, "Errore", f"Errore nel salvataggio dei dati: {str(e)}")
 
 def load_data(app):
     """Carica i dati da un file JSON e li inserisce nelle strutture appropriate."""
@@ -44,41 +44,56 @@ def load_data(app):
         appdata_path = os.path.join(os.getenv('APPDATA'), 'CongregationToolsApp')
         local_file_jsn= appdata_path+'/'+SAVE_FILE
         # Legge il file JSON
-        with open(local_file_jsn, 'r') as file:
-            data = json.load(file)
-        
-        # Popola le persone (people)
-        app.people = data.get('people', {})
-        app.person_schedule = data.get('person_schedule', {})
-        app.tipologia_schedule = data.get('tipologia_schedule', {})
-        
-        # Aggiorna l'interfaccia utente
-        app.person_list.clear()
-        for person_id, name in app.people.items():
-            item = QListWidgetItem(name)
-            item.setData(Qt.UserRole, person_id)
-            app.person_list.addItem(item)
-        
-        # Popola le tipologie (tipologia_schedule)
-        app.tipologie_list.clear()
-        for tipologia_id, tipologia_data in app.tipologia_schedule.items():
-            nome_tipologia = tipologia_data.get('nome', 'Sconosciuto')
-            item = QListWidgetItem(nome_tipologia)
-            item.setData(Qt.UserRole, tipologia_id)
-            app.tipologie_list.addItem(item)
-        
-        # Aggiorna la visualizzazione della settimana
-        update_week_display(app, None)
+        if os.path.exists(local_file_jsn) and os.path.getsize(local_file_jsn) > 0:
 
-        # Stampa o logga un messaggio di conferma
-        print("Dati caricati con successo!")
+            with open(local_file_jsn, 'r') as file:
+                data = json.load(file)
+            
+            # Popola le persone (people)
+            app.people = data.get('people', {})
+            app.person_schedule = data.get('person_schedule', {})
+            app.tipologia_schedule = data.get('tipologia_schedule', {})
+            app.tipologie = data.get('tipologie', {})
+            
+            # Aggiorna l'interfaccia utente
+            app.person_list.clear()
+            for person_id, name in app.people.items():
+                item = QListWidgetItem(name)
+                item.setData(Qt.UserRole, person_id)
+                app.person_list.addItem(item)
+            
+            # Popola le tipologie (tipologia_schedule)
+            app.tipologie_list.clear()
+            for tipologia_id, tipologia_data in app.tipologia_schedule.items():
+                nome_tipologia = tipologia_data.get('nome', 'Sconosciuto')
+                item = QListWidgetItem(nome_tipologia)
+                item.setData(Qt.UserRole, tipologia_id)
+                app.tipologie_list.addItem(item)
+            
+            # Aggiorna la visualizzazione della settimana
+            update_week_display(app, None)
+
+            # Stampa o logga un messaggio di conferma
+            print("Dati caricati con successo!")
+        else:
+            # Se il file è vuoto, inizializza le strutture dati
+            app.people = {}
+            app.tipologia_schedule = {}
+            app.tipologie = {}
+            app.person_schedule = {}
     
+    except json.JSONDecodeError as e:
+        QMessageBox.critical(app, "Errore", f"Errore nel parsing del file JSON: {str(e)}")
+    except Exception as e:
+        QMessageBox.critical(app, "Errore", f"Si è verificato un errore durante il caricamento dei dati: {str(e)}")        
     except FileNotFoundError:
         # Se il file non esiste, si crea una struttura vuota
         print(f"File {SAVE_FILE} non trovato, caricamento di default.")
         app.people = {}
         app.person_schedule = {}
         app.tipologia_schedule = {}
+        app.tipologie = {}
+
     
     except json.JSONDecodeError:
         # Gestione degli errori di parsing JSON
@@ -87,71 +102,6 @@ def load_data(app):
     except Exception as e:
         # Gestione di altri errori
         print(f"Errore durante il caricamento dei dati: {str(e)}")
-
-
-def update_person_details(app, person_id):
-    if person_id in app.person_schedule:
-        details = f"Dettagli del proclamatore con ID {person_id}:\n\n"
-        for day, info in app.person_schedule[person_id].items():
-            tipologia_name = app.tipologie.get(info['tipologia'], 'Sconosciuta')
-            details += f"{day}: Tipologia - {tipologia_name}, Fascia Oraria - {info['fascia_oraria']}\n"
-        app.detail_text.setPlainText(details)
-    else:
-        app.detail_text.setPlainText(f"Nessuna disponibilità registrata per il proclamatore con ID {person_id}.")
-
-def show_day_dialog(app, day):
-    try:
-        dialog = QDialog()
-        dialog.setWindowTitle("Aggiungi Fascia Oraria")
-        layout = QVBoxLayout(dialog)
-
-        tipologia_label = QLabel("Seleziona la tipologia:")
-        layout.addWidget(tipologia_label)
-        
-        tipologia_combo = QComboBox()
-        for tipologia in app.tipologia_schedule.keys():
-            tipologia_combo.addItem(tipologia)
-        layout.addWidget(tipologia_combo)
-
-        fascia_inizio_label = QLabel("Fascia Oraria Inizio:")
-        layout.addWidget(fascia_inizio_label)
-        fascia_inizio_time = QTimeEdit()
-        layout.addWidget(fascia_inizio_time)
-
-        fascia_fine_label = QLabel("Fascia Oraria Fine:")
-        layout.addWidget(fascia_fine_label)
-        fascia_fine_time = QTimeEdit()
-        layout.addWidget(fascia_fine_time)
-
-        confirm_button = QPushButton("Aggiungi Fascia Oraria")
-        confirm_button.clicked.connect(lambda: add_time_slot(app, day, tipologia_combo.currentText(), fascia_inizio_time.time().toString(), fascia_fine_time.time().toString(), dialog))
-        layout.addWidget(confirm_button)
-
-        dialog.setLayout(layout)
-        dialog.exec_()  # Utilizzare exec_() per il dialogo modale
-
-    except Exception as e:
-        QMessageBox.critical(app, "Errore", f"Si è verificato un errore: {str(e)}")
-
-def add_time_slot(app, day, tipologia, start_time, end_time, dialog):
-    try:
-        # Verifica se la tipologia e il giorno sono già registrati
-        if tipologia not in app.tipologia_schedule:
-            app.tipologia_schedule[tipologia] = {}
-        if day not in app.tipologia_schedule[tipologia]:
-            app.tipologia_schedule[tipologia][day] = []
-
-        # Aggiungi la fascia oraria
-        app.tipologia_schedule[tipologia][day].append(f"{start_time} - {end_time}")
-
-        # Aggiorna la visualizzazione della settimana
-        update_week_display(app, app.tipologie_list.currentItem().text())
-
-        # Chiudi il dialogo
-        dialog.accept()
-        
-    except Exception as e:
-        QMessageBox.critical(app, "Errore", f"Si è verificato un errore durante l'aggiunta della fascia oraria: {str(e)}")
 
 def update_week_display(app, tipologia_nome):
     try:
@@ -218,7 +168,7 @@ def update_week_display(app, tipologia_nome):
 
     except Exception as e:
         print(f"Errore durante l'aggiornamento della settimana: {e}")
-
+        
 def on_square_click(app, day_id, tipologia_id, button):
     try:
         # Ottieni il nome del giorno dall'ID
@@ -344,3 +294,15 @@ def update_day_square(app, day_id, tipologia_id):
         update_week_display(app, app.tipologie_list.currentItem().text())    
     except Exception as e:
         QMessageBox.critical(app, "Errore", f"Si è verificato un errore durante l'aggiornamento del quadrato del giorno: {str(e)}")
+
+# Funzione per ottenere il nome del giorno da una stringa di data
+def get_day_from_date(date_str):
+    try:
+        # Converti la stringa in un oggetto datetime
+        date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+        # Ottieni il nome del giorno in italiano
+        giorni_settimana = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']
+        day_name = giorni_settimana[date_obj.weekday()]
+        return day_name
+    except ValueError:
+        return "N/A"
