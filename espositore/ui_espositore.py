@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel, QListWidget, QPus
                              QTextEdit, QMessageBox, QRadioButton, QButtonGroup, QSizePolicy, QComboBox)
 from PyQt5.QtCore import Qt, QSize
 
-from espositore.espositore_tab_gestione import add_tipologia, display_person_details, modify_selected_tipologia, remove_tipologia
+from espositore.espositore_tab_gestione import add_tipo_luogo, display_person_details, modify_selected_tipo_luogo, remove_tipo_luogo
 from espositore.espositore_tab_proclamatore import add_person, remove_person, show_availability_dialog
 from espositore.espositore_utils import update_week_display
 
@@ -19,7 +19,7 @@ def setup_espositore_tab(app):
     main_layout.addWidget(tab_widget)
 
     app.people = {}
-    app.tipologia_schedule = {}
+    app.tipo_luogo_schedule = {}
     app.tipologie = {}
     app.person_schedule = {}
 
@@ -108,17 +108,17 @@ def setup_espositore_tab(app):
     app.tipologie_list.itemClicked.connect(lambda item: update_week_display(app, item.text()))
     gestione_layout.addWidget(app.tipologie_list)
 
-    app.add_tipologia_button = QPushButton("Aggiungi Tipologia")
-    app.add_tipologia_button.clicked.connect(lambda: add_tipologia(app))
-    gestione_layout.addWidget(app.add_tipologia_button)
+    app.add_tipo_luogo_button = QPushButton("Aggiungi Tipologia\\Luogo")
+    app.add_tipo_luogo_button.clicked.connect(lambda: add_tipo_luogo(app))
+    gestione_layout.addWidget(app.add_tipo_luogo_button)
 
-    app.modify_tipologia_button = QPushButton("Modifica Tipologia")
-    app.modify_tipologia_button.clicked.connect(lambda: modify_selected_tipologia(app))
-    gestione_layout.addWidget(app.modify_tipologia_button)
+    app.modify_tipo_luogo_button = QPushButton("Modifica Tipologia\\Luogo")
+    app.modify_tipo_luogo_button.clicked.connect(lambda: modify_selected_tipo_luogo(app))
+    gestione_layout.addWidget(app.modify_tipo_luogo_button)
 
-    app.remove_tipologia_button = QPushButton("Rimuovi Tipologia")
-    app.remove_tipologia_button.clicked.connect(lambda: remove_tipologia(app))
-    gestione_layout.addWidget(app.remove_tipologia_button)
+    app.remove_tipo_luogo_button = QPushButton("Rimuovi Tipologia\\Luogo")
+    app.remove_tipo_luogo_button.clicked.connect(lambda: remove_tipo_luogo(app))
+    gestione_layout.addWidget(app.remove_tipo_luogo_button)
 
     app.gestione_table = QWidget()
     app.gestione_table.setLayout(QVBoxLayout())
