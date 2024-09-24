@@ -2,8 +2,10 @@ from PyQt5.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel, QListWidget, QPus
                              QTextEdit, QMessageBox, QRadioButton, QButtonGroup, QSizePolicy, QComboBox)
 from PyQt5.QtCore import Qt, QSize
 
-from utils.espositore_manager import add_person, add_tipologia, display_person_details, modify_selected_tipologia, remove_person, remove_tipologia, update_person_availability
-from utils.espositore_utils import show_day_dialog, update_week_display
+from espositore.espositore_tab_gestione import add_tipo_luogo, display_person_details, modify_selected_tipo_luogo, remove_tipo_luogo
+from espositore.espositore_tab_proclamatore import add_person, remove_person, show_availability_dialog
+from espositore.espositore_utils import update_week_display
+
 
 def setup_espositore_tab(app):
     if not hasattr(app, 'tabs') or not isinstance(app.tabs, QTabWidget):
@@ -17,7 +19,8 @@ def setup_espositore_tab(app):
     main_layout.addWidget(tab_widget)
 
     app.people = {}
-    app.tipologia_schedule = {}
+    app.tipo_luogo_schedule = {}
+    app.tipologie = {}
     app.person_schedule = {}
 
     # --- Tab Proclamatore ---
@@ -97,35 +100,35 @@ def setup_espositore_tab(app):
     tab_widget.addTab(proclamatore_tab, "Proclamatore")
 
     # --- Tab Turni ---
-    turni_tab = QWidget()
-    turni_layout = QVBoxLayout(turni_tab)
+    gestione_tab = QWidget()
+    gestione_layout = QVBoxLayout(gestione_tab)
 
     app.tipologie_list = QListWidget()
     app.tipologie_list.setSelectionMode(QListWidget.SingleSelection)
     app.tipologie_list.itemClicked.connect(lambda item: update_week_display(app, item.text()))
-    turni_layout.addWidget(app.tipologie_list)
+    gestione_layout.addWidget(app.tipologie_list)
 
-    app.add_tipologia_button = QPushButton("Aggiungi Tipologia")
-    app.add_tipologia_button.clicked.connect(lambda: add_tipologia(app))
-    turni_layout.addWidget(app.add_tipologia_button)
+    app.add_tipo_luogo_button = QPushButton("Aggiungi Tipologia\\Luogo")
+    app.add_tipo_luogo_button.clicked.connect(lambda: add_tipo_luogo(app))
+    gestione_layout.addWidget(app.add_tipo_luogo_button)
 
-    app.modify_tipologia_button = QPushButton("Modifica Tipologia")
-    app.modify_tipologia_button.clicked.connect(lambda: modify_selected_tipologia(app))
-    turni_layout.addWidget(app.modify_tipologia_button)
+    app.modify_tipo_luogo_button = QPushButton("Modifica Tipologia\\Luogo")
+    app.modify_tipo_luogo_button.clicked.connect(lambda: modify_selected_tipo_luogo(app))
+    gestione_layout.addWidget(app.modify_tipo_luogo_button)
 
-    app.remove_tipologia_button = QPushButton("Rimuovi Tipologia")
-    app.remove_tipologia_button.clicked.connect(lambda: remove_tipologia(app))
-    turni_layout.addWidget(app.remove_tipologia_button)
+    app.remove_tipo_luogo_button = QPushButton("Rimuovi Tipologia\\Luogo")
+    app.remove_tipo_luogo_button.clicked.connect(lambda: remove_tipo_luogo(app))
+    gestione_layout.addWidget(app.remove_tipo_luogo_button)
 
-    app.turni_table = QWidget()
-    app.turni_table.setLayout(QVBoxLayout())
-    turni_layout.addWidget(app.turni_table)
+    app.gestione_table = QWidget()
+    app.gestione_table.setLayout(QVBoxLayout())
+    gestione_layout.addWidget(app.gestione_table)
 
     app.week_display = QWidget()
     app.week_display.setLayout(QHBoxLayout())
-    turni_layout.addWidget(app.week_display)
+    gestione_layout.addWidget(app.week_display)
 
-    tab_widget.addTab(turni_tab, "Turni")
+    tab_widget.addTab(gestione_tab, "Gestione")
 
     app.tabs.addTab(espositore_tab, "Espositore")
 
@@ -146,44 +149,3 @@ def toggle_week_or_calendar(app):
     else:
         app.week_widget.hide()
         app.calendar.hide()
-
-def show_availability_dialog(app, date):
-    try:
-        dialog = QWidget()
-        dialog.setWindowTitle("Aggiungi Disponibilità")
-        layout = QVBoxLayout(dialog)
-
-        tipologia_label = QLabel("Seleziona la tipologia:")
-        layout.addWidget(tipologia_label)
-        
-        tipologia_combo = QComboBox()
-        for tipologia in app.tipologia_schedule.keys():
-            tipologia_combo.addItem(tipologia)
-        layout.addWidget(tipologia_combo)
-
-        fascia_label = QLabel("Seleziona la fascia oraria:")
-        layout.addWidget(fascia_label)
-        
-        fascia_combo = QComboBox()
-        layout.addWidget(fascia_combo)
-
-        def update_fasce():
-            selected_tipologia = tipologia_combo.currentText()
-            if selected_tipologia in app.tipologia_schedule:
-                fasce = [fascia for day in app.tipologia_schedule[selected_tipologia].values() for fascia in day]
-                fascia_combo.clear()
-                fascia_combo.addItems(fasce)
-
-        tipologia_combo.currentIndexChanged.connect(update_fasce)
-        update_fasce()
-
-        confirm_button = QPushButton("Conferma")
-        confirm_button.clicked.connect(lambda: update_person_availability(app, date, tipologia_combo.currentText(), fascia_combo.currentText(), dialog))
-        layout.addWidget(confirm_button)
-
-        dialog.setLayout(layout)
-        dialog.show()
-
-    except Exception as e:
-        QMessageBox.critical(app, "Errore", f"Si è verificato un errore: {str(e)}")
-

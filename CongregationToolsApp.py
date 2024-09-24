@@ -19,9 +19,9 @@ from hourglass.hourglass_manager import (
 
 from hourglass.ui_hourglass import setup_hourglass_tab
 from utils.auth_utility import exchange_code_for_tokens, generate_code_challenge, generate_code_verifier, get_user_info, initiate_authentication, load_tokens, refresh_access_token, save_tokens
-from utils.espositore_utils import load_data
+from espositore.espositore_utils import load_data
 from utils.ui_benvenuto import setup_benvenuto_tab
-from utils.ui_espositore import setup_espositore_tab
+from espositore.ui_espositore import setup_espositore_tab
 from utils.ui_vigeo import setup_vigeo_tab
 from utils.update_software import check_for_updates
 from utils.utility import clear_layout, ensure_folder_appdata
@@ -33,7 +33,7 @@ import logging
 # Configura il logging
 #logging.basicConfig(filename='app.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-CURRENT_VERSION = "1.0.2"  # Versione corrente dell'app
+CURRENT_VERSION = "1.0.4"  # Versione corrente dell'app
 GITHUB_RELEASES_API_URL = "https://api.github.com/repos/moguerri85/congregationToolsApp/releases/latest"
 
 # Interceptor per le richieste

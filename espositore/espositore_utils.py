@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import (QMessageBox, QPushButton, QDialog, QVBoxLayout, QCo
                              QLabel, QTimeEdit, QWidget, QListWidget, QSizePolicy, QInputDialog,
                              QListWidgetItem)
 from PyQt5.QtCore import Qt, QSize
+from datetime import datetime
 
 SAVE_FILE = "espositore_data.json"
 
@@ -22,20 +23,20 @@ DAY_TO_ID = {
 # Mappatura inversa da ID a nome del giorno
 ID_TO_DAY = {v: k for k, v in DAY_TO_ID.items()}
 
+# Funzione per salvare i dati nel file JSON
 def save_data(app):
     try:
+        data = {
+            "people": app.people,
+            "tipo_luogo_schedule": app.tipo_luogo_schedule,
+            "person_schedule": app.person_schedule
+        }
         appdata_path = os.path.join(os.getenv('APPDATA'), 'CongregationToolsApp')
         local_file_jsn= appdata_path+'/'+SAVE_FILE
-        # Salva i dati in un file JSON
         with open(local_file_jsn, 'w') as f:
-            data = {
-                'people': app.people,
-                'tipologia_schedule': app.tipologia_schedule,
-                'person_schedule': app.person_schedule
-            }
-            json.dump(data, f, indent=4)
+            json.dump(data, f, indent=4)  # Salva i dati con indentazione per leggibilità
     except Exception as e:
-        QMessageBox.critical(app, "Errore", f"Si è verificato un errore durante il salvataggio: {str(e)}")
+        QMessageBox.critical(app, "Errore", f"Errore nel salvataggio dei dati: {str(e)}")
 
 def load_data(app):
     """Carica i dati da un file JSON e li inserisce nelle strutture appropriate."""
@@ -43,41 +44,56 @@ def load_data(app):
         appdata_path = os.path.join(os.getenv('APPDATA'), 'CongregationToolsApp')
         local_file_jsn= appdata_path+'/'+SAVE_FILE
         # Legge il file JSON
-        with open(local_file_jsn, 'r') as file:
-            data = json.load(file)
-        
-        # Popola le persone (people)
-        app.people = data.get('people', {})
-        app.person_schedule = data.get('person_schedule', {})
-        app.tipologia_schedule = data.get('tipologia_schedule', {})
-        
-        # Aggiorna l'interfaccia utente
-        app.person_list.clear()
-        for person_id, name in app.people.items():
-            item = QListWidgetItem(name)
-            item.setData(Qt.UserRole, person_id)
-            app.person_list.addItem(item)
-        
-        # Popola le tipologie (tipologia_schedule)
-        app.tipologie_list.clear()
-        for tipologia_id, tipologia_data in app.tipologia_schedule.items():
-            nome_tipologia = tipologia_data.get('nome', 'Sconosciuto')
-            item = QListWidgetItem(nome_tipologia)
-            item.setData(Qt.UserRole, tipologia_id)
-            app.tipologie_list.addItem(item)
-        
-        # Aggiorna la visualizzazione della settimana
-        update_week_display(app, None)
+        if os.path.exists(local_file_jsn) and os.path.getsize(local_file_jsn) > 0:
 
-        # Stampa o logga un messaggio di conferma
-        print("Dati caricati con successo!")
+            with open(local_file_jsn, 'r', encoding='utf-8') as file:
+                data = json.load(file)
+            
+            # Popola le persone (people)
+            app.people = data.get('people', {})
+            app.person_schedule = data.get('person_schedule', {})
+            app.tipo_luogo_schedule = data.get('tipo_luogo_schedule', {})
+            app.tipologie = data.get('tipologie', {})
+            
+            # Aggiorna l'interfaccia utente
+            app.person_list.clear()
+            for person_id, name in app.people.items():
+                item = QListWidgetItem(name)
+                item.setData(Qt.UserRole, person_id)
+                app.person_list.addItem(item)
+            
+            # Popola le tipologie (tipo_luogo_schedule)
+            app.tipologie_list.clear()
+            for tipo_luogo_id, tipo_luogo_data in app.tipo_luogo_schedule.items():
+                nome_tipo_luogo = tipo_luogo_data.get('nome', 'Sconosciuto')
+                item = QListWidgetItem(nome_tipo_luogo)
+                item.setData(Qt.UserRole, tipo_luogo_id)
+                app.tipologie_list.addItem(item)
+            
+            # Aggiorna la visualizzazione della settimana
+            update_week_display(app, None)
+
+            # Stampa o logga un messaggio di conferma
+            print("Dati caricati con successo!")
+        else:
+            # Se il file è vuoto, inizializza le strutture dati
+            app.people = {}
+            app.tipo_luogo_schedule = {}
+            app.tipologie = {}
+            app.person_schedule = {}
     
+    except json.JSONDecodeError as e:
+        QMessageBox.critical(app, "Errore", f"Errore nel parsing del file JSON: {str(e)}")
+    except Exception as e:
+        QMessageBox.critical(app, "Errore", f"Si è verificato un errore durante il caricamento dei dati: {str(e)}")        
     except FileNotFoundError:
         # Se il file non esiste, si crea una struttura vuota
         print(f"File {SAVE_FILE} non trovato, caricamento di default.")
         app.people = {}
         app.person_schedule = {}
-        app.tipologia_schedule = {}
+        app.tipo_luogo_schedule = {}
+        app.tipologie = {}
+
     
     except json.JSONDecodeError:
         # Gestione degli errori di parsing JSON
@@ -87,72 +103,7 @@ def load_data(app):
         # Gestione di altri errori
         print(f"Errore durante il caricamento dei dati: {str(e)}")
 
-
-def update_person_details(app, person_id):
-    if person_id in app.person_schedule:
-        details = f"Dettagli del proclamatore con ID {person_id}:\n\n"
-        for day, info in app.person_schedule[person_id].items():
-            tipologia_name = app.tipologie.get(info['tipologia'], 'Sconosciuta')
-            details += f"{day}: Tipologia - {tipologia_name}, Fascia Oraria - {info['fascia_oraria']}\n"
-        app.detail_text.setPlainText(details)
-    else:
-        app.detail_text.setPlainText(f"Nessuna disponibilità registrata per il proclamatore con ID {person_id}.")
-
-def show_day_dialog(app, day):
-    try:
-        dialog = QDialog()
-        dialog.setWindowTitle("Aggiungi Fascia Oraria")
-        layout = QVBoxLayout(dialog)
-
-        tipologia_label = QLabel("Seleziona la tipologia:")
-        layout.addWidget(tipologia_label)
-        
-        tipologia_combo = QComboBox()
-        for tipologia in app.tipologia_schedule.keys():
-            tipologia_combo.addItem(tipologia)
-        layout.addWidget(tipologia_combo)
-
-        fascia_inizio_label = QLabel("Fascia Oraria Inizio:")
-        layout.addWidget(fascia_inizio_label)
-        fascia_inizio_time = QTimeEdit()
-        layout.addWidget(fascia_inizio_time)
-
-        fascia_fine_label = QLabel("Fascia Oraria Fine:")
-        layout.addWidget(fascia_fine_label)
-        fascia_fine_time = QTimeEdit()
-        layout.addWidget(fascia_fine_time)
-
-        confirm_button = QPushButton("Aggiungi Fascia Oraria")
-        confirm_button.clicked.connect(lambda: add_time_slot(app, day, tipologia_combo.currentText(), fascia_inizio_time.time().toString(), fascia_fine_time.time().toString(), dialog))
-        layout.addWidget(confirm_button)
-
-        dialog.setLayout(layout)
-        dialog.exec_()  # Utilizzare exec_() per il dialogo modale
-
-    except Exception as e:
-        QMessageBox.critical(app, "Errore", f"Si è verificato un errore: {str(e)}")
-
-def add_time_slot(app, day, tipologia, start_time, end_time, dialog):
-    try:
-        # Verifica se la tipologia e il giorno sono già registrati
-        if tipologia not in app.tipologia_schedule:
-            app.tipologia_schedule[tipologia] = {}
-        if day not in app.tipologia_schedule[tipologia]:
-            app.tipologia_schedule[tipologia][day] = []
-
-        # Aggiungi la fascia oraria
-        app.tipologia_schedule[tipologia][day].append(f"{start_time} - {end_time}")
-
-        # Aggiorna la visualizzazione della settimana
-        update_week_display(app, app.tipologie_list.currentItem().text())
-
-        # Chiudi il dialogo
-        dialog.accept()
-        
-    except Exception as e:
-        QMessageBox.critical(app, "Errore", f"Si è verificato un errore durante l'aggiunta della fascia oraria: {str(e)}")
-
-def update_week_display(app, tipologia_nome):
+def update_week_display(app, tipo_luogo_nome):
     try:
         # Pulisce il layout esistente
         if app.week_display.layout():
@@ -162,14 +113,14 @@ def update_week_display(app, tipologia_nome):
                     child.widget().deleteLater()
 
         # Ottieni l'ID della tipologia selezionata
-        tipologia_id = None
+        tipo_luogo_id = None
         for index in range(app.tipologie_list.count()):
             item = app.tipologie_list.item(index)
-            if item.text() == tipologia_nome:
-                tipologia_id = item.data(Qt.UserRole)
+            if item.text() == tipo_luogo_nome:
+                tipo_luogo_id = item.data(Qt.UserRole)
                 break
 
-        if not tipologia_id:
+        if not tipo_luogo_id:
             return
 
         # Crea e visualizza i quadrati per ogni giorno della settimana usando gli ID
@@ -186,18 +137,30 @@ def update_week_display(app, tipologia_nome):
             
             square_button = QPushButton()
             square_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-            square_button.setFixedSize(QSize(60, 60))
+            square_button.setFixedSize(QSize(70, 60))
             square_button.setStyleSheet("background-color: lightgray; border: 1px solid black;")
             
             # Imposta il testo e il colore del quadrato in base alla tipologia
-            if tipologia_id in app.tipologia_schedule and day_id in app.tipologia_schedule[tipologia_id]["fasce"]:
-                fasce = app.tipologia_schedule[tipologia_id]["fasce"][day_id]
-                square_button.setText(", ".join(fasce))
+            if tipo_luogo_id in app.tipo_luogo_schedule and day_id in app.tipo_luogo_schedule[tipo_luogo_id]["fasce"]:
+                fasce = app.tipo_luogo_schedule[tipo_luogo_id]["fasce"][day_id]
+
+                # Funzione per convertire il testo della fascia oraria in un oggetto datetime
+                def convert_to_time(fascia):
+                    try:
+                        return datetime.strptime(fascia.split('-')[0], '%H:%M')
+                    except ValueError:
+                        return datetime.max  # Se il formato non è valido, metti in fondo
+
+                # Ordina le fasce orarie
+                fasce.sort(key=convert_to_time)
+                
+                # Aggiungi le fasce al pulsante (separate da un'interruzione di riga)
+                square_button.setText("\n".join(fasce))
             else:
                 square_button.setText("")
 
             # Collega il click al quadrato con la funzione per aggiungere/modificare la fascia oraria
-            square_button.clicked.connect(lambda _, d=day_id, t=tipologia_id, b=square_button: on_square_click(app, d, t, b))
+            square_button.clicked.connect(lambda _, d=day_id, t=tipo_luogo_id, b=square_button: on_square_click(app, d, t, b))
             
             day_layout.addWidget(square_button)
             day_widget.setLayout(day_layout)
@@ -205,33 +168,52 @@ def update_week_display(app, tipologia_nome):
 
     except Exception as e:
         print(f"Errore durante l'aggiornamento della settimana: {e}")
-
-def on_square_click(app, day, tipologia_id, button):
+        
+def on_square_click(app, day_id, tipo_luogo_id, button):
     try:
+        # Ottieni il nome del giorno dall'ID
+        day = ID_TO_DAY.get(day_id, day_id)  # Usa la mappa per ottenere il nome del giorno
+
+        # Ottieni il nome della tipologia dall'ID
+        tipo_luogo_nome = app.tipo_luogo_schedule.get(tipo_luogo_id, {}).get("nome", "N/A")
+
         # Crea la finestra di dialogo per la gestione delle fasce orarie
         dialog = QDialog()
-        dialog.setWindowTitle(f"Gestisci Fasce Orarie per {day}")
+        dialog.setWindowTitle(f"Gestisci Fasce Orarie per {day} - {tipo_luogo_nome}")
         layout = QVBoxLayout(dialog)
 
         # Lista delle fasce orarie
         fascia_list_widget = QListWidget()
-        fasce = app.tipologia_schedule.get(tipologia_id, {}).get(day, [])
+
+        # Recupera e ordina le fasce orarie
+        fasce = app.tipo_luogo_schedule.get(tipo_luogo_id, {}).get("fasce", {}).get(day_id, [])
+        
+        # Ordina le fasce orarie usando datetime
+        def convert_to_time(fascia):
+            try:
+                return datetime.strptime(fascia.split('-')[0], '%H:%M')
+            except ValueError:
+                return datetime.max  # Se c'è un errore, metti l'orario in fondo alla lista
+        
+        fasce.sort(key=convert_to_time)  # Ordina le fasce usando l'ora di inizio
+
+        # Aggiungi le fasce ordinate al widget
         fascia_list_widget.addItems(fasce)
         layout.addWidget(fascia_list_widget)
 
         # Pulsante per aggiungere una fascia oraria
         add_button = QPushButton("Aggiungi Fascia Oraria")
-        add_button.clicked.connect(lambda: add_fascia(app, day, tipologia_id, fascia_list_widget))
+        add_button.clicked.connect(lambda: add_fascia(app, day_id, tipo_luogo_id, fascia_list_widget))
         layout.addWidget(add_button)
 
         # Pulsante per modificare la fascia oraria selezionata
         modify_button = QPushButton("Modifica Fascia Oraria")
-        modify_button.clicked.connect(lambda: modify_fascia(app, day, tipologia_id, fascia_list_widget))
+        modify_button.clicked.connect(lambda: modify_fascia(app, day_id, tipo_luogo_id, fascia_list_widget))
         layout.addWidget(modify_button)
 
         # Pulsante per eliminare la fascia oraria selezionata
         delete_button = QPushButton("Elimina Fascia Oraria")
-        delete_button.clicked.connect(lambda: delete_fascia(app, day, tipologia_id, fascia_list_widget))
+        delete_button.clicked.connect(lambda: delete_fascia(app, day_id, tipo_luogo_id, fascia_list_widget))
         layout.addWidget(delete_button)
 
         dialog.setLayout(layout)
@@ -240,65 +222,60 @@ def on_square_click(app, day, tipologia_id, button):
     except Exception as e:
         QMessageBox.critical(app, "Errore", f"Si è verificato un errore: {str(e)}")
 
-def add_fascia(app, day, tipologia_id, fascia_list_widget):
+
+def add_fascia(app, day_id, tipo_luogo_id, fascia_list_widget):
     try:
         text, ok = QInputDialog.getText(app, "Aggiungi Fascia Oraria", "Inserisci fascia oraria (es. 1-2):")
         if ok and text:
-            # Usa l'ID del giorno
-            day_id = DAY_TO_ID.get(day, day)  # Converti il nome del giorno in ID, se applicabile
-            
-            if tipologia_id not in app.tipologia_schedule:
-                app.tipologia_schedule[tipologia_id] = {
-                    "nome": f"{tipologia_id}",  # Nome di default, può essere cambiato
+            if tipo_luogo_id not in app.tipo_luogo_schedule:
+                app.tipo_luogo_schedule[tipo_luogo_id] = {
+                    "nome": f"{tipo_luogo_id}",  # Nome di default, può essere cambiato
                     "fasce": {}
                 }
-            if day_id not in app.tipologia_schedule[tipologia_id]["fasce"]:
-                app.tipologia_schedule[tipologia_id]["fasce"][day_id] = []
+            if day_id not in app.tipo_luogo_schedule[tipo_luogo_id]["fasce"]:
+                app.tipo_luogo_schedule[tipo_luogo_id]["fasce"][day_id] = []
 
             # Aggiungi la fascia oraria per quel giorno (usando l'ID del giorno)
-            app.tipologia_schedule[tipologia_id]["fasce"][day_id].append(text)
+            app.tipo_luogo_schedule[tipo_luogo_id]["fasce"][day_id].append(text)
             fascia_list_widget.addItem(text)
             
             # Aggiorna la visualizzazione
-            update_day_square(app, day_id, tipologia_id)
+            update_day_square(app, day_id, tipo_luogo_id)
             save_data(app)  # Salva i dati dopo aver aggiunto una fascia oraria
     except Exception as e:
         QMessageBox.critical(app, "Errore", f"Si è verificato un errore durante l'aggiunta della fascia oraria: {str(e)}")
 
-def modify_fascia(app, day, tipologia_id, fascia_list_widget):
+def modify_fascia(app, day_id, tipo_luogo_id, fascia_list_widget):
     try:
         selected_item = fascia_list_widget.currentItem()
         if selected_item:
             old_text = selected_item.text()
             new_text, ok = QInputDialog.getText(app, "Modifica Fascia Oraria", "Nuova fascia oraria:", text=old_text)
             if ok and new_text:
-                # Usa l'ID del giorno
-                day_id = DAY_TO_ID.get(day, day)
-                
-                fasce = app.tipologia_schedule[tipologia_id]["fasce"][day_id]
+                fasce = app.tipo_luogo_schedule[tipo_luogo_id]["fasce"][day_id]
                 fasce[fasce.index(old_text)] = new_text
                 selected_item.setText(new_text)
-                update_day_square(app, day_id, tipologia_id)
+                update_day_square(app, day_id, tipo_luogo_id)
                 save_data(app)  # Salva i dati dopo aver modificato una fascia oraria
     except Exception as e:
         QMessageBox.critical(app, "Errore", f"Si è verificato un errore durante la modifica della fascia oraria: {str(e)}")
 
-def delete_fascia(app, day_id, tipologia_id, fascia_list_widget):
+def delete_fascia(app, day_id, tipo_luogo_id, fascia_list_widget):
     try:
         selected_item = fascia_list_widget.currentItem()
         if selected_item:
             text = selected_item.text()
             reply = QMessageBox.question(app, 'Conferma Eliminazione', f"Sei sicuro di voler eliminare la fascia oraria '{text}'?", QMessageBox.Yes | QMessageBox.No)
             if reply == QMessageBox.Yes:
-                fasce = app.tipologia_schedule[tipologia_id]["fasce"][day_id]
+                fasce = app.tipo_luogo_schedule[tipo_luogo_id]["fasce"][day_id]
                 fasce.remove(text)
                 fascia_list_widget.takeItem(fascia_list_widget.row(selected_item))
-                update_day_square(app, day_id, tipologia_id)
+                update_day_square(app, day_id, tipo_luogo_id)
                 save_data(app)  # Salva i dati dopo aver eliminato una fascia oraria
     except Exception as e:
         QMessageBox.critical(app, "Errore", f"Si è verificato un errore durante l'eliminazione della fascia oraria: {str(e)}")
 
-def update_day_square(app, day, tipologia_id):
+def update_day_square(app, day_id, tipo_luogo_id):
     try:
         # Trova il quadrato del giorno corretto
         for index in range(app.week_display.layout().count()):
@@ -309,11 +286,36 @@ def update_day_square(app, day, tipologia_id):
                     for i in range(layout.count()):
                         child = layout.itemAt(i).widget()
                         if isinstance(child, QPushButton):
-                            if child.property("tipologia_id") == tipologia_id:
+                            if child.property("tipo_luogo_id") == tipo_luogo_id:
                                 # Ottieni le fasce orarie per il giorno e la tipologia selezionati
-                                fasce = app.tipologia_schedule.get(tipologia_id, {}).get(day, [])
+                                fasce = app.tipo_luogo_schedule.get(tipo_luogo_id, {}).get("fasce", {}).get(day_id, [])
                                 child.setText(", ".join(fasce))
                                 break
         update_week_display(app, app.tipologie_list.currentItem().text())    
     except Exception as e:
         QMessageBox.critical(app, "Errore", f"Si è verificato un errore durante l'aggiornamento del quadrato del giorno: {str(e)}")
+
+# Funzione per ottenere il nome del giorno da una stringa di data
+def get_day_from_date(date_str):
+    try:
+        # Converti la stringa in un oggetto datetime
+        date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+        # Ottieni il nome del giorno in italiano
+        giorni_settimana = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica']
+        day_name = giorni_settimana[date_obj.weekday()]
+        return day_name
+    except ValueError:
+        return "N/A"
+    
+def get_day_from_id(day_id):
+    giorno_map = {
+        '1': 'Lunedì',
+        '2': 'Martedì',
+        '3': 'Mercoledì',
+        '4': 'Giovedì',
+        '5': 'Venerdì',
+        '6': 'Sabato',
+        '7': 'Domenica',
+    }
+    """Restituisce il nome del giorno corrispondente all'ID."""
+    return giorno_map.get(day_id, "N/A")  # Restituisce "N/A" se l'ID non è valido
