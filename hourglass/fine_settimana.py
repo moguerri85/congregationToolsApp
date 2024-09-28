@@ -35,7 +35,7 @@ def manipulateHTML_fine_settimana(self, discorso, programma):
                 if "Lettore S.T.d.G." in item.text:
                     for item1 in row.find_all("div", class_="dropdown-bounded dropdown"):
                         if "Nessuna selezione" in item1.text:
-                            row.extract()                   
+                            item1.clear()               
             
         for row1 in htmlProFS.find_all("div", class_="row mx-0 px-0 mb-3 justify-content-between"):
             for item1 in row1.find_all("div", class_="col-12 col-lg-4 pb-3 d-flex p-0"):
@@ -44,7 +44,7 @@ def manipulateHTML_fine_settimana(self, discorso, programma):
             if "Presidente" in row1.text:
                 for item2 in row1.find_all("div", class_="dropdown-bounded dropdown"):
                     if "Nessuna selezione" in item2.text:
-                        row1.extract()   
+                        item2.clear()        
 
         # in caso di congresso di zona
         for row2 in htmlProFS.find_all("span", class_="ms-1 badge text-dark bg-light"):
