@@ -7,6 +7,8 @@ from PyQt5.QtWidgets import (QMessageBox, QPushButton, QDialog, QVBoxLayout, QCo
 from PyQt5.QtCore import Qt, QSize
 from datetime import datetime
 
+from utils.logging_custom import logging_custom
+
 SAVE_FILE = "espositore_data.json"
 
 # Mappatura dei giorni della settimana a ID
@@ -74,7 +76,7 @@ def load_data(app):
             update_week_display(app, None)
 
             # Stampa o logga un messaggio di conferma
-            print("Dati caricati con successo!")
+            logging_custom(app, "debug", "Dati caricati con successo!")
         else:
             # Se il file è vuoto, inizializza le strutture dati
             app.people = {}
@@ -88,7 +90,7 @@ def load_data(app):
         QMessageBox.critical(app, "Errore", f"Si è verificato un errore durante il caricamento dei dati: {str(e)}")        
     except FileNotFoundError:
         # Se il file non esiste, si crea una struttura vuota
-        print(f"File {SAVE_FILE} non trovato, caricamento di default.")
+        logging_custom(app, "error", f"File {SAVE_FILE} non trovato, caricamento di default.")
         app.people = {}
         app.person_schedule = {}
         app.tipo_luogo_schedule = {}
@@ -97,11 +99,11 @@ def load_data(app):
     
     except json.JSONDecodeError:
         # Gestione degli errori di parsing JSON
-        print(f"Errore nel parsing del file {SAVE_FILE}. Verifica che il file sia un JSON valido.")
+        logging_custom(app, "error", f"Errore nel parsing del file {SAVE_FILE}. Verifica che il file sia un JSON valido.")
     
     except Exception as e:
         # Gestione di altri errori
-        print(f"Errore durante il caricamento dei dati: {str(e)}")
+        logging_custom(app, "error", f"Errore durante il caricamento dei dati: {str(e)}")
 
 def update_week_display(app, tipo_luogo_nome):
     try:
@@ -167,7 +169,7 @@ def update_week_display(app, tipo_luogo_nome):
             app.week_display.layout().addWidget(day_widget)
 
     except Exception as e:
-        print(f"Errore durante l'aggiornamento della settimana: {e}")
+        logging_custom(app, "debug", f"Errore durante l'aggiornamento della settimana: {e}")
         
 def on_square_click(app, day_id, tipo_luogo_id, button):
     try:

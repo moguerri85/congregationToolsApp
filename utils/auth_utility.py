@@ -4,6 +4,8 @@ import hashlib
 import pickle
 import os
 
+from utils.logging_custom import logging_custom
+
 # Funzioni per PKCE
 def generate_code_verifier(self):
     return base64.urlsafe_b64encode(os.urandom(32)).decode('utf-8').rstrip('=')
@@ -55,9 +57,9 @@ def exchange_code_for_tokens(self, client_id, code_verifier, code, redirect_uri)
         tokens = response.json()
         return tokens.get("access_token"), tokens.get("refresh_token")
     except requests.exceptions.RequestException as e:
-        print(f"Errore durante lo scambio del codice di autorizzazione: {e}")
+        logging_custom(self, "error", f"Errore durante lo scambio del codice di autorizzazione: {e}")
         if e.response is not None:
-            print(f"Risposta dell'errore: {e.response.text}")
+            logging_custom(self, "error", f"Risposta dell'errore: {e.response.text}")
         return None, None
 
 def refresh_access_token(self, client_id, refresh_token):
@@ -72,12 +74,12 @@ def refresh_access_token(self, client_id, refresh_token):
         response.raise_for_status()
         tokens = response.json()
         if tokens:
-            print(f"Nuovo Access Token: {tokens}")
+            logging_custom(self, "debug", f"Nuovo Access Token: {tokens}")
     
         return tokens.get("access_token")
     except requests.exceptions.RequestException as e:
-        print("Il refresh token non ha funzionato.")
-        print(f"Errore durante il refresh del token di accesso: {e}")
+        logging_custom(self, "error", "Il refresh token non ha funzionato.")
+        logging_custom(self, "error", f"Errore durante il refresh del token di accesso: {e}")
         return None
 
 # Funzione per ottenere informazioni dell'account dell'utente
@@ -97,7 +99,7 @@ def get_user_info(self, access_token):
 
     except requests.exceptions.HTTPError as e:
         if response.status_code == 401:
-            print("Errore 401: Access token non valido o scaduto.")
+            logging_custom(self, "error", "Errore 401: Access token non valido o scaduto.")
             # Prova a rinnovare il token
             new_access_token = refresh_access_token(self, "4purifuc7efvwld", self.refresh_token)
             if new_access_token:
@@ -105,6 +107,6 @@ def get_user_info(self, access_token):
                 save_tokens(self, new_access_token, self.refresh_token)
                 return get_user_info(self, new_access_token)  # Riprova con il nuovo 
             else:
-                print(f"Errore HTTP 2 : {e}")        
-        print(f"Errore HTTP: {e}")
+                logging_custom(self, "error", f"Errore HTTP 2 : {e}")        
+        logging_custom(self, "error", f"Errore HTTP: {e}")
         return "", ""

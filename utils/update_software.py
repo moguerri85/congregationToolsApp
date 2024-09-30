@@ -1,6 +1,8 @@
 import requests
 from tkinter import ttk, messagebox, Menu
 
+from utils.logging_custom import logging_custom
+
 def check_for_updates(CURRENT_VERSION, GITHUB_RELEASES_API_URL):
     
     message = "check update"
@@ -21,7 +23,7 @@ def check_for_updates(CURRENT_VERSION, GITHUB_RELEASES_API_URL):
             message = "Nessuna release trovata sul repository GitHub."
             #self.label.config(text="Nessuna release trovata sul repository GitHub.")
         else:
-            print("errore {http_err}")
+            logging_custom(self, "error", "errore {http_err}")
             message = f"Errore HTTP durante il controllo degli aggiornamenti: {http_err}"
             #self.label.config(text=f"Errore HTTP durante il controllo degli aggiornamenti: {http_err}")
     except requests.RequestException as e:

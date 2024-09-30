@@ -4,6 +4,8 @@ from jinja2 import Template
 import shutil
 import platform
 
+from utils.logging_custom import logging_custom
+
 
 def show_overlay(self):
         self.overlay.show()
@@ -39,7 +41,7 @@ def save_html(self, html):
     
     cwd = os.getcwd()  # Get the current working directory (cwd)
     files = os.listdir(cwd)  # Get all the files in that directory
-    #print("Files in %r: %s" % (cwd, files))
+    #logging_custom(self, "debug", "Files in %r: %s" % (cwd, files))
 
     try:
         with open("./template/css/cssHourglass.css", 'r') as css:
@@ -49,7 +51,7 @@ def save_html(self, html):
         logo_bibbia = f'<img src="{image_path}" alt="bibbia" style="width:100px; height:auto;">'    
         
     except FileNotFoundError:
-        print("CSS file not found")
+        logging_custom(self, "error", "CSS file not found")
         # Handle the error, e.g., provide a default CSS or exit the program                    
         
     url = self.view.url().toString()
@@ -140,7 +142,7 @@ def save_html(self, html):
         widget_edit.setParent(None)  # Rimuove il QProgressBar dal layout    
 
 def clear_existing_widgets(self):
-    print("clear_existing_widgets!")
+    logging_custom(self, "debug", "clear_existing_widgets!")
     if self.hourglass_layout is None:
         return
 

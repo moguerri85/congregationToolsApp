@@ -3,6 +3,7 @@ from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtCore import Qt, QUrl
 import os
 from utils.kml_manager import save_temp_and_show_map_html_territorio
+from utils.logging_custom import logging_custom
 
 
 def setup_territorio_tab(self):
@@ -184,9 +185,9 @@ def move_map(self, direction):
                 zoom = self.zoom_spinner.value()
                 save_temp_and_show_map_html_territorio(self, self.coordinates, self.extended_data, self.extended_data_locality_number, angle, zoom, center_lat, center_lon)
             except ValueError as e:
-                print(f"Error parsing coordinates: {e}")
+                logging_custom(self, "debug", f"Error parsing coordinates: {e}")
         else:
-            print("No result returned from JavaScript.")
+            logging_custom(self, "debug", "No result returned from JavaScript.")
 
     # Execute JavaScript and get the result
     self.web_view_territorio.page().runJavaScript(js_code, handle_new_center)

@@ -20,6 +20,7 @@ from hourglass.hourglass_manager import (
 from hourglass.ui_hourglass import setup_hourglass_tab
 from utils.auth_utility import exchange_code_for_tokens, generate_code_challenge, generate_code_verifier, get_user_info, initiate_authentication, load_tokens, refresh_access_token, save_tokens
 from espositore.espositore_utils import load_data
+from utils.logging_custom import logging_custom
 from utils.ui_benvenuto import setup_benvenuto_tab
 from espositore.ui_espositore import setup_espositore_tab
 from utils.ui_vigeo import setup_vigeo_tab
@@ -28,11 +29,6 @@ from utils.utility import clear_layout, ensure_folder_appdata
 from utils.ui_territorio import load_html_file_from_list, setup_territorio_tab
 from utils.kml_manager import open_kml_file_dialog_territorio, update_map, save_map_to_folder
 
-import logging
-
-# Configura il logging
-#logging.basicConfig(filename='app.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
 CURRENT_VERSION = "1.0.4"  # Versione corrente dell'app
 GITHUB_RELEASES_API_URL = "https://api.github.com/repos/moguerri85/congregationToolsApp/releases/latest"
 
@@ -40,7 +36,7 @@ GITHUB_RELEASES_API_URL = "https://api.github.com/repos/moguerri85/congregationT
 class RequestInterceptor(QWebEngineUrlRequestInterceptor):
     def interceptRequest(self, info: QWebEngineUrlRequestInfo):
         url = info.requestUrl().toString()
-        print(f"Intercepted request to: {url}")
+        logging_custom(self, "debug", f"Intercepted request to: {url}")
         info.block(False)
 
 # Widget di overlay
@@ -196,12 +192,12 @@ class CongregationToolsApp(QMainWindow):
                 else:
                     raise Exception("Access token not received.")
             except Exception as e:
-                logging.error(f"Error during login: {str(e)}")
+                logging_custom(self, "error", f"Error during login: {str(e)}")
                 QMessageBox.critical(self, "Login Error", "Failed to login. Please try again.")
 
     def handle_dropbox_logout(self):
         # Implementa la logica di logout (es. rimuovere il token, ripulire lo stato)
-        print("Logged out from Dropbox.")
+        logging_custom(self, "debug", ("Logged out from Dropbox.")
         # Resetta lo stato di login
         self.logged_in = False
         self.access_token = None
@@ -222,9 +218,9 @@ class CongregationToolsApp(QMainWindow):
                     self.access_token = new_access_token
                     save_tokens(self, self.access_token, self.refresh_token)
                 else:
-                    print("Impossibile aggiornare il token di accesso.")
+                    logging_custom(self, "debug", ("Impossibile aggiornare il token di accesso.")
             else:
-                print("Nessun token di accesso o refresh token disponibili.")
+                logging_custom(self, "debug", ("Nessun token di accesso o refresh token disponibili.")
 
     def remove_all_tabs(self):
         # Ottieni il numero totale dei tab
@@ -248,7 +244,7 @@ class CongregationToolsApp(QMainWindow):
         self.dropbox_login_action.triggered.connect(self.handle_dropbox_login)
 
     def update_dropbox_button_to_logout(self):
-        print("Cambio pulsante in Logout")
+        logging_custom(self, "debug", ("Cambio pulsante in Logout")
         # Aggiorna l'icona e il testo del pulsante in "Logout"
         self.dropbox_login_action.setIcon(self.logout_icon)
         self.dropbox_login_action.setText("Logout Dropbox")
@@ -323,9 +319,9 @@ class CongregationToolsApp(QMainWindow):
 
     def handle_load_finished(self, ok):
         if ok:
-            print("Page loaded successfully.")
+            logging_custom(self, "debug", ("Page loaded successfully.")
         else:
-            print("Failed to load page.")
+            logging_custom(self, "debug", ("Failed to load page.")
 
     def handle_url_change_hourglass(self, url):
         setup_schedule(self, url.toString())

@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import (QMessageBox, QInputDialog, QPushButton, QLabel, QCo
                              QTimeEdit, QWidget, QSizePolicy, QListWidget)
 from PyQt5.QtCore import Qt
 from espositore.espositore_utils import get_day_from_date, get_day_from_id, save_data, update_week_display
+from utils.logging_custom import logging_custom
 
 def add_tipo_luogo(app):
     try:
@@ -30,7 +31,7 @@ def modify_selected_tipo_luogo(app):
             tipo_luogo_id = current_item.data(Qt.UserRole)
             modify_tipo_luogo(app, tipo_luogo_id)
     except Exception as e:
-        print(f"Errore durante la selezione della tipologia da modificare: {e}")
+        logging_custom(app, "error", f"Errore durante la selezione della tipologia da modificare: {e}")
 
 def modify_tipo_luogo(app, tipo_luogo_id):
     try:
@@ -48,7 +49,7 @@ def modify_tipo_luogo(app, tipo_luogo_id):
             save_data(app)  # Salva i dati dopo aver modificato una tipologia
             
     except Exception as e:
-        print(f"Errore durante la modifica della tipologia: {e}")
+        logging_custom(app, "error", f"Errore durante la modifica della tipologia: {e}")
 
 def remove_tipo_luogo(app):
     selected_item = app.tipologie_list.currentItem()
