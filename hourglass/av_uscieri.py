@@ -87,6 +87,16 @@ def manipulateHTML_av_uscieri(html):
         for leggenda in soup.find_all("div", class_="row row-cols-auto"):
             leggenda.extract()
 
+        # Trova tutti i dropdown con classe 'dropdown-bounded dropdown'
+        dropdowns = soup.find_all('div', class_='dropdown-bounded dropdown')
+
+        for dropdown in dropdowns:
+            # Se il contenuto del dropdown è "Nessuna selezione", rimuove il div precedente
+            if dropdown.text.strip() == 'Nessuna selezione':
+                previous_div = dropdown.find_previous_sibling('div')
+                if previous_div:
+                    previous_div.decompose()  # Rimuove il div precedente
+                dropdown.decompose()  # Rimuove anche il dropdown stesso
 
         # Trova l'elemento <div> con la classe 'bg-secondary'
         div = soup.find('div', class_='bg-secondary')
