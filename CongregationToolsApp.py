@@ -197,7 +197,7 @@ class CongregationToolsApp(QMainWindow):
 
     def handle_dropbox_logout(self):
         # Implementa la logica di logout (es. rimuovere il token, ripulire lo stato)
-        logging_custom(self, "debug", ("Logged out from Dropbox.")
+        logging_custom(self, "debug", "Logged out from Dropbox.")
         # Resetta lo stato di login
         self.logged_in = False
         self.access_token = None
@@ -218,9 +218,9 @@ class CongregationToolsApp(QMainWindow):
                     self.access_token = new_access_token
                     save_tokens(self, self.access_token, self.refresh_token)
                 else:
-                    logging_custom(self, "debug", ("Impossibile aggiornare il token di accesso.")
+                    logging_custom(self, "debug", "Impossibile aggiornare il token di accesso.")
             else:
-                logging_custom(self, "debug", ("Nessun token di accesso o refresh token disponibili.")
+                logging_custom(self, "debug", "Nessun token di accesso o refresh token disponibili.")
 
     def remove_all_tabs(self):
         # Ottieni il numero totale dei tab
@@ -244,7 +244,7 @@ class CongregationToolsApp(QMainWindow):
         self.dropbox_login_action.triggered.connect(self.handle_dropbox_login)
 
     def update_dropbox_button_to_logout(self):
-        logging_custom(self, "debug", ("Cambio pulsante in Logout")
+        logging_custom(self, "debug", "Cambio pulsante in Logout")
         # Aggiorna l'icona e il testo del pulsante in "Logout"
         self.dropbox_login_action.setIcon(self.logout_icon)
         self.dropbox_login_action.setText("Logout Dropbox")
@@ -319,9 +319,9 @@ class CongregationToolsApp(QMainWindow):
 
     def handle_load_finished(self, ok):
         if ok:
-            logging_custom(self, "debug", ("Page loaded successfully.")
+            logging_custom(self, "debug", "Page loaded successfully.")
         else:
-            logging_custom(self, "debug", ("Failed to load page.")
+            logging_custom(self, "debug", "Failed to load page.")
 
     def handle_url_change_hourglass(self, url):
         setup_schedule(self, url.toString())
