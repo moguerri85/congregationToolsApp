@@ -3,7 +3,7 @@ import os
 
 from PyQt5.QtWidgets import (QMessageBox, QPushButton, QDialog, QVBoxLayout, QComboBox,
                              QLabel, QTimeEdit, QWidget, QListWidget, QSizePolicy, QInputDialog,
-                             QListWidgetItem)
+                             QListWidgetItem, QMessageBox)
 from PyQt5.QtCore import Qt, QSize
 from datetime import datetime
 from PyQt5.QtCore import Qt, QSize, QDateTime
@@ -109,30 +109,66 @@ def load_data(app):
         # Gestione di altri errori
         logging_custom(app, "error", f"Errore durante il caricamento dei dati: {str(e)}")
 
+from PyQt5.QtWidgets import QMessageBox
+
 def import_disponibilita(app):
     """Carica i dati da un file JSON e li inserisce nelle strutture appropriate."""
     try:
+        # Mostra una finestra di dialogo per confermare la sovrascrittura dei dati esistenti
+        confirm_msg = QMessageBox()
+        confirm_msg.setIcon(QMessageBox.Warning)
+        confirm_msg.setWindowTitle("Conferma sovrascrittura")
+        confirm_msg.setText("Attenzione! Questa operazione sovrascriverà i dati attualmente inseriti. Vuoi continuare?")
+        confirm_msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        confirm_msg.setDefaultButton(QMessageBox.No)
+
+        # Se l'utente sceglie "No", annulla l'importazione
+        if confirm_msg.exec_() == QMessageBox.No:
+            return
+
         appdata_path = os.path.join(os.getenv('APPDATA'), 'CongregationToolsApp')
-        local_file_jsn= appdata_path+'/disponibilita_espositore.json'
+        local_file_jsn = appdata_path + '/disponibilita_espositore.json'
+        
+        # Controlla se il file esiste prima di provare ad aprirlo
+        if not os.path.exists(local_file_jsn):
+             # Inizializza le strutture dati vuote
+            app.people = {}
+            app.person_schedule = {}
+            app.tipo_luogo_schedule = {}
+            app.tipologie = {}
+            logging_custom(app, "error", f"File {local_file_jsn} non trovato. Scarica prima i dati dal tab 'Testimonianza Pubblica'.")
+            error_msg = QMessageBox()
+            error_msg.setIcon(QMessageBox.Critical)
+            error_msg.setWindowTitle("File non trovato")
+            error_msg.setText(
+                "Il file delle disponibilità non è stato trovato. "
+                "Per favore, vai al tab 'Hourglass' (se non 'hai fatto, effettua la login), "
+                "dal menu laterale clicca ''Testimonianza Pubblica'e successivamente"
+                " clicca su 'Scarica disponibilità e luoghi' per scaricare i dati e riprova ad importare!."
+            )
+            error_msg.exec_()
+            logging_custom(app, "error", f"File {local_file_jsn} non trovato. Scarica prima i dati dal tab 'Testimonianza Pubblica'.")
+            return  # Esci dalla funzione se il file non viene trovato
+
+
         # Legge il file JSON
         if os.path.exists(local_file_jsn) and os.path.getsize(local_file_jsn) > 0:
-
             with open(local_file_jsn, 'r', encoding='utf-8') as file:
                 data = json.load(file)
-            
+
             # Popola le persone (people)
             app.people = data.get('people', {})
             app.person_schedule = data.get('person_schedule', {})
             app.tipo_luogo_schedule = data.get('tipo_luogo_schedule', {})
             app.tipologie = data.get('tipologie', {})
-            
+
             # Aggiorna l'interfaccia utente
             app.person_list.clear()
             for person_id, name in app.people.items():
                 item = QListWidgetItem(name)
                 item.setData(Qt.UserRole, person_id)
                 app.person_list.addItem(item)
-            
+
             # Popola le tipologie (tipo_luogo_schedule)
             app.tipologie_list.clear()
             for tipo_luogo_id, tipo_luogo_data in app.tipo_luogo_schedule.items():
@@ -140,7 +176,7 @@ def import_disponibilita(app):
                 item = QListWidgetItem(nome_tipo_luogo)
                 item.setData(Qt.UserRole, tipo_luogo_id)
                 app.tipologie_list.addItem(item)
-            
+
             # Aggiorna la visualizzazione della settimana
             update_week_display(app, None)
             update_last_modification_time(app)
@@ -153,27 +189,12 @@ def import_disponibilita(app):
             app.tipo_luogo_schedule = {}
             app.tipologie = {}
             app.person_schedule = {}
-    
+
     except json.JSONDecodeError as e:
         QMessageBox.critical(app, "Errore", f"Errore nel parsing del file JSON: {str(e)}")
     except Exception as e:
-        QMessageBox.critical(app, "Errore", f"Si è verificato un errore durante il caricamento dei dati: {str(e)}")        
-    except FileNotFoundError:
-        # Se il file non esiste, si crea una struttura vuota
-        logging_custom(app, "error", f"File {SAVE_FILE} non trovato, caricamento di default.")
-        app.people = {}
-        app.person_schedule = {}
-        app.tipo_luogo_schedule = {}
-        app.tipologie = {}
+        QMessageBox.critical(app, "Errore", f"Si è verificato un errore durante il caricamento dei dati: {str(e)}")
 
-    
-    except json.JSONDecodeError:
-        # Gestione degli errori di parsing JSON
-        logging_custom(app, "error", f"Errore nel parsing del file {SAVE_FILE}. Verifica che il file sia un JSON valido.")
-    
-    except Exception as e:
-        # Gestione di altri errori
-        logging_custom(app, "error", f"Errore durante il caricamento dei dati: {str(e)}")
 
 def update_week_display(app, tipo_luogo_nome):
     try:
