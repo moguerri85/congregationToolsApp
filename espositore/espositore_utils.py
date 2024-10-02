@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import (QMessageBox, QPushButton, QDialog, QVBoxLayout, QCo
                              QListWidgetItem)
 from PyQt5.QtCore import Qt, QSize
 from datetime import datetime
+from PyQt5.QtCore import Qt, QSize, QDateTime
 
 from utils.logging_custom import logging_custom
 
@@ -37,6 +38,8 @@ def save_data(app):
         local_file_jsn= appdata_path+'/'+SAVE_FILE
         with open(local_file_jsn, 'w') as f:
             json.dump(data, f, indent=4)  # Salva i dati con indentazione per leggibilità
+
+        update_last_modification_time(app)    
     except Exception as e:
         QMessageBox.critical(app, "Errore", f"Errore nel salvataggio dei dati: {str(e)}")
 
@@ -321,3 +324,6 @@ def get_day_from_id(day_id):
     }
     """Restituisce il nome del giorno corrispondente all'ID."""
     return giorno_map.get(day_id, "N/A")  # Restituisce "N/A" se l'ID non è valido
+
+def update_last_modification_time(app):
+    app.last_modification_label.setText(f"Ultima modifica dei dati: {QDateTime.currentDateTime().toString('dd/MM/yyyy HH:mm:ss')}")

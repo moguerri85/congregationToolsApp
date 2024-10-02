@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel, QListWidget, QPushButton, QTabWidget, QWidget, QCalendarWidget,
                              QTextEdit, QMessageBox, QRadioButton, QButtonGroup, QSizePolicy, QComboBox)
-from PyQt5.QtCore import Qt, QSize
+from PyQt5.QtCore import Qt, QSize, QDateTime
 
 from espositore.espositore_tab_gestione import add_tipo_luogo, display_person_details, modify_selected_tipo_luogo, remove_tipo_luogo
 from espositore.espositore_tab_proclamatore import add_person, remove_person, show_availability_dialog
@@ -12,9 +12,16 @@ def setup_espositore_tab(app):
         raise RuntimeError("app.tabs must be a QTabWidget instance")
 
     espositore_tab = QWidget()
-    main_layout = QHBoxLayout(espositore_tab)
-    espositore_tab.setLayout(main_layout)
-    
+    main_layout = QVBoxLayout(espositore_tab)  # Cambiato da QHBoxLayout a QVBoxLayout per aggiungere le righe sopra i tab
+
+    # --- Righe per data e ora ultimo caricamento e ultima modifica ---
+    app.last_load_label = QLabel(f"Ultimo import disponibilità: {QDateTime.currentDateTime().toString('dd/MM/yyyy HH:mm:ss')}")
+    app.last_modification_label = QLabel("Ultima modifica effettuata: nessuna modifica")
+
+    main_layout.addWidget(app.last_load_label)
+    main_layout.addWidget(app.last_modification_label)
+
+    # --- Tab widget ---
     tab_widget = QTabWidget()
     main_layout.addWidget(tab_widget)
 
@@ -52,39 +59,39 @@ def setup_espositore_tab(app):
 
     app.radio_uguale_tutte_settimane = QRadioButton("Uguale a tutte le settimane")
     app.radio_specifica_giorni = QRadioButton("Specifica i giorni")
-    
+
     app.radio_group = QButtonGroup()
     app.radio_group.addButton(app.radio_uguale_tutte_settimane)
     app.radio_group.addButton(app.radio_specifica_giorni)
 
     app.radio_uguale_tutte_settimane.toggled.connect(lambda: toggle_week_or_calendar(app))
     app.radio_specifica_giorni.toggled.connect(lambda: toggle_week_or_calendar(app))
-    
+
     right_layout.addWidget(app.radio_uguale_tutte_settimane)
     right_layout.addWidget(app.radio_specifica_giorni)
 
     if not hasattr(app, 'week_widget'):
         app.week_widget = QWidget()
-        app.week_layout = QHBoxLayout(app.week_widget)  
-    
+        app.week_layout = QHBoxLayout(app.week_widget)
+
     days_of_week = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"]
-    
+
     for day in days_of_week:
         day_widget = QWidget()
-        day_layout = QVBoxLayout(day_widget)  
-        
+        day_layout = QVBoxLayout(day_widget)
+
         day_label = QLabel(day)
         day_layout.addWidget(day_label)
-        
+
         square_button = QPushButton()
         square_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         square_button.setFixedSize(QSize(60, 60))
         square_button.setStyleSheet("background-color: lightgray; border: 1px solid black;")
         day_layout.addWidget(square_button)
-        
+
         day_widget.setLayout(day_layout)
         app.week_layout.addWidget(day_widget)
-    
+
     right_layout.addWidget(app.week_widget)
     setup_week_layout(app)
 
