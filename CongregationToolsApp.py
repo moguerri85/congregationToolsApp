@@ -13,8 +13,8 @@ from PyQt5.QtGui import QPainter, QColor, QIcon
 
 from hourglass.hourglass_manager import (
     handle_finesettimana_html, handle_timeout_av_uscieri, handle_timeout_infraSettimanale, handle_timeout_pulizie,
-    handle_timeout_testimonianza_pubblica, load_schedule_av_uscieri, load_schedule_infraSettimanale, check_content_fineSettimana,
-    load_schedule_fineSettimana, load_schedule_pulizie, load_schedule_testimonianza_pubblica, scrape_content_fineSettimana, setup_schedule
+    handle_timeout_testimonianza_pubblica, load_disponibilita_espositore, load_disponibilita_testimonianza_pubblica, load_schedule_av_uscieri, load_schedule_infraSettimanale, check_content_fineSettimana,
+    load_schedule_fineSettimana, load_schedule_pulizie, load_schedule_testimonianza_pubblica, process_html_disponibilita_espositore, scrape_content_fineSettimana, setup_schedule
 )
 
 from hourglass.ui_hourglass import setup_hourglass_tab
@@ -359,6 +359,9 @@ class CongregationToolsApp(QMainWindow):
     def call_load_schedule_testimonianza_pubblica(self, text_field):
         load_schedule_testimonianza_pubblica(self, text_field)    
         
+    def call_load_disponibilita_testimonianza_pubblica(self):
+        load_disponibilita_testimonianza_pubblica(self)  
+          
     def call_handle_timeout_testimonianza_pubblica(self):
         handle_timeout_testimonianza_pubblica(self)
         
@@ -378,6 +381,50 @@ class CongregationToolsApp(QMainWindow):
     def load_page(self, url):
         self.view.setUrl(QUrl(url))
         
+    def get_tipologie_espositore(self, valore):
+        js_code_get_tipologie = """
+        (function() {
+            var tipologie = {};
+            
+            var chosenPlaceInputs = document.querySelectorAll('input[placeholder="Luogo scelto"]');
+            chosenPlaceInputs.forEach(function(input, index) {
+                // Trim del valore dell'input
+                var trimmedValue = input.value.trim();
+                if (trimmedValue) {
+                    // Usa il valore trimmato come chiave e assegna un valore unico basato sull'indice
+                    tipologie[trimmedValue] = index + 1; // +1 per iniziare da 1 invece di 0
+                }
+            });
+
+            return tipologie; // Restituisci l'oggetto corretto
+        })();
+        """
+        self.view.page().runJavaScript(js_code_get_tipologie, self.process_tipologie_espositore)
+
+    def process_tipologie_espositore(self, tipologie):
+        logging_custom(self, "info", f"Tipologie type: {type(tipologie)}")
+        logging_custom(self, "info", f"Tipologie content: {tipologie}")
+            
+        # Log per il tipo di ritorno
+        if tipologie is None:
+            logging_custom(self, "error", "Nessun dato restituito dal JavaScript")
+            return
+
+        # Verifica se è un dizionario
+        if isinstance(tipologie, dict):
+            # Carica la disponibilità per i luoghi scelti
+            load_disponibilita_espositore(self, tipologie)
+        else:
+            logging_custom(self, "error", "Tipologie non è un dizionario o non è stato caricato correttamente")
+
+
+    def call_process_html_disponibilita_espositore(self, html, tipologie):
+        # Verifica che html sia una stringa
+        if isinstance(html, str):
+            process_html_disponibilita_espositore(self, html, tipologie)
+        else:
+            logging_custom(self, "error", f"HTML non valido ricevuto: {html} (tipo: {type(html)})")
+
     def closeEvent(self, event):
         reply = QMessageBox.question(self, "Esci", "Sei sicuro di voler uscire?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:

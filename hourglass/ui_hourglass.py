@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget, QLabel, QPushButton, QLineEdit
+from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget, QFrame, QPushButton, QLineEdit
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtCore import Qt
 
@@ -84,7 +84,7 @@ def setup_testimonianza_pubblica(self):
     horizontal_layout.setContentsMargins(0, 0, 0, 0)
     horizontal_layout.setSpacing(10)
 
-    # Aggiungi il campo di testo e il pulsante
+    # Aggiungi il campo di testo e il primo pulsante
     add_text_field(self, "Numero di mesi:", horizontal_layout)
     button = QPushButton("Genera Stampa Testimonianza Pubblica")
     button.setFixedWidth(200)
@@ -92,6 +92,20 @@ def setup_testimonianza_pubblica(self):
     button.clicked.connect(lambda: self.call_load_schedule_testimonianza_pubblica(self.text_field))
     
     horizontal_layout.addWidget(button)
+
+    # Aggiungi una linea di separazione
+    line = QFrame()
+    line.setFrameShape(QFrame.VLine)
+    line.setFrameShadow(QFrame.Sunken)
+    horizontal_layout.addWidget(line)
+
+    # Aggiungi un nuovo pulsante accanto alla linea
+    disp_button = QPushButton("Scarica Disponibilità")
+    disp_button.setFixedWidth(150)
+    disp_button.setFixedHeight(30)
+    disp_button.clicked.connect(self.call_load_disponibilita_testimonianza_pubblica) 
+    horizontal_layout.addWidget(disp_button)
+
     horizontal_layout.setAlignment(Qt.AlignCenter)
     self.hourglass_layout.addLayout(horizontal_layout)
 

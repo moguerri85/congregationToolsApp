@@ -1,3 +1,11 @@
+import uuid
+from bs4 import BeautifulSoup
+import json
+import os
+import re
+
+from datetime import datetime, timedelta
+
 from PyQt5.QtWidgets import QProgressBar
 from PyQt5.QtCore import QEventLoop, QTimer
 
@@ -6,6 +14,7 @@ from hourglass.av_uscieri import combine_html_av_uscieri, retrieve_content_av_us
 from hourglass.fine_settimana import combine_html_fine_settimana
 from hourglass.infra_settimanale import click_expand_js_infraSettimanale, click_toggle_js_infraSettimanale, combine_html_infrasettimale, retrieve_content_infraSettimanale
 from hourglass.pulizie import combine_html_pulizie, retrieve_content_pulizie
+from utils.logging_custom import logging_custom
 from utils.utility import addProgressbar, clear_existing_widgets, save_html, show_alert
 from hourglass.testimonianza_pubblica import click_toggle_js_testimonianza_pubbl, combine_html_testimonianza_pubbl, retrieve_content_testimonianza_pubbl
 
@@ -262,6 +271,170 @@ def load_schedule_testimonianza_pubblica(self, text_field):
     self.timer = QTimer()
     self.timer.timeout.connect(self.call_handle_timeout_testimonianza_pubblica)
     self.timer.start(2000)  # Intervallo di 2000 ms tra i clic
+
+def load_disponibilita_testimonianza_pubblica(self):
+    logging_custom(self, "info", "load_disponibilita_testimonianza_pubblica")
+
+    # Codice JS per cliccare sugli elementi con data-rr-ui-event-key=1 (per caricare le tipologie)
+    js_code_click_tab = """
+        (function() {
+            var tab = document.querySelector('[data-rr-ui-event-key="1"]');
+            if (tab) {
+                tab.click();
+            }
+        })();
+    """
+
+    # Clicca sul tab per caricare le tipologie
+    self.view.page().runJavaScript(js_code_click_tab, self.get_tipologie_espositore)
+
+def load_disponibilita_espositore(self, tipologie):
+    # Codice JS per cliccare sugli elementi con data-rr-ui-event-key=2
+    js_code_click_disponibilita = """
+        (function() {
+            var elements = document.querySelectorAll('[data-rr-ui-event-key="2"], [data-rr-ui-event-key="2"][data-value="Disponibilità"]');
+            elements.forEach(function(element) {
+                element.click();
+            });
+        })();
+    """
+
+    # Clicca sul tab per caricare le disponibilità
+    self.view.page().runJavaScript(js_code_click_disponibilita)
+
+    # Codice JS per estrarre l'HTML della tabella con un ritardo
+    js_code_extract_html = """
+        (function() {
+            var table = document.getElementsByClassName('table pw_matrix')[0];
+            return table ? table.outerHTML : null;  // Restituisce null se la tabella non esiste
+        })();
+    """
+
+    # Esegui il JavaScript e passa l'HTML alla funzione process_html
+    self.view.page().runJavaScript(js_code_extract_html, 
+        lambda html: self.call_process_html_disponibilita_espositore(html, tipologie)
+    )
+
+
+def process_html_disponibilita_espositore(self, html, tipologie):
+    logging_custom(self, "info", "Processing HTML...")
+
+    # Verifica del tipo di tipologie
+    logging_custom(self, "info", f"Tipologie type: {type(tipologie)}")
+    
+    if callable(tipologie):
+        try:
+            tipologie = tipologie()
+            logging_custom(self, "info", f"Tipologie dopo chiamata: {tipologie}")
+        except Exception as e:
+            logging_custom(self, "error", f"Errore durante la chiamata a tipologie: {e}")
+
+    if isinstance(tipologie, dict):
+        giorni = {"lun": 1, "mar": 2, "mer": 3, "gio": 4, "ven": 5, "sab": 6}
+        
+        # Inizializza tipo_luogo_schedule con i nomi delle tipologie
+        result = {"people": {}, "person_schedule": {}, "tipo_luogo_schedule": {}}
+        
+        for tipologia_nome, tipologia_id in tipologie.items():
+            result["tipo_luogo_schedule"][f"tipo_luogo_{tipologia_id}"] = {
+                "nome": tipologia_nome,
+                "fasce": {}
+            }
+        
+        logging_custom(self, "info", f"Tipo Luogo Schedule inizializzato: {result['tipo_luogo_schedule']}")
+        
+        # Se l'HTML è valido, procedi con il parsing e l'assegnazione delle fasce orarie
+        if isinstance(html, str):
+            soup = BeautifulSoup(html, 'html.parser')
+            
+            header_cells = soup.select('thead th.sticky-top div.header_title')
+            logging_custom(self, "info", f"Header cells: {[cell.text.strip() for cell in header_cells]}")
+            
+            rows = soup.select('tbody tr')
+            for row in rows:
+                name = row.find('td').text.strip()
+                person_id = str(uuid.uuid4())
+                result['people'][person_id] = name
+                result['person_schedule'][person_id] = {"availability": {}}
+                
+                availability = {}
+                checkboxes = row.find_all('input', type='checkbox')
+                logging_custom(self, "info", f"Checkboxes state: {[checkbox.get('checked') for checkbox in checkboxes]}")
+
+                for i, checkbox in enumerate(checkboxes):
+                    if checkbox.get('checked') is not None:
+                        header_text = header_cells[i].text.strip()
+                        logging_custom(self, "info", f"Processing header: '{header_text}'")
+                        
+                        # Nuova regex
+                        match = re.search(r'([^\d]+)(\s*[a-z]{3})(?:\s*(\d{2}:\d{2}))?', header_text)
+                        
+                        if match:
+                            tipologia = match.group(1).strip()  # Nome del luogo
+                            giorno = match.group(2).strip()      # Giorno
+                            orario = match.group(3) if match.group(3) else ""  # Orario
+                            
+                            id_giorno = giorni.get(giorno, None)
+                            id_tipologia = tipologie.get(tipologia, None)
+                            
+                            logging_custom(self, "info", f"ID Giorno: {id_giorno}, ID Tipologia: {id_tipologia}")
+
+                            if id_giorno and id_tipologia:
+                                # Inizializza la disponibilità per la tipologia della persona
+                                if f"tipo_luogo_{id_tipologia}" not in availability:
+                                    availability[f"tipo_luogo_{id_tipologia}"] = {}
+                                
+                                if id_giorno not in availability[f"tipo_luogo_{id_tipologia}"]:
+                                    availability[f"tipo_luogo_{id_tipologia}"][id_giorno] = []
+                                
+                                # Aggiungi orario alla disponibilità della persona
+                                if orario:
+                                    new_orario = add_hour_and_half(orario)
+                                    availability[f"tipo_luogo_{id_tipologia}"][id_giorno].append(orario + "-" + new_orario)
+                                    
+                                # Aggiungi orari a tipo_luogo_schedule
+                                if id_giorno not in result["tipo_luogo_schedule"][f"tipo_luogo_{id_tipologia}"]["fasce"]:
+                                    result["tipo_luogo_schedule"][f"tipo_luogo_{id_tipologia}"]["fasce"][id_giorno] = []
+
+                                # Usa un set per evitare duplicati
+                                unique_times = set(result["tipo_luogo_schedule"][f"tipo_luogo_{id_tipologia}"]["fasce"][id_giorno])
+
+                                # Aggiungi solo orari unici
+                                if orario:
+                                    unique_times.add(orario + "-" + new_orario)
+
+                                result["tipo_luogo_schedule"][f"tipo_luogo_{id_tipologia}"]["fasce"][id_giorno] = list(unique_times)
+                            else:
+                                logging_custom(self, "warning", f"Giorno o tipologia non validi: '{giorno}', '{tipologia}'")
+                        else:
+                            logging_custom(self, "warning", f"Invalid header: '{header_text}'")
+                    else:
+                        logging_custom(self, "info", "Checkbox non selezionata")
+                
+                result['person_schedule'][person_id]["availability"] = availability
+            
+            appdata_path = os.path.join(os.getenv('APPDATA'), 'CongregationToolsApp')
+            file_path = os.path.join(appdata_path, 'disponibilita_espositore.json')
+            with open(file_path, 'w', encoding='utf-8') as f:
+                json.dump(result, f, ensure_ascii=False, indent=4)
+
+            logging_custom(self, "info", f"Disponibilità salvata in: {file_path}")
+
+            # Log finale per controllare il contenuto di tipo_luogo_schedule
+            logging_custom(self, "info", f"Tipo Luogo Schedule finale: {result['tipo_luogo_schedule']}")
+        else:
+            logging_custom(self, "error", f"HTML non valido ricevuto: {html} (tipo: {type(html)})")
+    else:
+        logging_custom(self, "error", "Tipologie non è un dizionario o non è stato caricato correttamente")
+
+
+def add_hour_and_half(time_str):
+    """Aggiunge un'ora e mezza all'orario fornito in formato HH:MM."""
+    if time_str:
+        time_obj = datetime.strptime(time_str, "%H:%M")
+        new_time = time_obj + timedelta(hours=1, minutes=30)
+        return new_time.strftime("%H:%M")
+    return ""
 
 def handle_timeout_testimonianza_pubblica(self):
     if self.current_click_index < self.num_clicks:

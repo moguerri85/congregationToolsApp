@@ -128,7 +128,7 @@ def setup_espositore_tab(app):
     app.week_display.setLayout(QHBoxLayout())
     gestione_layout.addWidget(app.week_display)
 
-    tab_widget.addTab(gestione_tab, "Gestione")
+    tab_widget.addTab(gestione_tab, "Gestione Espositori")
 
     app.tabs.addTab(espositore_tab, "Espositore")
 
