@@ -77,7 +77,74 @@ def load_data(app):
             
             # Aggiorna la visualizzazione della settimana
             update_week_display(app, None)
+            update_last_modification_time(app)
+            update_last_load_time(app)
+            # Stampa o logga un messaggio di conferma
+            logging_custom(app, "debug", "Dati caricati con successo!")
+        else:
+            # Se il file è vuoto, inizializza le strutture dati
+            app.people = {}
+            app.tipo_luogo_schedule = {}
+            app.tipologie = {}
+            app.person_schedule = {}
+    
+    except json.JSONDecodeError as e:
+        QMessageBox.critical(app, "Errore", f"Errore nel parsing del file JSON: {str(e)}")
+    except Exception as e:
+        QMessageBox.critical(app, "Errore", f"Si è verificato un errore durante il caricamento dei dati: {str(e)}")        
+    except FileNotFoundError:
+        # Se il file non esiste, si crea una struttura vuota
+        logging_custom(app, "error", f"File {SAVE_FILE} non trovato, caricamento di default.")
+        app.people = {}
+        app.person_schedule = {}
+        app.tipo_luogo_schedule = {}
+        app.tipologie = {}
 
+    
+    except json.JSONDecodeError:
+        # Gestione degli errori di parsing JSON
+        logging_custom(app, "error", f"Errore nel parsing del file {SAVE_FILE}. Verifica che il file sia un JSON valido.")
+    
+    except Exception as e:
+        # Gestione di altri errori
+        logging_custom(app, "error", f"Errore durante il caricamento dei dati: {str(e)}")
+
+def import_disponibilita(app):
+    """Carica i dati da un file JSON e li inserisce nelle strutture appropriate."""
+    try:
+        appdata_path = os.path.join(os.getenv('APPDATA'), 'CongregationToolsApp')
+        local_file_jsn= appdata_path+'/disponibilita_espositore.json'
+        # Legge il file JSON
+        if os.path.exists(local_file_jsn) and os.path.getsize(local_file_jsn) > 0:
+
+            with open(local_file_jsn, 'r', encoding='utf-8') as file:
+                data = json.load(file)
+            
+            # Popola le persone (people)
+            app.people = data.get('people', {})
+            app.person_schedule = data.get('person_schedule', {})
+            app.tipo_luogo_schedule = data.get('tipo_luogo_schedule', {})
+            app.tipologie = data.get('tipologie', {})
+            
+            # Aggiorna l'interfaccia utente
+            app.person_list.clear()
+            for person_id, name in app.people.items():
+                item = QListWidgetItem(name)
+                item.setData(Qt.UserRole, person_id)
+                app.person_list.addItem(item)
+            
+            # Popola le tipologie (tipo_luogo_schedule)
+            app.tipologie_list.clear()
+            for tipo_luogo_id, tipo_luogo_data in app.tipo_luogo_schedule.items():
+                nome_tipo_luogo = tipo_luogo_data.get('nome', 'Sconosciuto')
+                item = QListWidgetItem(nome_tipo_luogo)
+                item.setData(Qt.UserRole, tipo_luogo_id)
+                app.tipologie_list.addItem(item)
+            
+            # Aggiorna la visualizzazione della settimana
+            update_week_display(app, None)
+            update_last_modification_time(app)
+            update_last_load_time(app)
             # Stampa o logga un messaggio di conferma
             logging_custom(app, "debug", "Dati caricati con successo!")
         else:
@@ -327,3 +394,7 @@ def get_day_from_id(day_id):
 
 def update_last_modification_time(app):
     app.last_modification_label.setText(f"Ultima modifica dei dati: {QDateTime.currentDateTime().toString('dd/MM/yyyy HH:mm:ss')}")
+
+def update_last_load_time(app):
+    app.last_load_label.setText(f"Ultimo import disponibilità: {QDateTime.currentDateTime().toString('dd/MM/yyyy HH:mm:ss')}")
+    

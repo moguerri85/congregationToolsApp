@@ -382,6 +382,7 @@ class CongregationToolsApp(QMainWindow):
         self.view.setUrl(QUrl(url))
         
     def get_tipologie_espositore(self, valore):
+        self.progress_bar.setValue(20)  
         js_code_get_tipologie = """
         (function() {
             var tipologie = {};
@@ -402,8 +403,9 @@ class CongregationToolsApp(QMainWindow):
         self.view.page().runJavaScript(js_code_get_tipologie, self.process_tipologie_espositore)
 
     def process_tipologie_espositore(self, tipologie):
-        logging_custom(self, "info", f"Tipologie type: {type(tipologie)}")
-        logging_custom(self, "info", f"Tipologie content: {tipologie}")
+        self.progress_bar.setValue(30)  
+        logging_custom(self, "debug", f"Tipologie type: {type(tipologie)}")
+        logging_custom(self, "debug", f"Tipologie content: {tipologie}")
             
         # Log per il tipo di ritorno
         if tipologie is None:
@@ -419,6 +421,7 @@ class CongregationToolsApp(QMainWindow):
 
 
     def call_process_html_disponibilita_espositore(self, html, tipologie):
+        self.progress_bar.setValue(50)  
         # Verifica che html sia una stringa
         if isinstance(html, str):
             process_html_disponibilita_espositore(self, html, tipologie)

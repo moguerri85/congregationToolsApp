@@ -4,7 +4,7 @@ from PyQt5.QtCore import Qt, QSize, QDateTime
 
 from espositore.espositore_tab_gestione import add_tipo_luogo, display_person_details, modify_selected_tipo_luogo, remove_tipo_luogo
 from espositore.espositore_tab_proclamatore import add_person, remove_person, show_availability_dialog
-from espositore.espositore_utils import update_week_display
+from espositore.espositore_utils import import_disponibilita, update_week_display
 
 
 def setup_espositore_tab(app):
@@ -15,9 +15,17 @@ def setup_espositore_tab(app):
     main_layout = QVBoxLayout(espositore_tab)  # Cambiato da QHBoxLayout a QVBoxLayout per aggiungere le righe sopra i tab
 
     # --- Righe per data e ora ultimo caricamento e ultima modifica ---
-    app.last_load_label = QLabel(f"Ultimo import disponibilità: {QDateTime.currentDateTime().toString('dd/MM/yyyy HH:mm:ss')}")
+    app.last_load_label = QLabel(f"Ultimo import disponibilità: nessuna modifica")
     app.last_modification_label = QLabel("Ultima modifica effettuata: nessuna modifica")
 
+    # Crea il pulsante "Importa"
+    import_button = QPushButton("Importa")
+    import_button.setFixedSize(QSize(100, 30))  # Opzionale: dimensioni fisse per il pulsante
+
+    # Collega il pulsante a una funzione (da definire) per gestire l'importazione
+    import_button.clicked.connect(lambda: import_disponibilita(app))
+    main_layout.addWidget(import_button)
+    
     main_layout.addWidget(app.last_load_label)
     main_layout.addWidget(app.last_modification_label)
 

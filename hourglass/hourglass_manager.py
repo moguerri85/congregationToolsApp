@@ -15,7 +15,7 @@ from hourglass.fine_settimana import combine_html_fine_settimana
 from hourglass.infra_settimanale import click_expand_js_infraSettimanale, click_toggle_js_infraSettimanale, combine_html_infrasettimale, retrieve_content_infraSettimanale
 from hourglass.pulizie import combine_html_pulizie, retrieve_content_pulizie
 from utils.logging_custom import logging_custom
-from utils.utility import addProgressbar, clear_existing_widgets, save_html, show_alert
+from utils.utility import addProgressbar, clear_existing_widgets, hide_overlay, save_html, show_alert
 from hourglass.testimonianza_pubblica import click_toggle_js_testimonianza_pubbl, combine_html_testimonianza_pubbl, retrieve_content_testimonianza_pubbl
 
 def setup_schedule(self, url):
@@ -273,7 +273,9 @@ def load_schedule_testimonianza_pubblica(self, text_field):
     self.timer.start(2000)  # Intervallo di 2000 ms tra i clic
 
 def load_disponibilita_testimonianza_pubblica(self):
-    logging_custom(self, "info", "load_disponibilita_testimonianza_pubblica")
+    addProgressbar(self)
+    self.progress_bar.setValue(10)  # Imposta il progresso al 10%
+    logging_custom(self, "debug", "load_disponibilita_testimonianza_pubblica")
 
     # Codice JS per cliccare sugli elementi con data-rr-ui-event-key=1 (per caricare le tipologie)
     js_code_click_tab = """
@@ -289,6 +291,7 @@ def load_disponibilita_testimonianza_pubblica(self):
     self.view.page().runJavaScript(js_code_click_tab, self.get_tipologie_espositore)
 
 def load_disponibilita_espositore(self, tipologie):
+    self.progress_bar.setValue(40)  
     # Codice JS per cliccare sugli elementi con data-rr-ui-event-key=2
     js_code_click_disponibilita = """
         (function() {
@@ -317,15 +320,16 @@ def load_disponibilita_espositore(self, tipologie):
 
 
 def process_html_disponibilita_espositore(self, html, tipologie):
-    logging_custom(self, "info", "Processing HTML...")
+    self.progress_bar.setValue(60)  
+    logging_custom(self, "debug", "Processing HTML...")
 
     # Verifica del tipo di tipologie
-    logging_custom(self, "info", f"Tipologie type: {type(tipologie)}")
+    logging_custom(self, "debug", f"Tipologie type: {type(tipologie)}")
     
     if callable(tipologie):
         try:
             tipologie = tipologie()
-            logging_custom(self, "info", f"Tipologie dopo chiamata: {tipologie}")
+            logging_custom(self, "debug", f"Tipologie dopo chiamata: {tipologie}")
         except Exception as e:
             logging_custom(self, "error", f"Errore durante la chiamata a tipologie: {e}")
 
@@ -341,14 +345,14 @@ def process_html_disponibilita_espositore(self, html, tipologie):
                 "fasce": {}
             }
         
-        logging_custom(self, "info", f"Tipo Luogo Schedule inizializzato: {result['tipo_luogo_schedule']}")
+        logging_custom(self, "debug", f"Tipo Luogo Schedule inizializzato: {result['tipo_luogo_schedule']}")
         
         # Se l'HTML è valido, procedi con il parsing e l'assegnazione delle fasce orarie
         if isinstance(html, str):
             soup = BeautifulSoup(html, 'html.parser')
             
             header_cells = soup.select('thead th.sticky-top div.header_title')
-            logging_custom(self, "info", f"Header cells: {[cell.text.strip() for cell in header_cells]}")
+            logging_custom(self, "debug", f"Header cells: {[cell.text.strip() for cell in header_cells]}")
             
             rows = soup.select('tbody tr')
             for row in rows:
@@ -359,12 +363,12 @@ def process_html_disponibilita_espositore(self, html, tipologie):
                 
                 availability = {}
                 checkboxes = row.find_all('input', type='checkbox')
-                logging_custom(self, "info", f"Checkboxes state: {[checkbox.get('checked') for checkbox in checkboxes]}")
+                logging_custom(self, "debug", f"Checkboxes state: {[checkbox.get('checked') for checkbox in checkboxes]}")
 
                 for i, checkbox in enumerate(checkboxes):
                     if checkbox.get('checked') is not None:
                         header_text = header_cells[i].text.strip()
-                        logging_custom(self, "info", f"Processing header: '{header_text}'")
+                        logging_custom(self, "debug", f"Processing header: '{header_text}'")
                         
                         # Nuova regex
                         match = re.search(r'([^\d]+)(\s*[a-z]{3})(?:\s*(\d{2}:\d{2}))?', header_text)
@@ -377,7 +381,7 @@ def process_html_disponibilita_espositore(self, html, tipologie):
                             id_giorno = giorni.get(giorno, None)
                             id_tipologia = tipologie.get(tipologia, None)
                             
-                            logging_custom(self, "info", f"ID Giorno: {id_giorno}, ID Tipologia: {id_tipologia}")
+                            logging_custom(self, "debug", f"ID Giorno: {id_giorno}, ID Tipologia: {id_tipologia}")
 
                             if id_giorno and id_tipologia:
                                 # Inizializza la disponibilità per la tipologia della persona
@@ -409,7 +413,7 @@ def process_html_disponibilita_espositore(self, html, tipologie):
                         else:
                             logging_custom(self, "warning", f"Invalid header: '{header_text}'")
                     else:
-                        logging_custom(self, "info", "Checkbox non selezionata")
+                        logging_custom(self, "debug", "Checkbox non selezionata")
                 
                 result['person_schedule'][person_id]["availability"] = availability
             
@@ -417,15 +421,19 @@ def process_html_disponibilita_espositore(self, html, tipologie):
             file_path = os.path.join(appdata_path, 'disponibilita_espositore.json')
             with open(file_path, 'w', encoding='utf-8') as f:
                 json.dump(result, f, ensure_ascii=False, indent=4)
-
-            logging_custom(self, "info", f"Disponibilità salvata in: {file_path}")
+            
+            self.progress_bar.setValue(90)  
+            logging_custom(self, "debug", f"Disponibilità salvata in: {file_path}")
 
             # Log finale per controllare il contenuto di tipo_luogo_schedule
-            logging_custom(self, "info", f"Tipo Luogo Schedule finale: {result['tipo_luogo_schedule']}")
+            logging_custom(self, "debug", f"Tipo Luogo Schedule finale: {result['tipo_luogo_schedule']}")
         else:
             logging_custom(self, "error", f"HTML non valido ricevuto: {html} (tipo: {type(html)})")
     else:
         logging_custom(self, "error", "Tipologie non è un dizionario o non è stato caricato correttamente")
+    
+    self.progress_bar.setValue(100)  
+    hide_overlay(self)
 
 
 def add_hour_and_half(time_str):

@@ -12,6 +12,8 @@ def show_overlay(self):
     
 def hide_overlay(self):
     self.overlay.hide()
+    for widget in self.central_widget.findChildren(QProgressBar):
+        widget.setParent(None)  # Rimuove il pulsante dal layout
     
 def addProgressbar(self):
     # Rimuovi tutti i QProgressBar dal layout

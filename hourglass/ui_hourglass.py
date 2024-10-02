@@ -100,7 +100,7 @@ def setup_testimonianza_pubblica(self):
     horizontal_layout.addWidget(line)
 
     # Aggiungi un nuovo pulsante accanto alla linea
-    disp_button = QPushButton("Scarica Disponibilità")
+    disp_button = QPushButton("Scarica Disponibilità e Luoghi")
     disp_button.setFixedWidth(150)
     disp_button.setFixedHeight(30)
     disp_button.clicked.connect(self.call_load_disponibilita_testimonianza_pubblica) 
