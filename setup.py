@@ -30,7 +30,7 @@ if sys.platform == "win32":
 
 setup(
     name="CongregationToolsApp",
-    version="1.0.4",
+    version="1.0.5",
     description="CongregationToolsApp, estensione e personalizzazione di alcune funzionalità di Hourglass",
     options={"build_exe": build_exe_options},
     executables=[Executable(script, base=base)],

@@ -29,7 +29,7 @@ from utils.utility import clear_layout, ensure_folder_appdata
 from utils.ui_territorio import load_html_file_from_list, setup_territorio_tab
 from utils.kml_manager import open_kml_file_dialog_territorio, update_map, save_map_to_folder
 
-CURRENT_VERSION = "1.0.4"  # Versione corrente dell'app
+CURRENT_VERSION = "1.0.5"  # Versione corrente dell'app
 GITHUB_RELEASES_API_URL = "https://api.github.com/repos/moguerri85/congregationToolsApp/releases/latest"
 
 # Interceptor per le richieste
