@@ -242,20 +242,23 @@ def handle_download(download):
         # Crea e mostra il messaggio di avviso
         show_alert("Download avvenuto con successo!")       
 
-def clear_layout(self, layout):
-    """Rimuove tutti i widget da un layout specificato."""
+def clear_layout(self, layout, exclude_widgets=[]):
+    """Rimuove tutti i widget da un layout specificato, tranne quelli specificati."""
     if layout is None:
         return
 
+    # Itera in ordine inverso per evitare problemi durante la rimozione
     for i in reversed(range(layout.count())):
         item = layout.itemAt(i)
+
         if item is not None:
             widget = item.widget()
-            if widget is not None:
+            # Skip excluded widgets
+            if widget is not None and widget not in exclude_widgets:
                 layout.removeWidget(widget)
                 widget.deleteLater()
             else:
+                # Gestisci eventuali sub-layout nidificati
                 sub_layout = item.layout()
                 if sub_layout is not None:
-                    clear_layout(self, sub_layout)            
-                
+                    self.clear_layout(sub_layout, exclude_widgets)  # Chiamata corretta senza passare self di nuovo

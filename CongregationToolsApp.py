@@ -150,7 +150,7 @@ class CongregationToolsApp(QMainWindow):
 
     def handle_dropbox_login(self):
         # Pulizia del layout esistente
-        clear_layout(self.benvenuto_layout, exclude_widgets=[self.welcome_label])
+        clear_layout(self, self.benvenuto_layout, exclude_widgets=[self.welcome_label])
 
         # Aggiorna il testo dell'etichetta
         self.welcome_label.setText("Effettua il login con Dropbox...")

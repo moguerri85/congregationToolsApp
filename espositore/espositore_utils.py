@@ -8,6 +8,7 @@ from PyQt5.QtCore import Qt, QSize
 from datetime import datetime
 from PyQt5.QtCore import Qt, QSize, QDateTime
 
+from utils.auth_utility import save_to_dropbox
 from utils.logging_custom import logging_custom
 
 SAVE_FILE = "espositore_data.json"
@@ -39,8 +40,11 @@ def save_data(app):
         with open(local_file_jsn, 'w') as f:
             json.dump(data, f, indent=4)  # Salva i dati con indentazione per leggibilità
 
-        update_last_modification_time(app)    
+        update_last_modification_time(app)  
+        # Salva su Dropbox
+        save_to_dropbox(app, local_file_jsn, SAVE_FILE)  
     except Exception as e:
+        logging_custom(app, "error", f"Errore nel salvataggio dei dati: {str(e)}")
         QMessageBox.critical(app, "Errore", f"Errore nel salvataggio dei dati: {str(e)}")
 
 def load_data(app):

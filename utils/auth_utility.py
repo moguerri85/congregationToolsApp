@@ -3,6 +3,10 @@ import base64
 import hashlib
 import pickle
 import os
+import dropbox
+import json
+
+from PyQt5.QtWidgets import (QMessageBox)
 
 from utils.logging_custom import logging_custom
 
@@ -110,3 +114,90 @@ def get_user_info(self, access_token):
                 logging_custom(self, "error", f"Errore HTTP 2 : {e}")        
         logging_custom(self, "error", f"Errore HTTP: {e}")
         return "", ""
+
+def save_to_dropbox(self, local_file_path, SAVE_FILE):
+    self.access_token, self.refresh_token = load_tokens(self)
+    self.logged_in = self.access_token is not None
+
+    if self.logged_in:
+        dbx = dropbox.Dropbox(self.access_token)
+        dropbox_file_path = f"/{SAVE_FILE}"
+
+        logging_custom(self, "info", f"Controllo esistenza file: {dropbox_file_path}")
+
+        # Prova a caricare il file locale
+        try:
+            with open(local_file_path, "rb") as f:
+                dbx.files_upload(f.read(), dropbox_file_path, mode=dropbox.files.WriteMode.overwrite)
+            logging_custom(self, "info", "File caricato su Dropbox.")
+        except dropbox.exceptions.ApiError as err:
+            if isinstance(err.error, dropbox.files.LookupError) and err.get_path().is_not_found():
+                logging_custom(self, "info", "Il file non esiste. Creazione di un file vuoto.")
+                # Crea un file vuoto se non esiste
+                try:
+                    dbx.files_upload(b"", dropbox_file_path)  # Carica un file vuoto
+                    logging_custom(self, "info", "File vuoto creato su Dropbox.")
+                    
+                    # Riprova a caricare il file locale
+                    with open(local_file_path, "rb") as f:
+                        dbx.files_upload(f.read(), dropbox_file_path, mode=dropbox.files.WriteMode.overwrite)
+                    logging_custom(self, "info", "File caricato su Dropbox.")
+                except dropbox.exceptions.ApiError as e:
+                    logging_custom(self, "error", f"Errore nella creazione del file vuoto: {e}")
+            else:
+                logging_custom(self, "error", f"Errore imprevisto: {err}")
+    else:
+        logging_custom(self, "error", "Accesso a Dropbox non riuscito. Verifica i token.")
+
+def file_exists(self, dbx, dropbox_file_path):
+    try:
+        dbx.files_get_metadata(dropbox_file_path)
+        return True
+    except dropbox.exceptions.ApiError as err:
+        if isinstance(err.error, dropbox.files.LookupError) and err.get_path().is_not_found():
+            return False
+        logging_custom(self, "error", f"Errore imprevisto durante il controllo dell'esistenza del file: {err}")
+        raise 
+
+def load_espositore_data_from_dropbox(app):
+    from espositore.espositore_utils import load_data
+
+    """Load data from the espositore_data.json file on Dropbox and save it locally."""
+    try:
+        app.access_token, app.refresh_token = load_tokens(app)
+        app.logged_in = app.access_token is not None
+
+        if app.logged_in:
+            # Your Dropbox access token
+            dbx = dropbox.Dropbox(app.access_token)
+
+            # Path to the file in Dropbox
+            dropbox_file_path = '/espositore_data.json'
+
+            # Download the file from Dropbox
+            metadata, res = dbx.files_download(dropbox_file_path)
+            data = json.loads(res.content.decode('utf-8'))
+
+            # Save the downloaded data locally
+            appdata_path = os.path.join(os.getenv('APPDATA'), 'CongregationToolsApp')
+            local_file_path = os.path.join(appdata_path, 'espositore_data.json')
+
+            # Ensure the directory exists
+            os.makedirs(appdata_path, exist_ok=True)
+
+            with open(local_file_path, 'w', encoding='utf-8') as local_file:
+                json.dump(data, local_file, ensure_ascii=False, indent=4)
+
+            # Populate the application data
+            app.people = data.get('people', {})
+            app.person_schedule = data.get('person_schedule', {})
+            app.tipo_luogo_schedule = data.get('tipo_luogo_schedule', {})
+            
+            # Update the UI with the loaded data
+            load_data(app)
+            logging_custom(app, "debug", "Dati espositore caricati con successo da Dropbox e salvati localmente!")
+
+    except dropbox.exceptions.HttpError as e:
+        QMessageBox.critical(app, "Errore", f"Errore nel caricamento dei dati da Dropbox: {str(e)}")
+    except Exception as e:
+        QMessageBox.critical(app, "Errore", f"Si è verificato un errore durante il caricamento dei dati da Dropbox: {str(e)}")

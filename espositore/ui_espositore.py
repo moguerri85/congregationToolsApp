@@ -5,6 +5,7 @@ from PyQt5.QtCore import Qt, QSize, QDateTime
 from espositore.espositore_tab_gestione import add_tipo_luogo, display_person_details, modify_selected_tipo_luogo, remove_tipo_luogo
 from espositore.espositore_tab_proclamatore import add_person, remove_person, show_availability_dialog
 from espositore.espositore_utils import import_disponibilita, update_week_display
+from utils.auth_utility import load_espositore_data_from_dropbox
 
 
 def setup_espositore_tab(app):
@@ -143,9 +144,10 @@ def setup_espositore_tab(app):
     app.week_display.setLayout(QHBoxLayout())
     gestione_layout.addWidget(app.week_display)
 
-    tab_widget.addTab(gestione_tab, "Gestione Espositori")
+    tab_widget.addTab(gestione_tab, "Tipologia, Luogo e Fascia")
 
     app.tabs.addTab(espositore_tab, "Espositore")
+    app.tabs.currentChanged.connect(lambda index: load_espositore_data_from_dropbox(app) if index == app.tabs.indexOf(espositore_tab) else None)
 
     app.week_widget.hide()
     app.calendar.hide()
