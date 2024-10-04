@@ -9,7 +9,7 @@ def add_tipo_luogo(app):
         text, ok = QInputDialog.getText(app, "Aggiungi Tipologia\\Luogo", "Nome Tipologia\\Luogo:")
         if ok and text:
             tipo_luogo_id = f'tipo_luogo_{len(app.tipo_luogo_schedule) + 1}'  # Genera ID unico
-            app.tipo_luogo_schedule[tipo_luogo_id] = {"nome": text, "fasce": {}}
+            app.tipo_luogo_schedule[tipo_luogo_id] = {"nome": text, "fasce": {}, "attivo": False}
             update_list_widget(app.tipologie_list, text, tipo_luogo_id)
             save_data(app)
     except Exception as e:

@@ -1,7 +1,7 @@
 import json
 import os
 
-from PyQt5.QtWidgets import (QMessageBox, QPushButton, QDialog, QVBoxLayout, QComboBox,
+from PyQt5.QtWidgets import (QMessageBox, QPushButton, QDialog, QVBoxLayout, QCheckBox,
                              QLabel, QTimeEdit, QWidget, QListWidget, QSizePolicy, QInputDialog,
                              QListWidgetItem, QMessageBox)
 from PyQt5.QtCore import Qt, QSize
@@ -220,6 +220,17 @@ def update_week_display(app, tipo_luogo_nome):
         if not tipo_luogo_id:
             return
 
+        # Recupera lo stato della proprietà "attivo"
+        attivo = app.tipo_luogo_schedule[tipo_luogo_id].get("attivo", False)
+
+        # Crea un checkbox per "attivo"
+        attivo_checkbox = QCheckBox("Attivo")
+        attivo_checkbox.setChecked(attivo)
+        attivo_checkbox.stateChanged.connect(lambda state: toggle_attivo(app, tipo_luogo_id, state))
+        
+        # Aggiungi il checkbox al layout
+        app.week_display.layout().addWidget(attivo_checkbox)
+
         # Crea e visualizza i quadrati per ogni giorno della settimana usando gli ID
         days_of_week = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"]
         
@@ -318,7 +329,6 @@ def on_square_click(app, day_id, tipo_luogo_id, button):
 
     except Exception as e:
         QMessageBox.critical(app, "Errore", f"Si è verificato un errore: {str(e)}")
-
 
 def add_fascia(app, day_id, tipo_luogo_id, fascia_list_widget):
     try:
@@ -423,3 +433,10 @@ def update_last_modification_time(app):
 def update_last_load_time(app):
     app.last_load_label.setText(f"Ultimo import disponibilità: {QDateTime.currentDateTime().toString('dd/MM/yyyy HH:mm:ss')}")
     
+def toggle_attivo(app, tipo_luogo_id, state):
+    """Gestisce il cambiamento dello stato del checkbox 'attivo'."""
+    try:
+        app.tipo_luogo_schedule[tipo_luogo_id]["attivo"] = state == Qt.Checked
+        save_data(app)  # Salva i dati dopo aver aggiornato lo stato
+    except Exception as e:
+        logging_custom(app, "error", f"Errore durante l'aggiornamento della proprietà 'attivo': {str(e)}")

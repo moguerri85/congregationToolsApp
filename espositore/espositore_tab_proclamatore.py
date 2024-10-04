@@ -125,8 +125,12 @@ def show_availability_dialog(app, selected_date):
         layout.addWidget(tipo_luogo_label)
 
         tipo_luogo_combo = QComboBox()
+
+        # Aggiungi solo le tipologie attive
         for tipo_luogo_id, tipo_luogo in app.tipo_luogo_schedule.items():
-            tipo_luogo_combo.addItem(tipo_luogo['nome'], tipo_luogo_id)
+            if tipo_luogo.get('attivo', False):  # Controlla se 'attivo' è True
+                tipo_luogo_combo.addItem(tipo_luogo['nome'], tipo_luogo_id)
+
         layout.addWidget(tipo_luogo_combo)
 
         fascia_label = QLabel("Seleziona la fascia oraria:")
