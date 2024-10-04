@@ -22,7 +22,7 @@ def setup_espositore_tab(app):
 
     # Crea il pulsante "Importa"
     import_button = QPushButton("Importa da Hourglass")
-    import_button.setFixedSize(QSize(100, 30))  # Opzionale: dimensioni fisse per il pulsante
+    import_button.setFixedSize(QSize(120, 30))  # Opzionale: dimensioni fisse per il pulsante
 
     # Collega il pulsante a una funzione (da definire) per gestire l'importazione
     import_button.clicked.connect(lambda: import_disponibilita(app))
