@@ -86,7 +86,7 @@ class CongregationToolsApp(QMainWindow):
 
         # Variabile per tenere traccia dello stato del login
         self.logged_in = False
-        self.week_display = QWidget()  # Inizializza week_display come un QWidget
+        self.week_display_and_data = QWidget()  # Inizializza week_display_and_data come un QWidget
         self.tipologie_list = QListWidget()  # Inizializza tipologie_list come QListWidget
         self.person_list = QListWidget()  # Inizializza person_list come 
         

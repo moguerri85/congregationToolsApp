@@ -4,7 +4,7 @@ from PyQt5.QtCore import Qt, QSize, QDateTime
 
 from espositore.espositore_tab_gestione import add_tipo_luogo, fix_orari, modify_selected_tipo_luogo, remove_tipo_luogo
 from espositore.espositore_tab_proclamatore import add_person, display_person_details, remove_person, show_availability_dialog
-from espositore.espositore_utils import import_disponibilita, update_week_display
+from espositore.espositore_utils import import_disponibilita, update_week_display_and_data
 from utils.auth_utility import load_espositore_data_from_dropbox
 from utils.logging_custom import logging_custom
 
@@ -122,7 +122,8 @@ def setup_espositore_tab(app):
 
     app.tipologie_list = QListWidget()
     app.tipologie_list.setSelectionMode(QListWidget.SingleSelection)
-    app.tipologie_list.itemClicked.connect(lambda item: update_week_display(app, item.text()))
+    app.tipologie_list.setMaximumHeight(100)  # Sostituisci 200 con l'altezza desiderata
+    app.tipologie_list.itemClicked.connect(lambda item: update_week_display_and_data(app, item.text()))
     gestione_layout.addWidget(app.tipologie_list)
 
     app.add_tipo_luogo_button = QPushButton("Aggiungi Tipologia\\Luogo")
@@ -145,9 +146,9 @@ def setup_espositore_tab(app):
     app.gestione_table.setLayout(QVBoxLayout())
     gestione_layout.addWidget(app.gestione_table)
 
-    app.week_display = QWidget()
-    app.week_display.setLayout(QHBoxLayout())
-    gestione_layout.addWidget(app.week_display)
+    app.week_display_and_data = QWidget()
+    app.week_display_and_data.setLayout(QVBoxLayout())
+    gestione_layout.addWidget(app.week_display_and_data)
 
     tab_widget.addTab(gestione_tab, "Tipologia, Luogo e Fascia")
     

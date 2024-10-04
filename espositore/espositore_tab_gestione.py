@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import (QMessageBox, QInputDialog, QPushButton, QLabel, QComboBox,
                              QListWidgetItem, QDialog, QVBoxLayout, QTimeEdit)
 from PyQt5.QtCore import Qt
-from espositore.espositore_utils import save_data, update_week_display
+from espositore.espositore_utils import save_data, update_week_display_and_data
 from utils.logging_custom import logging_custom
 
 def add_tipo_luogo(app):
@@ -10,12 +10,12 @@ def add_tipo_luogo(app):
         if ok and text:
             tipo_luogo_id = f'tipo_luogo_{len(app.tipo_luogo_schedule) + 1}'  # Genera ID unico
             app.tipo_luogo_schedule[tipo_luogo_id] = {"nome": text, "fasce": {}, "attivo": False}
-            update_list_widget(app.tipologie_list, text, tipo_luogo_id)
+            update_list_tipo_luogo_widget(app.tipologie_list, text, tipo_luogo_id)
             save_data(app)
     except Exception as e:
         QMessageBox.critical(app, "Errore", f"Errore durante l'aggiunta della tipologia: {e}")
 
-def update_list_widget(list_widget, text, item_id):
+def update_list_tipo_luogo_widget(list_widget, text, item_id):
     """Aggiunge un nuovo elemento al QListWidget con l'ID associato."""
     item = QListWidgetItem(text)
     item.setData(Qt.UserRole, item_id)  # Imposta l'ID come dato utente
@@ -65,7 +65,7 @@ def remove_tipo_luogo(app):
                 del availability[tipo_luogo_id]
 
         app.tipologie_list.takeItem(app.tipologie_list.row(selected_item))
-        update_week_display(app, None)
+        update_week_display_and_data(app, None)
         save_data(app)  # Salva i dati dopo aver eliminato una tipologia
         
     else:
@@ -120,7 +120,7 @@ def add_time_slot(app, day, tipo_luogo_id, start_time, end_time, dialog):
         app.tipo_luogo_schedule[tipo_luogo_id]["fasce"][day].append(f"{start_time} - {end_time}")
 
         # Aggiorna la visualizzazione della settimana
-        update_week_display(app, app.tipologie_list.currentItem().text())
+        update_week_display_and_data(app, app.tipologie_list.currentItem().text())
 
         # Chiudi il dialogo
         dialog.accept()

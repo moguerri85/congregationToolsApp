@@ -2,7 +2,7 @@ import json
 import os
 
 from PyQt5.QtWidgets import (QMessageBox, QPushButton, QDialog, QVBoxLayout, QCheckBox,
-                             QLabel, QTimeEdit, QWidget, QListWidget, QSizePolicy, QInputDialog,
+                             QLabel, QHBoxLayout, QWidget, QListWidget, QSizePolicy, QInputDialog,
                              QListWidgetItem, QMessageBox)
 from PyQt5.QtCore import Qt, QSize
 from datetime import datetime
@@ -80,7 +80,7 @@ def load_data(app):
                 app.tipologie_list.addItem(item)
             
             # Aggiorna la visualizzazione della settimana
-            update_week_display(app, None)
+            update_week_display_and_data(app, None)
             update_last_modification_time(app)
             update_last_load_time(app)
             # Stampa o logga un messaggio di conferma
@@ -182,7 +182,7 @@ def import_disponibilita(app):
                 app.tipologie_list.addItem(item)
 
             # Aggiorna la visualizzazione della settimana
-            update_week_display(app, None)
+            update_week_display_and_data(app, None)
             update_last_modification_time(app)
             update_last_load_time(app)
             # Stampa o logga un messaggio di conferma
@@ -199,15 +199,16 @@ def import_disponibilita(app):
     except Exception as e:
         QMessageBox.critical(app, "Errore", f"Si è verificato un errore durante il caricamento dei dati: {str(e)}")
 
-
-def update_week_display(app, tipo_luogo_nome):
+def update_week_display_and_data(app, tipo_luogo_nome):
     try:
         # Pulisce il layout esistente
-        if app.week_display.layout():
-            while app.week_display.layout().count():
-                child = app.week_display.layout().takeAt(0)
+        if app.week_display_and_data.layout():
+            while app.week_display_and_data.layout().count():
+                child = app.week_display_and_data.layout().takeAt(0)
                 if child.widget():
                     child.widget().deleteLater()
+        else:
+            app.week_display_and_data.setLayout(QVBoxLayout())  # Inizializza il layout se non esiste
 
         # Ottieni l'ID della tipologia selezionata
         tipo_luogo_id = None
@@ -220,6 +221,11 @@ def update_week_display(app, tipo_luogo_nome):
         if not tipo_luogo_id:
             return
 
+        # Crea un QLabel con il nome della tipologia
+        tipo_luogo_label = QLabel(f"{tipo_luogo_nome}")
+        tipo_luogo_label.setStyleSheet("font-weight: bold; font-size: 14px;")  # Puoi cambiare lo stile se necessario
+        app.week_display_and_data.layout().addWidget(tipo_luogo_label)  # Aggiungi l'etichetta al layout
+
         # Recupera lo stato della proprietà "attivo"
         attivo = app.tipo_luogo_schedule[tipo_luogo_id].get("attivo", False)
 
@@ -229,17 +235,20 @@ def update_week_display(app, tipo_luogo_nome):
         attivo_checkbox.stateChanged.connect(lambda state: toggle_attivo(app, tipo_luogo_id, state))
         
         # Aggiungi il checkbox al layout
-        app.week_display.layout().addWidget(attivo_checkbox)
+        app.week_display_and_data.layout().addWidget(attivo_checkbox)
 
         # Crea e visualizza i quadrati per ogni giorno della settimana usando gli ID
         days_of_week = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", "Domenica"]
-        
+
+        # Crea un layout orizzontale per i giorni della settimana
+        horizontal_layout = QHBoxLayout()
+
         for day in days_of_week:
             day_id = DAY_TO_ID[day]  # Usa l'ID del giorno
             
             day_widget = QWidget()
-            day_layout = QVBoxLayout(day_widget)
-            
+            day_layout = QVBoxLayout(day_widget)  # Ogni giorno ha un layout verticale
+
             day_label = QLabel(day)
             day_layout.addWidget(day_label)
             
@@ -272,7 +281,12 @@ def update_week_display(app, tipo_luogo_nome):
             
             day_layout.addWidget(square_button)
             day_widget.setLayout(day_layout)
-            app.week_display.layout().addWidget(day_widget)
+            
+            # Aggiungi il widget del giorno al layout orizzontale
+            horizontal_layout.addWidget(day_widget)
+
+        # Aggiungi il layout orizzontale al layout principale
+        app.week_display_and_data.layout().addLayout(horizontal_layout)
 
     except Exception as e:
         logging_custom(app, "debug", f"Errore durante l'aggiornamento della settimana: {e}")
@@ -385,8 +399,8 @@ def delete_fascia(app, day_id, tipo_luogo_id, fascia_list_widget):
 def update_day_square(app, day_id, tipo_luogo_id):
     try:
         # Trova il quadrato del giorno corretto
-        for index in range(app.week_display.layout().count()):
-            widget = app.week_display.layout().itemAt(index).widget()
+        for index in range(app.week_display_and_data.layout().count()):
+            widget = app.week_display_and_data.layout().itemAt(index).widget()
             if widget:
                 layout = widget.layout()
                 if layout:
@@ -398,7 +412,7 @@ def update_day_square(app, day_id, tipo_luogo_id):
                                 fasce = app.tipo_luogo_schedule.get(tipo_luogo_id, {}).get("fasce", {}).get(day_id, [])
                                 child.setText(", ".join(fasce))
                                 break
-        update_week_display(app, app.tipologie_list.currentItem().text())    
+        update_week_display_and_data(app, app.tipologie_list.currentItem().text())    
     except Exception as e:
         QMessageBox.critical(app, "Errore", f"Si è verificato un errore durante l'aggiornamento del quadrato del giorno: {str(e)}")
 
