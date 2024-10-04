@@ -220,7 +220,7 @@ def fix_orari(app):
                     fasce_source_id, fasce_source = tipo_groups["with_fasce"][0]
                     app.tipo_luogo_schedule[tipo_luogo_id]["fasce"] = fasce_source
                     
-                    logging_custom(app, "info", f"Fasce per '{app.tipo_luogo_schedule[tipo_luogo_id]['nome']}' "
+                    logging_custom(app, "debug", f"Fasce per '{app.tipo_luogo_schedule[tipo_luogo_id]['nome']}' "
                                                 f"popolate con quelle di '{app.tipo_luogo_schedule[fasce_source_id]['nome']}'.")
 
         QMessageBox.information(app, "Fix Orari", "Le fasce sono state corrette con successo.")

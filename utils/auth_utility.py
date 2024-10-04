@@ -123,25 +123,25 @@ def save_to_dropbox(self, local_file_path, SAVE_FILE):
         dbx = dropbox.Dropbox(self.access_token)
         dropbox_file_path = f"/{SAVE_FILE}"
 
-        logging_custom(self, "info", f"Controllo esistenza file: {dropbox_file_path}")
+        logging_custom(self, "debug", f"Controllo esistenza file: {dropbox_file_path}")
 
         # Prova a caricare il file locale
         try:
             with open(local_file_path, "rb") as f:
                 dbx.files_upload(f.read(), dropbox_file_path, mode=dropbox.files.WriteMode.overwrite)
-            logging_custom(self, "info", "File caricato su Dropbox.")
+            logging_custom(self, "debug", "File caricato su Dropbox.")
         except dropbox.exceptions.ApiError as err:
             if isinstance(err.error, dropbox.files.LookupError) and err.get_path().is_not_found():
-                logging_custom(self, "info", "Il file non esiste. Creazione di un file vuoto.")
+                logging_custom(self, "debug", "Il file non esiste. Creazione di un file vuoto.")
                 # Crea un file vuoto se non esiste
                 try:
                     dbx.files_upload(b"", dropbox_file_path)  # Carica un file vuoto
-                    logging_custom(self, "info", "File vuoto creato su Dropbox.")
+                    logging_custom(self, "debug", "File vuoto creato su Dropbox.")
                     
                     # Riprova a caricare il file locale
                     with open(local_file_path, "rb") as f:
                         dbx.files_upload(f.read(), dropbox_file_path, mode=dropbox.files.WriteMode.overwrite)
-                    logging_custom(self, "info", "File caricato su Dropbox.")
+                    logging_custom(self, "debug", "File caricato su Dropbox.")
                 except dropbox.exceptions.ApiError as e:
                     logging_custom(self, "error", f"Errore nella creazione del file vuoto: {e}")
             else:

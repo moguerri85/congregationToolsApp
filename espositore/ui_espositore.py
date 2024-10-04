@@ -21,7 +21,7 @@ def setup_espositore_tab(app):
     app.last_modification_label = QLabel("Ultima modifica effettuata: nessuna modifica")
 
     # Crea il pulsante "Importa"
-    import_button = QPushButton("Importa")
+    import_button = QPushButton("Importa da Hourglass")
     import_button.setFixedSize(QSize(100, 30))  # Opzionale: dimensioni fisse per il pulsante
 
     # Collega il pulsante a una funzione (da definire) per gestire l'importazione
@@ -150,6 +150,21 @@ def setup_espositore_tab(app):
     gestione_layout.addWidget(app.week_display)
 
     tab_widget.addTab(gestione_tab, "Tipologia, Luogo e Fascia")
+    
+    # --- Nuovo Tab Programmazione --- 
+    programmazione_tab = QWidget()
+    programmazione_layout = QVBoxLayout(programmazione_tab)
+
+    # Aggiungi contenuto al tab "Programmazione"
+    programmazione_label = QLabel("Benvenuti nella sezione Programmazione!")
+    programmazione_layout.addWidget(programmazione_label)
+
+    # Aggiungi più widget o funzionalità al tab come necessario
+    # Esempio: Un pulsante, una lista, un calendario, ecc.
+    app.programmazione_list = QListWidget()
+    programmazione_layout.addWidget(app.programmazione_list)
+
+    tab_widget.addTab(programmazione_tab, "Programmazione")
 
     app.tabs.addTab(espositore_tab, "Espositore")
     app.tabs.currentChanged.connect(lambda index: load_espositore_data_from_dropbox(app) if index == app.tabs.indexOf(espositore_tab) else None)
