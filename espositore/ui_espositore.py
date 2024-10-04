@@ -2,10 +2,11 @@ from PyQt5.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel, QListWidget, QPus
                              QTextEdit, QMessageBox, QRadioButton, QButtonGroup, QSizePolicy, QComboBox)
 from PyQt5.QtCore import Qt, QSize, QDateTime
 
-from espositore.espositore_tab_gestione import add_tipo_luogo, display_person_details, modify_selected_tipo_luogo, remove_tipo_luogo
+from espositore.espositore_tab_gestione import add_tipo_luogo, display_person_details, fix_orari, modify_selected_tipo_luogo, remove_tipo_luogo
 from espositore.espositore_tab_proclamatore import add_person, remove_person, show_availability_dialog
 from espositore.espositore_utils import import_disponibilita, update_week_display
 from utils.auth_utility import load_espositore_data_from_dropbox
+from utils.logging_custom import logging_custom
 
 
 def setup_espositore_tab(app):
@@ -135,6 +136,10 @@ def setup_espositore_tab(app):
     app.remove_tipo_luogo_button = QPushButton("Rimuovi Tipologia\\Luogo")
     app.remove_tipo_luogo_button.clicked.connect(lambda: remove_tipo_luogo(app))
     gestione_layout.addWidget(app.remove_tipo_luogo_button)
+
+    app.fix_orari_button = QPushButton("Fix Orari Mancanti")
+    app.fix_orari_button.clicked.connect(lambda: fix_orari(app))  # Add your logic in fix_orari
+    gestione_layout.addWidget(app.fix_orari_button)
 
     app.gestione_table = QWidget()
     app.gestione_table.setLayout(QVBoxLayout())
