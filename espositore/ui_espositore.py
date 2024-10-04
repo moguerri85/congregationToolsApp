@@ -1,9 +1,9 @@
 from PyQt5.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel, QListWidget, QPushButton, QTabWidget, QWidget, QCalendarWidget,
-                             QTextEdit, QMessageBox, QRadioButton, QButtonGroup, QSizePolicy, QComboBox)
+                             QTextEdit, QCheckBox, QRadioButton, QButtonGroup, QSizePolicy, QComboBox)
 from PyQt5.QtCore import Qt, QSize, QDateTime
 
-from espositore.espositore_tab_gestione import add_tipo_luogo, display_person_details, fix_orari, modify_selected_tipo_luogo, remove_tipo_luogo
-from espositore.espositore_tab_proclamatore import add_person, remove_person, show_availability_dialog
+from espositore.espositore_tab_gestione import add_tipo_luogo, fix_orari, modify_selected_tipo_luogo, remove_tipo_luogo
+from espositore.espositore_tab_proclamatore import add_person, display_person_details, remove_person, show_availability_dialog
 from espositore.espositore_utils import import_disponibilita, update_week_display
 from utils.auth_utility import load_espositore_data_from_dropbox
 from utils.logging_custom import logging_custom
@@ -116,7 +116,7 @@ def setup_espositore_tab(app):
 
     tab_widget.addTab(proclamatore_tab, "Proclamatore")
 
-    # --- Tab Turni ---
+    # --- Tab Tipologia, Luogo e Fascia ---
     gestione_tab = QWidget()
     gestione_layout = QVBoxLayout(gestione_tab)
 

@@ -1,9 +1,10 @@
+import re
+
 from PyQt5.QtWidgets import (QMessageBox, QInputDialog, QPushButton, QLabel, QComboBox,
-                             QListWidgetItem, QDialog, QVBoxLayout, 
-                             QWidget, QSizePolicy, QListWidget)
+                             QListWidgetItem, QDialog, QVBoxLayout)
 
 from PyQt5.QtCore import Qt
-from espositore.espositore_utils import get_day_from_date, save_data
+from espositore.espositore_utils import get_day_from_date, get_day_from_id, save_data
 import uuid
 
 def add_person(app):
@@ -175,3 +176,45 @@ def on_confirm(app, selected_date, selected_tipo_luogo_id, selected_fascia, dial
         update_person_availability(app, selected_date, selected_tipo_luogo_id, selected_fascia, dialog)
     else:
         QMessageBox.warning(dialog, "Attenzione", "Devi selezionare una fascia oraria.")
+
+def display_person_details(app, item):
+    try:
+        # Ottieni l'ID del proclamatore selezionato
+        person_id = item.data(Qt.UserRole)
+        person = app.person_schedule.get(person_id, {})
+        
+        # Aggiorna i dettagli del proclamatore
+        app.detail_text.clear()
+        
+        if person:
+            # Trova il nome della persona usando l'app.people
+            person_name = app.people.get(person_id, "N/A")
+            app.detail_text.append(f"Nome: {person_name}")
+            #app.detail_text.append(f"ID: {person_id}")
+
+            # Mappa degli ID delle tipologie ai loro nomi
+            tipo_luogo_map = {tipo_luogo_id: tipologia["nome"] for tipo_luogo_id, tipologia in app.tipo_luogo_schedule.items()}
+
+            # Mostra la disponibilità per la tipologia
+            availability = person.get('availability', {})
+            if availability:
+                for tipo_luogo_id, giorni in availability.items():
+                    tipo_luogo_nome = tipo_luogo_map.get(tipo_luogo_id, 'N/A')  # Ottieni il nome della tipologia
+                    app.detail_text.append(f"\nTipologia: {tipo_luogo_nome}")
+                    for giorno_id, fasce in giorni.items():
+                        date_format = r'^\d{4}-\d{2}-\d{2}$'
+                        if not re.match(date_format, giorno_id):
+                            giorno_n = get_day_from_id(giorno_id)
+                            app.detail_text.append(f"    Tutti i {giorno_n}") 
+                        else:
+                            giorno_n = get_day_from_date(giorno_id)
+                            app.detail_text.append(f"{giorno_n} : {giorno_id}")  # Mostra l'ID del giorno
+                        for fascia in fasce:
+                            app.detail_text.append(f"        Fascia: {fascia}")
+            else:
+                app.detail_text.append("Nessuna disponibilità disponibile.")
+        else:
+            app.detail_text.append("Dettagli non disponibili per il proclamatore selezionato.")
+            
+    except Exception as e:
+        QMessageBox.critical(app, "Errore", f"Si è verificato un errore: {str(e)}")
