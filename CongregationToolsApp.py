@@ -2,7 +2,7 @@ import sys
 
 from PyQt5.QtWidgets import (QPushButton, QApplication, QMainWindow, 
                              QVBoxLayout, QWidget, QTabWidget, 
-                             QMessageBox, QAction, QToolBar, QTextEdit, QListWidget)
+                             QMessageBox, QAction, QToolBar, QScrollArea, QListWidget)
 from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineProfile
 from PyQt5.QtWebEngineCore import QWebEngineUrlRequestInterceptor, QWebEngineUrlRequestInfo
 from PyQt5.QtCore import QUrl, Qt
@@ -57,7 +57,11 @@ class CongregationToolsApp(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Scra - ViGeo")
-        self.setGeometry(100, 100, 800, 500)
+        # Imposta dimensioni minime e massime della finestra
+        self.setMinimumSize(600, 400)  # Dimensione minima
+        self.setMaximumSize(1200, 800)  # Dimensione massima
+
+        # Crea il widget centrale
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
         self.layout = QVBoxLayout(self.central_widget)
@@ -284,26 +288,47 @@ class CongregationToolsApp(QMainWindow):
 
     def show_other_tabs(self):
         # Rimuovi il tab di benvenuto (o tenerlo visibile)
-        #self.tabs.removeTab(self.tabs.indexOf(self.benvenuto_tab))
-        
+        # self.tabs.removeTab(self.tabs.indexOf(self.benvenuto_tab))
+
         # Rimuovi il pulsante 'show_tabs_button' se esiste
         if hasattr(self, 'show_tabs_button'):
             self.benvenuto_layout.removeWidget(self.show_tabs_button)
             self.show_tabs_button.deleteLater()
 
-        # Aggiungi il tab 
-        setup_hourglass_tab(self)
+        # Crea un tab per Hourglass
+        self.hourglass_tab = QWidget()
+
+        # Crea un'area di scorrimento per il tab Hourglass
+        self.scroll_area_hourglass = QScrollArea()
+        self.scroll_area_hourglass.setWidgetResizable(True)
+
+        # Crea un widget per il contenuto dell'area di scorrimento
+        self.hourglass_content = QWidget()
+        self.hourglass_layout = QVBoxLayout(self.hourglass_content)
+
+        # Imposta le dimensioni desiderate per il contenuto
+        self.hourglass_content.setMinimumSize(800, 600)  # Larghezza x Altezza
+
+        # Aggiungi il widget contenuto all'area di scorrimento
+        self.scroll_area_hourglass.setWidget(self.hourglass_content)
+
+        # Aggiungi l'area di scorrimento al tab
+        hourglass_tab_layout = QVBoxLayout(self.hourglass_tab)
+        hourglass_tab_layout.addWidget(self.scroll_area_hourglass)
 
         # Imposta l'URL della pagina Hourglass
         self.load_page("https://app.hourglass-app.com/v2/page/app/scheduling/")
         self.view.urlChanged.connect(self.handle_url_change_hourglass)
+
+        # Aggiungi il tab a tabs
+        self.tabs.addTab(self.hourglass_tab, "Hourglass")  # Aggiungi il tab
 
         # Verifica che il tab sia visibile
         self.tabs.setCurrentWidget(self.hourglass_tab)
 
         # Controlla se l'URL è stato caricato
         self.view.loadFinished.connect(self.handle_load_finished)
-        
+
         # Imposta l'intercettore per monitorare le richieste di rete
         interceptor = RequestInterceptor()
         QWebEngineProfile.defaultProfile().setUrlRequestInterceptor(interceptor)
@@ -315,7 +340,6 @@ class CongregationToolsApp(QMainWindow):
 
         # Imposta il tab predefinito da mostrare (ad esempio Hourglass)
         self.tabs.setCurrentIndex(0)
-
 
     def handle_load_finished(self, ok):
         if ok:
