@@ -295,26 +295,8 @@ class CongregationToolsApp(QMainWindow):
             self.benvenuto_layout.removeWidget(self.show_tabs_button)
             self.show_tabs_button.deleteLater()
 
-        # Crea un tab per Hourglass
-        self.hourglass_tab = QWidget()
-
-        # Crea un'area di scorrimento per il tab Hourglass
-        self.scroll_area_hourglass = QScrollArea()
-        self.scroll_area_hourglass.setWidgetResizable(True)
-
-        # Crea un widget per il contenuto dell'area di scorrimento
-        self.hourglass_content = QWidget()
-        self.hourglass_layout = QVBoxLayout(self.hourglass_content)
-
-        # Imposta le dimensioni desiderate per il contenuto
-        self.hourglass_content.setMinimumSize(800, 600)  # Larghezza x Altezza
-
-        # Aggiungi il widget contenuto all'area di scorrimento
-        self.scroll_area_hourglass.setWidget(self.hourglass_content)
-
-        # Aggiungi l'area di scorrimento al tab
-        hourglass_tab_layout = QVBoxLayout(self.hourglass_tab)
-        hourglass_tab_layout.addWidget(self.scroll_area_hourglass)
+        # Aggiungi il tab 
+        setup_hourglass_tab(self)
 
         # Imposta l'URL della pagina Hourglass
         self.load_page("https://app.hourglass-app.com/v2/page/app/scheduling/")

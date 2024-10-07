@@ -219,3 +219,56 @@ def find_base_name(nome):
     
     # Restituisce la prima parola significativa
     return first_part.strip()
+
+def fix_proclamatori(app):
+    try:
+        # Itera su tutti i proclamatori nel person_schedule
+        for person_id, person_data in app.person_schedule.items():
+            availability = person_data.get("availability", {})
+            tipo_luogo_to_remove = []  # Lista per tenere traccia dei tipo_luogo da rimuovere
+            
+            # Itera su tutti i tipi di luogo
+            for tipo_luogo_id, tipo_luogo_data in app.tipo_luogo_schedule.items():
+                if tipo_luogo_id not in availability:  # Se il proclamatore non ha disponibilità per questo luogo
+                    base_name = find_base_name(tipo_luogo_data["nome"])
+                    
+                    # Cerca una tipologia simile con disponibilità
+                    similar_luogo_id = find_similar_luogo(app, base_name, availability)
+                    
+                    if similar_luogo_id:
+                        # Prendi le fasce orarie del luogo simile
+                        similar_availability = availability[similar_luogo_id]
+                        
+                        # Aggiungi le fasce orarie alla disponibilità del luogo attuale
+                        availability[tipo_luogo_id] = similar_availability
+                        
+                        logging_custom(app, "debug", f"Aggiunta disponibilità per '{tipo_luogo_data['nome']}' "
+                                                     f"utilizzando fasce di '{app.tipo_luogo_schedule[similar_luogo_id]['nome']}' "
+                                                     f"per il proclamatore {person_id}.")
+
+                        tipo_luogo_to_remove.append(similar_luogo_id)  # Aggiungi il tipo luogo vecchio alla lista da rimuovere
+            
+            # Rimuovi i tipo_luogo vecchi dalla disponibilità
+            for tipo_luogo_id in tipo_luogo_to_remove:
+                if tipo_luogo_id in availability:
+                    del availability[tipo_luogo_id]
+                    logging_custom(app, "debug", f"Rimosso '{app.tipo_luogo_schedule[tipo_luogo_id]['nome']}' "
+                                                  f"dalla disponibilità del proclamatore {person_id}.")
+
+        # Salva i dati dopo il fix
+        save_data(app)
+        QMessageBox.information(app, "Fix Disponibilità", "La disponibilità dei proclamatori è stata corretta con successo.")
+    
+    except Exception as e:
+        logging_custom(app, "error", f"Errore durante il fix delle disponibilità dei proclamatori: {str(e)}")
+        QMessageBox.critical(app, "Errore", f"Errore durante il fix delle disponibilità dei proclamatori: {str(e)}")
+
+
+def find_similar_luogo(app, base_name, availability):
+    """
+    Trova un luogo simile tra quelli con disponibilità nel proclamatore corrente.
+    """
+    for tipo_luogo_id, tipo_luogo_data in app.tipo_luogo_schedule.items():
+        if find_base_name(tipo_luogo_data["nome"]) == base_name and tipo_luogo_id in availability:
+            return tipo_luogo_id
+    return None

@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel, QListWidget, QPus
                              QTextEdit, QGridLayout, QRadioButton, QButtonGroup, QSizePolicy, QScrollArea)
 from PyQt5.QtCore import Qt, QSize, QDate
 
-from espositore.espositore_tab_gestione import add_tipo_luogo, fix_orari, modify_selected_tipo_luogo, remove_tipo_luogo
+from espositore.espositore_tab_gestione import add_tipo_luogo, fix_orari, fix_proclamatori, modify_selected_tipo_luogo, remove_tipo_luogo
 from espositore.espositore_tab_proclamatore import add_person, display_person_details, remove_person, show_availability_dialog
 from espositore.espositore_tab_programmazione import show_programmazione_dialog
 from espositore.espositore_utils import import_disponibilita, update_week_display_and_data
@@ -159,6 +159,10 @@ def setup_espositore_tab(app):
     app.fix_orari_button = QPushButton("Fix Orari Mancanti")
     app.fix_orari_button.clicked.connect(lambda: fix_orari(app))  # Add your logic in fix_orari
     scroll_area_layout.addWidget(app.fix_orari_button)
+
+    app.fix_proclamatori_button = QPushButton("Fix Disponibilità Proclamatori")
+    app.fix_proclamatori_button.clicked.connect(lambda: fix_proclamatori(app))  # Add your logic in fix_proclamatori_button
+    scroll_area_layout.addWidget(app.fix_proclamatori_button)
 
     app.gestione_table = QWidget()
     app.gestione_table.setLayout(QVBoxLayout())

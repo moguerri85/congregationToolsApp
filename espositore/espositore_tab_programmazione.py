@@ -3,15 +3,15 @@ from PyQt5.QtWidgets import (QVBoxLayout, QMenu, QLabel, QListWidget, QPushButto
 from PyQt5.QtCore import QDate
 
 def show_programmazione_dialog(app, date):
-    """Mostra il dialogo per la selezione di tipologia, fascia oraria e proclamatori disponibili."""
-    
+    # Crea una finestra di dialogo per selezionare tipologia, fascia oraria e proclamatori
     dialog = QDialog()
-    dialog.setWindowTitle(f"Selezione per il giorno {date.toString('dd/MM/yyyy')}")
+    dialog.setWindowTitle(f"Programmazione del {date.toString('dd MMM yyyy')}")
 
     layout = QVBoxLayout(dialog)
 
     # Seleziona Tipologia
-    layout.addWidget(QLabel("Seleziona Tipologia"))
+    tipologia_label = QLabel("Seleziona Tipologia:")
+    layout.addWidget(tipologia_label)
     tipologia_combo = QComboBox()
     tipologia_combo.addItem("")  # Primo item vuoto
 
@@ -53,7 +53,7 @@ def show_programmazione_dialog(app, date):
 
     # Seleziona Proclamatori disponibili
     layout.addWidget(QLabel("Seleziona Proclamatori Disponibili"))
-    proclamatori_list = QListWidget()
+    proclamatori_list = QListWidget()  # Definisco proclamatori_list qui
     proclamatori_list.setSelectionMode(QListWidget.MultiSelection)
     layout.addWidget(proclamatori_list)
 
@@ -101,33 +101,84 @@ def show_programmazione_dialog(app, date):
     # Connessione al cambiamento della fascia
     fascia_combo.currentIndexChanged.connect(lambda: update_proclamatori(tipologia_combo.currentData(), fascia_combo.currentText()))
 
-    # Aggiungi il pulsante di conferma
+    # Pulsante Conferma
     confirm_button = QPushButton("Conferma")
-    confirm_button.clicked.connect(lambda: confirm_selections(app, date, 
-        tipologia_combo.currentText(), fascia_combo.currentText(), proclamatori_list.selectedItems(), dialog))
     layout.addWidget(confirm_button)
 
-    dialog.setLayout(layout)
+    def confirm_selection():
+        selected_tipologia = tipologia_combo.currentText()
+        selected_fascia = fascia_combo.currentText()
+        selected_proclamatori = [item.text() for item in proclamatori_list.selectedItems()]  # proclamatore_list ora è visibile
+
+        # Salva i dati per il giorno selezionato
+        app.person_schedule[date] = {
+            'tipologia': selected_tipologia,
+            'fascia': selected_fascia,
+            'proclamatori': selected_proclamatori
+        }
+
+        # Aggiorna il quadrato del giorno nel calendario
+        update_day_button(app, date)
+
+        dialog.accept()
+
+    confirm_button.clicked.connect(confirm_selection)
     dialog.exec_()
 
-def confirm_selections(app, date, tipologia, fascia, selected_proclamatori, dialog):
-    """Conferma le selezioni e aggiorna il calendario con le informazioni."""
+def update_day_button(app, date):
+    # Trova il pulsante del giorno corrispondente
+    if date in app.day_buttons:
+        button = app.day_buttons[date]
 
-    if not selected_proclamatori:
-        QMessageBox.warning(None, "Errore", "Seleziona almeno un proclamatore.")
-        return
+        # Recupera le informazioni del giorno
+        day_data = app.person_schedule.get(date, {})
+        tipologia = day_data.get('tipologia', '')
+        fascia = day_data.get('fascia', '')
+        proclamatori = ', '.join(day_data.get('proclamatori', []))
 
-    # Ottieni i nomi dei proclamatori selezionati
-    proclamatori_names = [item.text() for item in selected_proclamatori]
+        # Se le informazioni sono troppo lunghe, possiamo abbreviare i proclamatori o usare una label per un'icona
+        proclamatori_text = ', '.join([p.split()[0] for p in day_data.get('proclamatori', [])]) if len(proclamatori) > 30 else proclamatori
 
-    # Formatta il testo da visualizzare nel calendario o nella lista
-    entry_text = f"{date.toString('dd/MM/yyyy')} - Tipologia: {tipologia}, Fascia: {fascia}, Proclamatori: {', '.join(proclamatori_names)}"
+        # Crea un testo compatto da visualizzare
+        info_text = f"{tipologia}\n{fascia}\n{proclamatori_text}"
 
-    # Aggiungi l'assegnazione nella lista della programmazione
-    app.programmazione_list.addItem(entry_text)
+        # Aggiorna il pulsante con le informazioni selezionate
+        button.setText(f"{date.day()}\n{info_text}")
 
-    # Chiudi il dialogo
-    dialog.accept()
+def update_calendar(app):
+    # Pulisci la griglia dei giorni
+    while app.custom_calendar_layout.count():
+        item = app.custom_calendar_layout.takeAt(0)
+        widget = item.widget()
+        if widget is not None:
+            widget.deleteLater()
+
+    # Ottieni il mese corrente
+    days_in_month = app.current_date.daysInMonth()
+    first_day_of_month = app.current_date.addDays(-app.current_date.day() + 1)
+    start_day_of_week = first_day_of_month.dayOfWeek()
+
+    # Aggiorna l'etichetta del mese corrente
+    app.current_month_label.setText(app.current_date.toString("MMMM yyyy"))
+
+    # Riempie i giorni del mese nella griglia
+    for day in range(1, days_in_month + 1):
+        day_date = QDate(app.current_date.year(), app.current_date.month(), day)
+        grid_row = (start_day_of_week + day - 2) // 7
+        grid_column = (start_day_of_week + day - 2) % 7
+        
+        button = QPushButton(str(day))
+        button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        button.setFixedSize(80, 80)
+        button.setStyleSheet("background-color: lightgray; border: 1px solid black;")
+        
+        button.clicked.connect(lambda _, d=day_date: show_programmazione_dialog(app, d))
+
+        app.custom_calendar_layout.addWidget(button, grid_row, grid_column)
+        app.day_buttons[day_date] = button
+
+        # Aggiorna il quadrato con eventuali informazioni salvate
+        update_day_button(app, day_date)
 
 def load_schedule(app):
     """Carica le assegnazioni salvate (ad esempio da un file o backend) e visualizzale nella lista."""
