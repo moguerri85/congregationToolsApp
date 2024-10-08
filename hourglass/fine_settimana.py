@@ -4,7 +4,7 @@ def combine_html_fine_settimana(self, html1, html2):
     self.progress_bar.setValue(70)  # Set progress to 70%
     soup1 = BeautifulSoup(html1, 'html.parser')
     soup2 = BeautifulSoup(html2, 'html.parser')
-    html1 = soup1.find_all("div", {"class": "d-flex flex-wrap align-self-start flex-grow-1"})
+    html1 = soup1.find_all("div", {"class": "d-flex flex-row gap-4 card-body"})
     html2 = soup2.find_all("div", {"class": "card"})
 
     # html2 i div card sono duplicati, utilizzare solo quelli con indice pari 0,2,4,6....
@@ -53,7 +53,6 @@ def manipulateHTML_fine_settimana(self, discorso, programma):
             if "Assemblea di circoscrizione" in row2.text:
                 row2.extract()
             
-        isNessunDiscorso = False
         for discProFS in htmlProFS.find_all("div", class_="row px-0 mx-0 pt-3 pb-3 border-top"):                       
             for discorso_dett in discorso:
                 for buttonDisFS in discorso_dett.find_all('button'):
@@ -100,14 +99,51 @@ def manipulateHTML_fine_settimana(self, discorso, programma):
         else:
             isSpeciale = False     
 
-        # Verifica se discProFS è stato assegnato
+        
         if discProFS is not None:
-            if isSpeciale is False:                
+            # Set 'evento' as the content of the current discourse
+            evento = str(discorso[countProFs])
+
+            if isSpeciale is False:
                 valueClass = "oratore_discorso"
+                
+                # Parse 'evento' with BeautifulSoup to manipulate the HTML
+                evento_soup = BeautifulSoup(evento, 'html.parser')
+                
+                # Find and remove all 'div' elements with the specified class
+                calendario_divs = evento_soup.find_all("div", {"class": "d-flex flex-column align-content-center"})
+                for calendario_div in calendario_divs:
+                    calendario_div.extract()  # Remove the div from the parsed HTML
+                
+                # Update 'evento' with the modified HTML content
+                evento = str(evento_soup)
             else:
                 valueClass = "oratore_discorso_special"
+                calendario = discorso[countProFs].find("div", {"class": "d-flex flex-column align-content-center"})
+                
+                # Only proceed if 'calendario' exists
+                if calendario is not None:
+                    span_element = calendario.find("div", {"class": "special d-flex"})
+                    
+                    # Check if the 'span_element' is found
+                    if span_element is not None:
+                        # Convert 'span_element' back to a string before assigning it to 'evento'
+                        evento = str(span_element)
+                        
+                        # Iterate through h4 elements and convert them to h6
+                        for rowOratoreFS in span_element.find_all("h4", class_="fw-bold"):
+                            rowOratoreFS.name = "h5"  # Change h4 to h6 for 'oratori'
 
-            discProFS.replace_with(BeautifulSoup('<div class="'+valueClass+'"><div class="mx-3">'+str(discorso[countProFs])+'</div></div>', 'html.parser'))
+                        # Convert the modified 'span_element' back to a string
+                        evento = str(span_element)
+                    else:
+                        evento = ''  # Default value if span is not found
+
+                    calendario.extract()  # Remove the 'calendario' element
+
+            # Replace the content of 'discProFS' with the updated 'evento'
+            discProFS.replace_with(BeautifulSoup('<div class="'+valueClass+'"><div class="mx-3">'+evento+'</div></div>', 'html.parser'))
+
             
         countProFs += 1    
          
