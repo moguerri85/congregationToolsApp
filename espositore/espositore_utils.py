@@ -82,7 +82,7 @@ def load_data(app):
             # Aggiorna la visualizzazione della settimana
             update_week_display_and_data(app, None)
             update_last_modification_time(app)
-            update_last_load_time(app)
+            #update_last_load_time(app)
             # Stampa o logga un messaggio di conferma
             logging_custom(app, "debug", "Dati caricati con successo!")
         else:

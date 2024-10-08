@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import (QMessageBox, QInputDialog, QPushButton, QLabel, QComboBox,
                              QListWidgetItem, QDialog, QVBoxLayout, QTimeEdit)
 from PyQt5.QtCore import Qt
-from espositore.espositore_utils import save_data, update_week_display_and_data
+from espositore.espositore_utils import save_data, update_last_modification_time, update_week_display_and_data
 from utils.logging_custom import logging_custom
 
 def add_tipo_luogo(app):

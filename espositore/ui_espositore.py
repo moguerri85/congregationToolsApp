@@ -1,10 +1,12 @@
 from PyQt5.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel, QListWidget, QPushButton, QTabWidget, QWidget, QCalendarWidget,
-                             QTextEdit, QGridLayout, QRadioButton, QButtonGroup, QSizePolicy, QScrollArea)
+                             QTextEdit, QGridLayout,  QRadioButton, QButtonGroup, QSizePolicy, QScrollArea)
 from PyQt5.QtCore import Qt, QSize, QDate
+from PyQt5.QtGui import QPixmap, QPainter, QColor, QIcon, QPolygon
+from PyQt5.QtCore import QPoint, QSize
 
 from espositore.espositore_tab_gestione import add_tipo_luogo, fix_orari, fix_proclamatori, modify_selected_tipo_luogo, remove_tipo_luogo
 from espositore.espositore_tab_proclamatore import add_person, display_person_details, remove_person, show_availability_dialog
-from espositore.espositore_tab_programmazione import show_programmazione_dialog
+from espositore.espositore_tab_programmazione import update_calendar
 from espositore.espositore_utils import import_disponibilita, update_week_display_and_data
 from utils.auth_utility import load_espositore_data_from_dropbox
 from utils.logging_custom import logging_custom
@@ -21,12 +23,12 @@ def setup_espositore_tab(app):
     app.last_modification_label = QLabel("Ultima modifica effettuata: nessuna modifica")
 
     # Crea il pulsante "Importa"
-    import_button = QPushButton("Importa da Hourglass")
-    import_button.setFixedSize(QSize(120, 30))  # Opzionale: dimensioni fisse per il pulsante
+    #import_button = QPushButton("Importa da Hourglass")
+    #import_button.setFixedSize(QSize(120, 30))  # Opzionale: dimensioni fisse per il pulsante
 
     # Collega il pulsante a una funzione (da definire) per gestire l'importazione
-    import_button.clicked.connect(lambda: import_disponibilita(app))
-    main_layout.addWidget(import_button)
+    #import_button.clicked.connect(lambda: import_disponibilita(app))
+    #main_layout.addWidget(import_button)
     
     main_layout.addWidget(app.last_load_label)
     main_layout.addWidget(app.last_modification_label)
@@ -129,8 +131,8 @@ def setup_espositore_tab(app):
     tab_widget.addTab(proclamatore_tab, "Proclamatore")
 
     # --- Tab Tipologia, Luogo e Fascia ---
-    gestione_tab = QWidget()
-    gestione_layout = QVBoxLayout(gestione_tab)
+    tipo_luogo_tab = QWidget()
+    gestione_layout = QVBoxLayout(tipo_luogo_tab)
 
     # Creazione della scroll area
     scroll_area = QScrollArea()
@@ -164,9 +166,9 @@ def setup_espositore_tab(app):
     app.fix_proclamatori_button.clicked.connect(lambda: fix_proclamatori(app))  # Add your logic in fix_proclamatori_button
     scroll_area_layout.addWidget(app.fix_proclamatori_button)
 
-    app.gestione_table = QWidget()
-    app.gestione_table.setLayout(QVBoxLayout())
-    scroll_area_layout.addWidget(app.gestione_table)
+    app.tipo_luogo_table = QWidget()
+    app.tipo_luogo_table.setLayout(QVBoxLayout())
+    scroll_area_layout.addWidget(app.tipo_luogo_table)
 
     app.week_display_and_data = QWidget()
     app.week_display_and_data.setLayout(QVBoxLayout())
@@ -175,7 +177,7 @@ def setup_espositore_tab(app):
     scroll_area.setWidget(scroll_area_content)  # Imposta il contenuto della scroll area
     gestione_layout.addWidget(scroll_area)  # Aggiungi la scroll area al layout principale
 
-    tab_widget.addTab(gestione_tab, "Tipologia, Luogo e Fascia")
+    tab_widget.addTab(tipo_luogo_tab, "Tipologia, Luogo e Fascia")
     
     # --- Tab Programmazione --- 
     programmazione_tab = QWidget()
@@ -190,14 +192,48 @@ def setup_espositore_tab(app):
     # Pulsanti di navigazione per il mese
     navigation_layout = QHBoxLayout()
 
-    app.prev_month_button = QPushButton("Mese Precedente")
+    def create_next_icon(size):
+        """Crea un'icona di dimensione 'size'."""
+        pixmap = QPixmap(size, size)
+        pixmap.fill(QColor("transparent"))  # Riempie lo sfondo dell'immagine con trasparente
+
+        painter = QPainter(pixmap)
+        # Disegna un triangolo per l'icona "Mese Precedente"
+        painter.setBrush(QColor("grey"))  # Colore grigio per il triangolo
+        points = [QPoint(size // 2, 0), QPoint(size, size // 2), QPoint(size // 2, size)]
+        painter.drawPolygon(QPolygon(points))  # Disegna il triangolo
+        painter.end()
+
+        return QIcon(pixmap)
+
+    def create_prev_icon(size):
+        """Crea un'icona di dimensione 'size' per il pulsante Mese Successivo."""
+        pixmap = QPixmap(size, size)
+        pixmap.fill(QColor("transparent"))  # Riempie lo sfondo dell'immagine con trasparente
+
+        painter = QPainter(pixmap)
+        # Disegna un triangolo per l'icona "Mese Successivo"
+        painter.setBrush(QColor("grey"))  # Colore grigio per il triangolo
+        points = [QPoint(0, size // 2), QPoint(size // 2, 0), QPoint(size // 2, size)]
+        painter.drawPolygon(QPolygon(points))  # Disegna il triangolo
+        painter.end()
+
+        return QIcon(pixmap)
+
+    # Aggiungi le immagini ai pulsanti
+    app.prev_month_button = QPushButton()
+    app.prev_month_button.setIcon(create_prev_icon(30))  # Utilizza un'icona di 40x40 pixel
+    app.prev_month_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)  # Dimensione fissa
     app.prev_month_button.clicked.connect(lambda: change_month(app, -1))
     navigation_layout.addWidget(app.prev_month_button)
 
     app.current_month_label = QLabel()  # Label per mostrare il mese corrente
+    app.current_month_label.setAlignment(Qt.AlignCenter)
     navigation_layout.addWidget(app.current_month_label)
 
-    app.next_month_button = QPushButton("Mese Successivo")
+    app.next_month_button = QPushButton()
+    app.next_month_button.setIcon(create_next_icon(30))  # Utilizza un'icona di 40x40 pixel
+    app.next_month_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)  # Dimensione fissa
     app.next_month_button.clicked.connect(lambda: change_month(app, 1))
     navigation_layout.addWidget(app.next_month_button)
 
@@ -212,14 +248,32 @@ def setup_espositore_tab(app):
 
     scroll_area_layout.addLayout(app.custom_calendar_layout)
 
-    # Lista per visualizzare le assegnazioni confermate
-    app.programmazione_list = QListWidget()
-    scroll_area_layout.addWidget(app.programmazione_list)
-
     scroll_area.setWidget(scroll_area_content)  # Imposta il contenuto della scroll area
     programmazione_layout.addWidget(scroll_area)  # Aggiungi la scroll area al layout principale
 
     tab_widget.addTab(programmazione_tab, "Programmazione")
+
+    # --- Nuovo Tab Gestione --- 
+    gestione_tab = QWidget()
+    gestione_layout = QVBoxLayout(gestione_tab)
+
+    # Creazione della scroll area per il nuovo tab
+    gestione_scroll_area = QScrollArea()
+    gestione_scroll_area.setWidgetResizable(True)  # Permette al widget di ridimensionarsi
+    gestione_scroll_area_content = QWidget()  # Widget contenitore per il layout della scroll area
+    gestione_scroll_area_layout = QVBoxLayout(gestione_scroll_area_content)
+
+    # Pulsante "Importa" da aggiungere qui
+    import_button = QPushButton("Importa da Hourglass")
+    import_button.setFixedSize(QSize(120, 30))  # Opzionale: dimensioni fisse per il pulsante
+    import_button.clicked.connect(lambda: import_disponibilita(app))
+    gestione_scroll_area_layout.addWidget(import_button)  # Aggiungi il pulsante al layout
+
+
+    gestione_scroll_area.setWidget(gestione_scroll_area_content)  # Imposta il contenuto della scroll area
+    gestione_layout.addWidget(gestione_scroll_area)  # Aggiungi la scroll area al layout principale
+
+    tab_widget.addTab(gestione_tab, "Gestione")  # Aggiungi il nuovo tab al QTabWidget
 
     app.tabs.addTab(espositore_tab, "Espositore")
     app.tabs.currentChanged.connect(lambda index: load_espositore_data_from_dropbox(app) if index == app.tabs.indexOf(espositore_tab) else None)
@@ -227,38 +281,6 @@ def setup_espositore_tab(app):
     app.week_widget.hide()
     app.calendar.hide()
 
-def update_calendar(app):
-    # Pulisci la griglia dei giorni
-    while app.custom_calendar_layout.count():
-        item = app.custom_calendar_layout.takeAt(0)
-        widget = item.widget()
-        if widget is not None:
-            widget.deleteLater()
-
-    # Ottieni il mese corrente
-    days_in_month = app.current_date.daysInMonth()
-    first_day_of_month = app.current_date.addDays(-app.current_date.day() + 1)  # Primo giorno del mese corrente
-    start_day_of_week = first_day_of_month.dayOfWeek()  # 1 = Lun, 2 = Mar, ..., 7 = Dom
-
-    # Aggiorna l'etichetta del mese corrente
-    app.current_month_label.setText(app.current_date.toString("MMMM yyyy"))  # Mostra mese e anno
-
-    # Riempie i giorni del mese nella griglia
-    for day in range(1, days_in_month + 1):
-        day_date = QDate(app.current_date.year(), app.current_date.month(), day)
-        grid_row = (start_day_of_week + day - 2) // 7  # Calcola la riga in base al giorno della settimana
-        grid_column = (start_day_of_week + day - 2) % 7  # Calcola la colonna in base al giorno della settimana
-        
-        button = QPushButton(str(day))
-        button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        button.setFixedSize(80, 80)
-        button.setStyleSheet("background-color: lightgray; border: 1px solid black;")
-        
-        # Collega il pulsante alla funzione per mostrare i dettagli del giorno
-        button.clicked.connect(lambda _, d=day_date: show_programmazione_dialog(app, d))
-        
-        app.custom_calendar_layout.addWidget(button, grid_row, grid_column)
-        app.day_buttons[day_date] = button  # Memorizza il riferimento al pulsante
 
 def change_month(app, increment):
     # Cambia il mese corrente
