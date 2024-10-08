@@ -1,48 +1,4 @@
-# English
-
-## Congregation Tools App
-
-Congregation Tools App (Scra - ViGeo) is a PyQt5-based application designed to help manage congregation schedules and tasks. The application provides tools for generating HTML reports for various congregation activities such as weekend schedules, midweek schedules, AV attendants, cleaning tasks, and service groups. It integrates web content scraping, local HTML viewing, and file download handling, all within an easy-to-use GUI.
-
-## Features
-
-- **Multi-tab Interface**: Organizes various functionalities into different tabs.
-- **Web Content Integration**: Loads external web pages using `QWebEngineView` and injects custom JavaScript to monitor link clicks and scrape content.
-- **HTML Generation**: Generates printable HTML reports for different congregation activities such as weekend schedules, midweek schedules, AV attendant schedules, and cleaning tasks.
-- **Progress Tracking**: Displays a progress bar to track the progress of tasks like content scraping and report generation.
-- **File Handling**: Handles file downloads and saves generated HTML content to appropriate directories depending on the operating system (e.g., Desktop folder).
-- **Cross-Platform Support**: Works on Windows, macOS, and Linux, with specific file handling logic for different OS environments.
-- **Auto-Update Checking**: Checks for application updates at startup using GitHub API.
-
-## Requirements
-
-- Python 3.x
-- PyQt5
-- PyQtWebEngine
-
-## Installation
-
-1. **Clone the Repository:**
-
-   ```bash
-   git clone https://github.com/your-username/congregationToolsApp.git
-   cd congregationToolsApp
-
-2. **Install Dependencies:**
-    pip install -r requirements.txt
-
-3. **Run the Application:**
-    python congregationToolsApp.py
-
-4. **Contributing:**
-    1. Fork the repository.
-    2. Create your feature branch (git checkout -b feature/my-feature).
-    3. Commit your changes (git commit -m 'Add some feature').
-    4. Push to the branch (git push origin feature/my-feature).
-    5. Open a pull request.
-
-
-# Italiano
+# Solo per la gestione in Italiano
 
 ## Congregation Tools App
 
