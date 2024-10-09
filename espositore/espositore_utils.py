@@ -3,7 +3,7 @@ import os
 
 from PyQt5.QtWidgets import (QMessageBox, QPushButton, QDialog, QVBoxLayout, QCheckBox,
                              QLabel, QHBoxLayout, QWidget, QListWidget, QSizePolicy, QInputDialog,
-                             QListWidgetItem, QMessageBox)
+                             QListWidgetItem, QMessageBox)                             
 from PyQt5.QtCore import Qt, QSize
 from datetime import datetime
 from PyQt5.QtCore import Qt, QSize, QDateTime
@@ -42,8 +42,7 @@ def save_data(app):
             json.dump(data, f, indent=4)  # Salva i dati con indentazione per leggibilità
 
         update_last_modification_time(app)  
-        # Salva su Dropbox
-        save_to_dropbox(app, local_file_jsn, SAVE_FILE)  
+        
     except Exception as e:
         logging_custom(app, "error", f"Errore nel salvataggio dei dati: {str(e)}")
         QMessageBox.critical(app, "Errore", f"Errore nel salvataggio dei dati: {str(e)}")
@@ -118,8 +117,6 @@ def load_data(app):
     except Exception as e:
         # Gestione di altri errori
         logging_custom(app, "error", f"Errore durante il caricamento dei dati: {str(e)}")
-
-from PyQt5.QtWidgets import QMessageBox
 
 def import_disponibilita(app):
     """Carica i dati da un file JSON e li inserisce nelle strutture appropriate."""

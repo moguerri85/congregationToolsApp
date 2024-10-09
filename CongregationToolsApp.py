@@ -1,4 +1,5 @@
 import sys
+import os
 
 from PyQt5.QtWidgets import (QPushButton, QApplication, QMainWindow, 
                              QVBoxLayout, QWidget, QTabWidget, 
@@ -18,7 +19,7 @@ from hourglass.hourglass_manager import (
 )
 
 from hourglass.ui_hourglass import setup_hourglass_tab
-from utils.auth_utility import exchange_code_for_tokens, generate_code_challenge, generate_code_verifier, get_user_info, initiate_authentication, load_tokens, refresh_access_token, save_tokens
+from utils.auth_utility import exchange_code_for_tokens, generate_code_challenge, generate_code_verifier, get_user_info, initiate_authentication, load_tokens, refresh_access_token, save_to_dropbox, save_tokens
 from espositore.espositore_utils import load_data
 from utils.logging_custom import logging_custom
 from utils.ui_benvenuto import setup_benvenuto_tab
@@ -425,7 +426,6 @@ class CongregationToolsApp(QMainWindow):
         else:
             logging_custom(self, "error", "Tipologie non è un dizionario o non è stato caricato correttamente")
 
-
     def call_process_html_disponibilita_espositore(self, html, tipologie):
         self.progress_bar.setValue(50)  
         # Verifica che html sia una stringa
@@ -437,6 +437,10 @@ class CongregationToolsApp(QMainWindow):
     def closeEvent(self, event):
         reply = QMessageBox.question(self, "Esci", "Sei sicuro di voler uscire?", QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:
+            appdata_path = os.path.join(os.getenv('APPDATA'), 'CongregationToolsApp')
+            local_file_jsn= appdata_path+'/espositore_data.json'
+            # Salva su Dropbox
+            save_to_dropbox(self, local_file_jsn, 'espositore_data.json')  
             event.accept()
         else:
             event.ignore()

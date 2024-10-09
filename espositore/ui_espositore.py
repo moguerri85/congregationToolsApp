@@ -1,5 +1,7 @@
-from PyQt5.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel, QListWidget, QPushButton, QTabWidget, QWidget, QCalendarWidget,
-                             QTextEdit, QGridLayout,  QRadioButton, QButtonGroup, QSizePolicy, QScrollArea)
+from PyQt5.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel, QListWidget, 
+                             QPushButton, QTabWidget, QWidget, QCalendarWidget,
+                             QTextEdit, QGridLayout,  QRadioButton, QButtonGroup, 
+                             QSizePolicy, QScrollArea, QCheckBox)
 from PyQt5.QtCore import Qt, QSize, QDate
 from PyQt5.QtGui import QPixmap, QPainter, QColor, QIcon, QPolygon
 from PyQt5.QtCore import QPoint, QSize
