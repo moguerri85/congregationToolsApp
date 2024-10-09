@@ -19,7 +19,7 @@ def setup_espositore_tab(app):
     main_layout = QVBoxLayout(espositore_tab)  # Cambiato da QHBoxLayout a QVBoxLayout per aggiungere le righe sopra i tab
 
     # --- Righe per data e ora ultimo caricamento e ultima modifica ---
-    app.last_load_label = QLabel(f"Ultimo import disponibilità: nessuna modifica")
+    app.last_load_label_availability = QLabel(f"Ultimo import disponibilità: nessuna modifica")
     app.last_modification_label = QLabel("Ultima modifica effettuata: nessuna modifica")
 
     # Crea il pulsante "Importa"
@@ -30,7 +30,7 @@ def setup_espositore_tab(app):
     #import_button.clicked.connect(lambda: import_disponibilita(app))
     #main_layout.addWidget(import_button)
     
-    main_layout.addWidget(app.last_load_label)
+    main_layout.addWidget(app.last_load_label_availability)
     main_layout.addWidget(app.last_modification_label)
 
     # --- Tab widget ---
@@ -41,6 +41,7 @@ def setup_espositore_tab(app):
     app.tipo_luogo_schedule = {}
     app.tipologie = {}
     app.person_schedule = {}
+    app.last_load_availability = {}
 
     # --- Tab Proclamatore ---
     proclamatore_tab = QWidget()

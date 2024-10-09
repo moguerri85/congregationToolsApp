@@ -33,7 +33,8 @@ def save_data(app):
         data = {
             "people": app.people,
             "tipo_luogo_schedule": app.tipo_luogo_schedule,
-            "person_schedule": app.person_schedule
+            "person_schedule": app.person_schedule,
+            "last_load_availability": app.last_load_availability
         }
         appdata_path = os.path.join(os.getenv('APPDATA'), 'CongregationToolsApp')
         local_file_jsn= appdata_path+'/'+SAVE_FILE
@@ -57,7 +58,10 @@ def load_data(app):
 
             with open(local_file_jsn, 'r', encoding='utf-8') as file:
                 data = json.load(file)
-            
+                
+            #Carico la data dell'ultimo import
+            app.last_load_availability = data.get('last_load_availability', {})
+
             # Popola le persone (people)
             app.people = data.get('people', {})
             app.person_schedule = data.get('person_schedule', {})
@@ -91,6 +95,7 @@ def load_data(app):
             app.tipo_luogo_schedule = {}
             app.tipologie = {}
             app.person_schedule = {}
+            app.last_load_availability = {}
     
     except json.JSONDecodeError as e:
         QMessageBox.critical(app, "Errore", f"Errore nel parsing del file JSON: {str(e)}")
@@ -103,6 +108,7 @@ def load_data(app):
         app.person_schedule = {}
         app.tipo_luogo_schedule = {}
         app.tipologie = {}
+        app.last_load_availability = {}
 
     
     except json.JSONDecodeError:
@@ -140,6 +146,7 @@ def import_disponibilita(app):
             app.person_schedule = {}
             app.tipo_luogo_schedule = {}
             app.tipologie = {}
+            app.last_load_availability = {}
             logging_custom(app, "error", f"File {local_file_jsn} non trovato. Scarica prima i dati dal tab 'Testimonianza Pubblica'.")
             error_msg = QMessageBox()
             error_msg.setIcon(QMessageBox.Critical)
@@ -158,7 +165,7 @@ def import_disponibilita(app):
         # Legge il file JSON
         if os.path.exists(local_file_jsn) and os.path.getsize(local_file_jsn) > 0:
             with open(local_file_jsn, 'r', encoding='utf-8') as file:
-                data = json.load(file)
+                data = json.load(file)            
 
             # Popola le persone (people)
             app.people = data.get('people', {})
@@ -181,22 +188,35 @@ def import_disponibilita(app):
                 item.setData(Qt.UserRole, tipo_luogo_id)
                 app.tipologie_list.addItem(item)
 
+            current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            app.last_load_availability = {
+                'ultima_modifica': current_time,
+                'stato': 'Disponibile'
+            }
+            
+            update_last_load_time(app)
+            #Carico la data dell'ultimo import
+            
+
             # Aggiorna la visualizzazione della settimana
             update_week_display_and_data(app, None)
             update_last_modification_time(app)
-            update_last_load_time(app)
+            
             # Stampa o logga un messaggio di conferma
             logging_custom(app, "debug", "Dati caricati con successo!")
+            save_data(app)
         else:
             # Se il file è vuoto, inizializza le strutture dati
             app.people = {}
             app.tipo_luogo_schedule = {}
             app.tipologie = {}
             app.person_schedule = {}
+            app.last_load_availability = {}
 
     except json.JSONDecodeError as e:
         QMessageBox.critical(app, "Errore", f"Errore nel parsing del file JSON: {str(e)}")
     except Exception as e:
+        print({str(e)})
         QMessageBox.critical(app, "Errore", f"Si è verificato un errore durante il caricamento dei dati: {str(e)}")
 
 def update_week_display_and_data(app, tipo_luogo_nome):
@@ -442,11 +462,25 @@ def get_day_from_id(day_id):
     return giorno_map.get(day_id, "N/A")  # Restituisce "N/A" se l'ID non è valido
 
 def update_last_modification_time(app):
-    app.last_modification_label.setText(f"Ultima modifica dei dati: {QDateTime.currentDateTime().toString('dd/MM/yyyy HH:mm:ss')}")
+    app.last_modification_label.setText(f"Ultima modifica o caricamento dei dati: {QDateTime.currentDateTime().toString('dd/MM/yyyy HH:mm:ss')}")
 
-def update_last_load_time(app):
-    app.last_load_label.setText(f"Ultimo import disponibilità: {QDateTime.currentDateTime().toString('dd/MM/yyyy HH:mm:ss')}")
+def update_last_load_time(app): 
+    print(app.last_load_availability)   
+    # Recupera i dati dal dizionario last_load_availability
+    last_load_time = app.last_load_availability.get('ultima_modifica')
+    status = app.last_load_availability.get('stato')
     
+
+    print(last_load_time)
+    print(status)
+    # Verifica se ultima_modifica e stato sono valorizzati
+    if last_load_time and status:
+        # Entrambi i valori sono presenti, aggiornamento dell'etichetta
+        app.last_load_label_availability.setText(f"Ultimo Import da Hourglass: {last_load_time} | Stato: {status}")
+    else:
+        # Uno dei valori non è valorizzato, impostiamo un messaggio di default
+        app.last_load_label_availability.setText("Dati non disponibili")
+
 def toggle_attivo(app, tipo_luogo_id, state):
     """Gestisce il cambiamento dello stato del checkbox 'attivo'."""
     try:
