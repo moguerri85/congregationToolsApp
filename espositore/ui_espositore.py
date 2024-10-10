@@ -7,7 +7,7 @@ from PyQt5.QtGui import QPixmap, QPainter, QColor, QIcon, QPolygon
 from PyQt5.QtCore import QPoint, QSize
 
 from espositore.espositore_tab_gestione import add_tipo_luogo, fix_orari, fix_proclamatori, modify_selected_tipo_luogo, remove_tipo_luogo
-from espositore.espositore_tab_proclamatore import add_person, display_person_details, remove_person, show_availability_dialog
+from espositore.espositore_tab_proclamatore import add_person, aggiorna_status_pioniere, display_person_details, remove_person, show_availability_dialog
 from espositore.espositore_tab_programmazione import update_calendar
 from espositore.espositore_utils import import_disponibilita, update_week_display_and_data
 from utils.auth_utility import load_espositore_data_from_dropbox
@@ -21,7 +21,7 @@ def setup_espositore_tab(app):
     main_layout = QVBoxLayout(espositore_tab)  # Cambiato da QHBoxLayout a QVBoxLayout per aggiungere le righe sopra i tab
 
     # --- Righe per data e ora ultimo caricamento e ultima modifica ---
-    app.last_load_label_availability = QLabel(f"Ultimo import disponibilità: nessuna modifica")
+    app.last_import_hourglass_label = QLabel(f"Ultimo import disponibilità: nessuna modifica")
     app.last_modification_label = QLabel("Ultima modifica effettuata: nessuna modifica")
 
     # Crea il pulsante "Importa"
@@ -32,7 +32,7 @@ def setup_espositore_tab(app):
     #import_button.clicked.connect(lambda: import_disponibilita(app))
     #main_layout.addWidget(import_button)
     
-    main_layout.addWidget(app.last_load_label_availability)
+    main_layout.addWidget(app.last_import_hourglass_label)
     main_layout.addWidget(app.last_modification_label)
 
     # --- Tab widget ---
@@ -43,7 +43,7 @@ def setup_espositore_tab(app):
     app.tipo_luogo_schedule = {}
     app.tipologie = {}
     app.person_schedule = {}
-    app.last_load_availability = {}
+    app.last_import_hourglass = {}
 
     # --- Tab Proclamatore ---
     proclamatore_tab = QWidget()
@@ -70,7 +70,7 @@ def setup_espositore_tab(app):
     scroll_area_layout = QVBoxLayout(scroll_area_content)
 
     # Layout destro
-    app.detail_label = QLabel("Dettagli del Proclamatore")
+    app.detail_label = QLabel("Dettaglio del Proclamatore")
     app.detail_label.setAlignment(Qt.AlignCenter)
     scroll_area_layout.addWidget(app.detail_label)
 
@@ -78,6 +78,26 @@ def setup_espositore_tab(app):
     app.detail_text.setReadOnly(True)
     scroll_area_layout.addWidget(app.detail_text)
 
+    # --- Add Radio Buttons for Pioniere Status ---
+    app.radio_group_pioniere = QButtonGroup()
+    app.no_pioniere_radio = QRadioButton("No Pioniere")
+    app.ausiliare_radio = QRadioButton("Pioniere Ausiliare")
+    app.regolare_radio = QRadioButton("Pioniere Regolare")
+    
+    app.radio_group_pioniere.addButton(app.regolare_radio)
+    app.radio_group_pioniere.addButton(app.ausiliare_radio)
+    app.radio_group_pioniere.addButton(app.no_pioniere_radio)
+
+    scroll_area_layout.addWidget(app.regolare_radio)
+    scroll_area_layout.addWidget(app.ausiliare_radio)
+    scroll_area_layout.addWidget(app.no_pioniere_radio)
+
+    # Load the current status if available
+    # Connect the toggled signal to aggiorna_status_pioniere function
+    app.no_pioniere_radio.toggled.connect(lambda checked: aggiorna_status_pioniere(app) if checked else None)
+    app.ausiliare_radio.toggled.connect(lambda checked: aggiorna_status_pioniere(app) if checked else None)
+    app.regolare_radio.toggled.connect(lambda checked: aggiorna_status_pioniere(app) if checked else None)
+        
     app.radio_uguale_tutte_settimane = QRadioButton("Uguale a tutte le settimane")
     app.radio_specifica_giorni = QRadioButton("Specifica i giorni")
 

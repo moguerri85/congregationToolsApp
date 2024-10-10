@@ -61,6 +61,14 @@ def update_person_details(app, person_id):
                             app.detail_text.append(f"    Fascia: {fascia}")
             else:
                 app.detail_text.append("Nessuna disponibilità disponibile.")
+
+            #status_pioniere = app.person_schedule[person_id].get("pioniere_status", {}).get("pioniere", 0)
+            status_pioniere = app.person_schedule[person_id].get("pioniere_status", {}).get("pioniere")
+            if status_pioniere:
+                # Update the radio buttons based on the status_value
+                app.regolare_radio.setChecked(status_pioniere == 2)
+                app.ausiliare_radio.setChecked(status_pioniere == 1)
+                app.no_pioniere_radio.setChecked(status_pioniere == 0)    
         else:
             app.detail_text.setPlainText("Nessuna disponibilità registrata per questo proclamatore.")
     except Exception as e:
@@ -183,6 +191,11 @@ def on_confirm(app, selected_date, selected_tipo_luogo_id, selected_fascia, dial
 
 def display_person_details(app, item):
     try:
+        # Disabilita temporaneamente i segnali dei radio button
+        app.regolare_radio.blockSignals(True)
+        app.ausiliare_radio.blockSignals(True)
+        app.no_pioniere_radio.blockSignals(True)
+
         # Ottieni l'ID del proclamatore selezionato
         person_id = item.data(Qt.UserRole)
         person = app.person_schedule.get(person_id, {})
@@ -194,10 +207,21 @@ def display_person_details(app, item):
             # Trova il nome della persona usando l'app.people
             person_name = app.people.get(person_id, "N/A")
             app.detail_text.append(f"Nome: {person_name}")
-            #app.detail_text.append(f"ID: {person_id}")
 
             # Mappa degli ID delle tipologie ai loro nomi
             tipo_luogo_map = {tipo_luogo_id: tipologia["nome"] for tipo_luogo_id, tipologia in app.tipo_luogo_schedule.items()}
+
+            # Mostra lo stato del pioniere
+            pioneer_status = person.get("pioniere_status", {}).get("pioniere", "0")
+            if pioneer_status == "2":
+                app.detail_text.append("Stato: Pioniere Regolare")
+                app.regolare_radio.setChecked(True)
+            elif pioneer_status == "1":
+                app.detail_text.append("Stato: Pioniere Ausiliare")
+                app.ausiliare_radio.setChecked(True)
+            else:
+                app.detail_text.append("Stato: Non è pioniere")
+                app.no_pioniere_radio.setChecked(True)
 
             # Mostra la disponibilità per la tipologia
             availability = person.get('availability', {})
@@ -219,6 +243,49 @@ def display_person_details(app, item):
                 app.detail_text.append("Nessuna disponibilità disponibile.")
         else:
             app.detail_text.append("Dettagli non disponibili per il proclamatore selezionato.")
-            
+    
     except Exception as e:
         QMessageBox.critical(app, "Errore", f"Si è verificato un errore: {str(e)}")
+    
+    finally:
+        # Riabilita i segnali dei radio button dopo il caricamento
+        app.regolare_radio.blockSignals(False)
+        app.ausiliare_radio.blockSignals(False)
+        app.no_pioniere_radio.blockSignals(False)
+
+def aggiorna_status_pioniere(app):
+    # Determine the selected pioneer status
+    if app.regolare_radio.isChecked():
+        pioneer_status = "2"  # "Pioniere Regolare"
+    elif app.ausiliare_radio.isChecked():
+        pioneer_status = "1"  # "Pioniere Ausiliare"
+    else:
+        pioneer_status = "0"  # "No Pioniere"
+
+    # Get the selected person
+    current_person = app.person_list.currentItem()
+
+    if current_person is None:
+        # If no person is selected, return early and log a warning
+        print("No proclaimer selected. Unable to update pioneer status.")
+        return
+
+    # Get the person's ID and name
+    person_id = current_person.data(Qt.UserRole)  # Get the selected proclaimer's ID
+    person_name = current_person.text()
+
+    # Update the current proclaimer's status in the app.person_schedule
+    app.person_schedule[person_id]["pioniere_status"] = {"pioniere": pioneer_status}
+
+    # Update the UI to reflect the change
+    app.detail_text.setText(f"Proclamatore: {person_name}\nStato: {pioneer_status}")
+
+    # Log the update for debugging purposes
+    print(f"Updated {person_name} (ID: {person_id}) pioneer status to {pioneer_status}")
+
+    # Save the updated data
+    save_data(app)
+
+    # Refresh the person details in the UI
+    update_person_details(app, person_id)
+    display_person_details(app, current_person)
