@@ -204,6 +204,12 @@ def display_person_details(app, item):
         app.detail_text.clear()
         
         if person:
+            for button in app.radio_group_pioniere.buttons():
+                button.setEnabled(True)
+
+            for button in app.radio_group_disponibilita.buttons():
+                button.setEnabled(True)
+            
             # Trova il nome della persona usando l'app.people
             person_name = app.people.get(person_id, "N/A")
             app.detail_text.append(f"Nome: {person_name}")

@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel, QListWidget, 
                              QPushButton, QTabWidget, QWidget, QCalendarWidget,
                              QTextEdit, QGridLayout,  QRadioButton, QButtonGroup, 
-                             QSizePolicy, QScrollArea, QCheckBox)
+                             QSizePolicy, QScrollArea, QGroupBox)
 from PyQt5.QtCore import Qt, QSize, QDate
 from PyQt5.QtGui import QPixmap, QPainter, QColor, QIcon, QPolygon
 from PyQt5.QtCore import QPoint, QSize
@@ -78,38 +78,74 @@ def setup_espositore_tab(app):
     app.detail_text.setReadOnly(True)
     scroll_area_layout.addWidget(app.detail_text)
 
-    # --- Add Radio Buttons for Pioniere Status ---
+    # --- Add GroupBox for Pioniere Status ---
+    pioniere_group_box = QGroupBox("Stato Pioniere")
+    pioniere_layout = QVBoxLayout()  # Layout per i radio buttons all'interno del GroupBox
+
+    # Create radio buttons
     app.radio_group_pioniere = QButtonGroup()
     app.no_pioniere_radio = QRadioButton("No Pioniere")
     app.ausiliare_radio = QRadioButton("Pioniere Ausiliare")
     app.regolare_radio = QRadioButton("Pioniere Regolare")
-    
+
+    # Add buttons to the button group
     app.radio_group_pioniere.addButton(app.regolare_radio)
     app.radio_group_pioniere.addButton(app.ausiliare_radio)
     app.radio_group_pioniere.addButton(app.no_pioniere_radio)
 
-    scroll_area_layout.addWidget(app.regolare_radio)
-    scroll_area_layout.addWidget(app.ausiliare_radio)
-    scroll_area_layout.addWidget(app.no_pioniere_radio)
+    # Add radio buttons to the layout
+    pioniere_layout.addWidget(app.regolare_radio)
+    pioniere_layout.addWidget(app.ausiliare_radio)
+    pioniere_layout.addWidget(app.no_pioniere_radio)
+
+    # Set the layout for the GroupBox
+    pioniere_group_box.setLayout(pioniere_layout)
+
+    # Add the GroupBox to the main layout
+    scroll_area_layout.addWidget(pioniere_group_box)
 
     # Load the current status if available
     # Connect the toggled signal to aggiorna_status_pioniere function
     app.no_pioniere_radio.toggled.connect(lambda checked: aggiorna_status_pioniere(app) if checked else None)
     app.ausiliare_radio.toggled.connect(lambda checked: aggiorna_status_pioniere(app) if checked else None)
     app.regolare_radio.toggled.connect(lambda checked: aggiorna_status_pioniere(app) if checked else None)
-        
+
+    # --- Add GroupBox for Week or Specific Days Selection ---
+    giorni_group_box = QGroupBox("Scelta della Disponibilità")
+    giorni_layout = QVBoxLayout()  # Layout per i radio buttons all'interno del GroupBox
+
+    # Create radio buttons
     app.radio_uguale_tutte_settimane = QRadioButton("Uguale a tutte le settimane")
     app.radio_specifica_giorni = QRadioButton("Specifica i giorni")
 
-    app.radio_group = QButtonGroup()
-    app.radio_group.addButton(app.radio_uguale_tutte_settimane)
-    app.radio_group.addButton(app.radio_specifica_giorni)
+    # Add buttons to the button group
+    app.radio_group_disponibilita = QButtonGroup()
+    app.radio_group_disponibilita.addButton(app.radio_uguale_tutte_settimane)
+    app.radio_group_disponibilita.addButton(app.radio_specifica_giorni)
 
+    # Connect the toggled signal to the toggle_week_or_calendar function
     app.radio_uguale_tutte_settimane.toggled.connect(lambda: toggle_week_or_calendar(app))
     app.radio_specifica_giorni.toggled.connect(lambda: toggle_week_or_calendar(app))
 
-    scroll_area_layout.addWidget(app.radio_uguale_tutte_settimane)
-    scroll_area_layout.addWidget(app.radio_specifica_giorni)
+    # Add radio buttons to the layout
+    giorni_layout.addWidget(app.radio_uguale_tutte_settimane)
+    giorni_layout.addWidget(app.radio_specifica_giorni)
+
+
+    # Dopo aver creato i radio button, disabilitali inizialmente
+    # Disabilita i radio button all'inizio
+    for button in app.radio_group_pioniere.buttons():
+        button.setEnabled(False)
+
+    for button in app.radio_group_disponibilita.buttons():
+        button.setEnabled(False)
+
+    # Set the layout for the GroupBox
+    giorni_group_box.setLayout(giorni_layout)
+
+    # Add the GroupBox to the main layout
+    scroll_area_layout.addWidget(giorni_group_box)
+
 
     # Setup del layout dei giorni della settimana
     if not hasattr(app, 'week_widget'):
