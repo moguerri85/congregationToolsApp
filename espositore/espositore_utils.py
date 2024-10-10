@@ -214,7 +214,6 @@ def import_disponibilita(app):
     except json.JSONDecodeError as e:
         QMessageBox.critical(app, "Errore", f"Errore nel parsing del file JSON: {str(e)}")
     except Exception as e:
-        print({str(e)})
         QMessageBox.critical(app, "Errore", f"Si è verificato un errore durante il caricamento dei dati: {str(e)}")
 
 def update_week_display_and_data(app, tipo_luogo_nome):
@@ -463,14 +462,10 @@ def update_last_modification_time(app):
     app.last_modification_label.setText(f"Ultima modifica o caricamento dei dati: {QDateTime.currentDateTime().toString('dd/MM/yyyy HH:mm:ss')}")
 
 def update_last_load_time(app): 
-    print(app.last_import_hourglass)   
     # Recupera i dati dal dizionario last_import_hourglass
     last_load_time = app.last_import_hourglass.get('ultima_modifica')
     status = app.last_import_hourglass.get('stato')
     
-
-    print(last_load_time)
-    print(status)
     # Verifica se ultima_modifica e stato sono valorizzati
     if last_load_time and status:
         # Entrambi i valori sono presenti, aggiornamento dell'etichetta

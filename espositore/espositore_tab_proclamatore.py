@@ -280,9 +280,6 @@ def aggiorna_status_pioniere(app):
     # Update the UI to reflect the change
     app.detail_text.setText(f"Proclamatore: {person_name}\nStato: {pioneer_status}")
 
-    # Log the update for debugging purposes
-    print(f"Updated {person_name} (ID: {person_id}) pioneer status to {pioneer_status}")
-
     # Save the updated data
     save_data(app)
 
