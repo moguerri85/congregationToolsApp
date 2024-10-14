@@ -5,8 +5,8 @@ from PyQt5.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel, QListWidget,
 from PyQt5.QtCore import Qt, QSize, QDate
 from PyQt5.QtCore import QSize
 
-from espositore.espositore_tab_gestione import add_tipo_luogo, fix_orari, fix_proclamatori, modify_selected_tipo_luogo, remove_tipo_luogo
-from espositore.espositore_tab_proclamatore import add_person, aggiorna_status_pioniere, display_person_details, remove_person, show_availability_dialog
+from espositore.espositore_tab_gestione import add_tipo_luogo, aggiorna_genere_sino, fix_orari, fix_proclamatori, modify_selected_tipo_luogo, remove_tipo_luogo
+from espositore.espositore_tab_proclamatore import add_person, aggiorna_genere, aggiorna_status_pioniere, display_person_details, remove_person, show_availability_dialog
 from espositore.espositore_tab_programmazione import update_calendar
 from espositore.espositore_utils import create_next_icon, create_prev_icon, handle_autocompleta, import_disponibilita, load_tipologie_in_combo, on_tab_changed, update_week_display_and_data
 from utils.auth_utility import load_espositore_data_from_dropbox
@@ -43,6 +43,7 @@ def setup_espositore_tab(app):
     app.tipologie = {}
     app.person_schedule = {}
     app.last_import_hourglass = {}
+    app.autocomplete_gender_sino = {}
 
     # --- Tab Proclamatore ---
     proclamatore_tab = QWidget()
@@ -76,6 +77,33 @@ def setup_espositore_tab(app):
     app.detail_text = QTextEdit()
     app.detail_text.setReadOnly(True)
     scroll_area_layout.addWidget(app.detail_text)
+
+    # --- Genere
+    genere_group_box = QGroupBox("Fratello\\Sorella")
+    genere_layout = QVBoxLayout()  # Layout per i radio buttons all'interno del GroupBox
+
+    # Create radio buttons
+    app.radio_group_genere = QButtonGroup()
+    app.fratello_radio = QRadioButton("Fratello")
+    app.sorella_radio = QRadioButton("Sorella")
+
+    # Add buttons to the button group
+    app.radio_group_genere.addButton(app.fratello_radio)
+    app.radio_group_genere.addButton(app.sorella_radio)
+    
+
+    # Add radio buttons to the layout
+    genere_layout.addWidget(app.fratello_radio)
+    genere_layout.addWidget(app.sorella_radio)
+
+    # Set the layout for the GroupBox
+    genere_group_box.setLayout(genere_layout)
+
+    # Add the GroupBox to the main layout
+    scroll_area_layout.addWidget(genere_group_box)
+    
+    app.fratello_radio.toggled.connect(lambda checked: aggiorna_genere(app) if checked else None)
+    app.sorella_radio.toggled.connect(lambda checked: aggiorna_genere(app) if checked else None)
 
     # --- Add GroupBox for Pioniere Status ---
     pioniere_group_box = QGroupBox("Stato Pioniere")
@@ -318,11 +346,40 @@ def setup_espositore_tab(app):
     import_button.clicked.connect(lambda: import_disponibilita(app))
     gestione_scroll_area_layout.addWidget(import_button)  # Aggiungi il pulsante al layout
 
+    # --- Genere
+    genere_sino_group_box = QGroupBox("Autocompletamento tra lo stesso genere")
+    genere_sino_layout = QVBoxLayout()  # Layout per i radio buttons all'interno del GroupBox
 
-    gestione_scroll_area.setWidget(gestione_scroll_area_content)  # Imposta il contenuto della scroll area
+    # Create radio buttons
+    app.radio_group_genere_sino = QButtonGroup()
+    app.genere_si_radio = QRadioButton("Si")
+    app.genere_no_radio = QRadioButton("No")
+
+    # Add buttons to the button group
+    app.radio_group_genere_sino.addButton(app.genere_si_radio)
+    app.radio_group_genere_sino.addButton(app.genere_no_radio)
+
+    # Add radio buttons to the layout
+    genere_sino_layout.addWidget(app.genere_si_radio)
+    genere_sino_layout.addWidget(app.genere_no_radio)
+
+    # Set the layout for the GroupBox
+    genere_sino_group_box.setLayout(genere_sino_layout)
+
+    # Add the GroupBox to the scroll area layout
+    gestione_scroll_area_layout.addWidget(genere_sino_group_box)
+
+    # Imposta il contenuto della scroll area
+    gestione_scroll_area.setWidget(gestione_scroll_area_content)
     gestione_layout.addWidget(gestione_scroll_area)  # Aggiungi la scroll area al layout principale
 
-    tab_widget.addTab(gestione_tab, "Gestione")  # Aggiungi il nuovo tab al QTabWidget
+    # Collegamento dei radio buttons a una funzione per aggiornare lo stato
+    app.genere_si_radio.toggled.connect(lambda checked: aggiorna_genere_sino(app) if checked else None)
+    app.genere_no_radio.toggled.connect(lambda checked: aggiorna_genere_sino(app) if checked else None)
+
+    # Aggiungi il nuovo tab al QTabWidget
+    tab_widget.addTab(gestione_tab, "Gestione")
+
 
     app.tabs.addTab(espositore_tab, "Espositore")
     app.tabs.currentChanged.connect(lambda index: load_espositore_data_from_dropbox(app) if index == app.tabs.indexOf(espositore_tab) else None)

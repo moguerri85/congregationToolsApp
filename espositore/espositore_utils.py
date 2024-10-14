@@ -1,5 +1,6 @@
 import json
 import os
+from itertools import combinations
 
 from PyQt5.QtWidgets import (QMessageBox, QPushButton, QDialog, QVBoxLayout, QCheckBox,
                              QLabel, QHBoxLayout, QWidget, QListWidget, QSizePolicy, QInputDialog,
@@ -36,7 +37,8 @@ def save_data(app):
             "people": app.people,
             "tipo_luogo_schedule": app.tipo_luogo_schedule,
             "person_schedule": app.person_schedule,
-            "last_import_hourglass": app.last_import_hourglass
+            "last_import_hourglass": app.last_import_hourglass,
+            "autocomplete_gender_sino": app.autocomplete_gender_sino
         }
         appdata_path = os.path.join(os.getenv('APPDATA'), 'CongregationToolsApp')
         local_file_jsn= appdata_path+'/'+SAVE_FILE
@@ -63,12 +65,21 @@ def load_data(app):
             #Carico la data dell'ultimo import
             app.last_import_hourglass = data.get('last_import_hourglass', {})
 
+            app.autocomplete_gender_sino = data.get('autocomplete_gender_sino', {})
+
             # Popola le persone (people)
             app.people = data.get('people', {})
             app.person_schedule = data.get('person_schedule', {})
             app.tipo_luogo_schedule = data.get('tipo_luogo_schedule', {})
             app.tipologie = data.get('tipologie', {})
             app.last_import_hourglass = data.get('last_import_hourglass', {})
+            app.autocomplete_gender_sino = data.get('autocomplete_gender_sino', {})
+            
+            same_gender = app.autocomplete_gender_sino.get('same_gender')
+            if same_gender:  # Se same_gender è True, seleziona "Sì"
+                app.genere_si_radio.setChecked(True)
+            else:  # Se è False o None, seleziona "No"
+                app.genere_no_radio.setChecked(True)
 
             # Aggiorna l'interfaccia utente
             app.person_list.clear()
@@ -98,6 +109,7 @@ def load_data(app):
             app.tipologie = {}
             app.person_schedule = {}
             app.last_import_hourglass = {}
+            app.autocomplete_gender_sino = {}
     
     except json.JSONDecodeError as e:
         QMessageBox.critical(app, "Errore", f"Errore nel parsing del file JSON: {str(e)}")
@@ -111,6 +123,7 @@ def load_data(app):
         app.tipo_luogo_schedule = {}
         app.tipologie = {}
         app.last_import_hourglass = {}
+        app.autocomplete_gender_sino = {}
 
     
     except json.JSONDecodeError:
@@ -147,6 +160,7 @@ def import_disponibilita(app):
             app.tipo_luogo_schedule = {}
             app.tipologie = {}
             app.last_import_hourglass = {}
+            app.autocomplete_gender_sino = {}
             logging_custom(app, "error", f"File {local_file_jsn} non trovato. Scarica prima i dati dal tab 'Testimonianza Pubblica'.")
             error_msg = QMessageBox()
             error_msg.setIcon(QMessageBox.Critical)
@@ -212,6 +226,7 @@ def import_disponibilita(app):
             app.tipologie = {}
             app.person_schedule = {}
             app.last_import_hourglass = {}
+            app.autocomplete_gender_sino = {}
 
     except json.JSONDecodeError as e:
         QMessageBox.critical(app, "Errore", f"Errore nel parsing del file JSON: {str(e)}")
@@ -487,6 +502,9 @@ def toggle_attivo(app, tipo_luogo_id, state):
 def handle_autocompleta(app):
     selected_tipologie = []
     
+    same_gender = app.autocomplete_gender_sino.get('same_gender', False)
+    print(f"Same gender: {same_gender}")
+    
     # Iterate over the selected items in the QListWidget
     for item in app.multi_tipologie.selectedItems():
         nome = item.text()  # Get the text (name)
@@ -503,8 +521,65 @@ def handle_autocompleta(app):
     for nome, tipo_luogo_id in selected_tipologie:
         print(f"Tipologia selezionata: Nome = {nome}, ID = {tipo_luogo_id}")
 
-    
-    # Implement your logic here to handle autocompletion based on selected_tipologie
+        available_proclamatores = []
+        
+        # Check each proclamatore's availability for the selected tipo_luogo_id
+        for procla_id, procla in app.person_schedule.items():
+            if tipo_luogo_id in procla['availability']:
+                proclamatore_name = app.people.get(procla_id, "Sconosciuto")
+                proclamatore_gender = procla.get('genere_status', {}).get('genere', None)
+                
+                available_proclamatores.append({
+                    'nome': proclamatore_name,
+                    'id': procla_id,
+                    'availability': procla['availability'][tipo_luogo_id],
+                    'genere': proclamatore_gender
+                })
+
+        # Display the available proclamatores
+        if available_proclamatores:
+            print(f"Proclamatori disponibili per {nome}:")
+            
+            pairings = []
+            
+            # Check all combinations of proclamatores (two at a time)
+            for proclamatore1, proclamatore2 in combinations(available_proclamatores, 2):
+                if same_gender and proclamatore1['genere'] != proclamatore2['genere']:
+                    continue
+
+                # Find common availability considering both day and specific dates
+                common_times = find_common_times_by_date(proclamatore1['availability'], proclamatore2['availability'])
+                
+                if common_times:
+                    pairings.append({
+                        'pair': (proclamatore1['nome'], proclamatore2['nome']),
+                        'common_times': common_times
+                    })
+
+            # Display the pairings with their common availability
+            if pairings:
+                for pair in pairings:
+                    print(f"  - Coppia: {pair['pair'][0]} e {pair['pair'][1]} con disponibilità: {', '.join(pair['common_times'])}")
+            else:
+                print(f"Nessuna coppia con disponibilità comune per {nome}.")
+        else:
+            print(f"Nessun proclamatore disponibile per {nome}.")
+
+def find_common_times_by_date(avail1, avail2):
+    """
+    Given two dictionaries of availability (keyed by day/date), 
+    find common time slots for each day/date.
+    """
+    common_times = {}
+
+    # Combine both availability dictionaries
+    for day_or_date in avail1.keys():
+        if day_or_date in avail2:
+            # Find common time slots for the same day or date
+            common_times[day_or_date] = list(set(avail1[day_or_date]) & set(avail2[day_or_date]))
+
+    # Return a dictionary of common times
+    return {key: common_times[key] for key in common_times if common_times[key]}  # Filter out empty lists
 
 def on_tab_changed(app, index, tab_widget):
     # Assuming 'Programmazione' is the second tab (index 1)

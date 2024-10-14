@@ -59,10 +59,13 @@ def update_person_details(app, person_id):
                         
                         for fascia in fasce:
                             app.detail_text.append(f"    Fascia: {fascia}")
-            else:
-                app.detail_text.append("Nessuna disponibilità disponibile.")
+            
+            genere_status = app.person_schedule[person_id].get("genere_status", {}).get("genere")
+            if genere_status:
+                # Update the radio buttons based on the status_value
+                app.fratello_radio.setChecked(genere_status == 0)
+                app.sorella_radio.setChecked(genere_status == 1) 
 
-            #status_pioniere = app.person_schedule[person_id].get("pioniere_status", {}).get("pioniere", 0)
             status_pioniere = app.person_schedule[person_id].get("pioniere_status", {}).get("pioniere")
             if status_pioniere:
                 # Update the radio buttons based on the status_value
@@ -204,6 +207,9 @@ def display_person_details(app, item):
         app.detail_text.clear()
         
         if person:
+            for button in app.radio_group_genere.buttons():
+                button.setEnabled(True)
+
             for button in app.radio_group_pioniere.buttons():
                 button.setEnabled(True)
 
@@ -217,16 +223,20 @@ def display_person_details(app, item):
             # Mappa degli ID delle tipologie ai loro nomi
             tipo_luogo_map = {tipo_luogo_id: tipologia["nome"] for tipo_luogo_id, tipologia in app.tipo_luogo_schedule.items()}
 
+            # Mostra lo stato genere
+            genere_status = person.get("genere_status", {}).get("genere", "0")
+            if genere_status == "1":
+                app.sorella_radio.setChecked(True)
+            else:
+                app.fratello_radio.setChecked(True)
+
             # Mostra lo stato del pioniere
             pioneer_status = person.get("pioniere_status", {}).get("pioniere", "0")
             if pioneer_status == "2":
-                app.detail_text.append("Stato: Pioniere Regolare")
                 app.regolare_radio.setChecked(True)
             elif pioneer_status == "1":
-                app.detail_text.append("Stato: Pioniere Ausiliare")
                 app.ausiliare_radio.setChecked(True)
             else:
-                app.detail_text.append("Stato: Non è pioniere")
                 app.no_pioniere_radio.setChecked(True)
 
             # Mostra la disponibilità per la tipologia
@@ -292,3 +302,37 @@ def aggiorna_status_pioniere(app):
     # Refresh the person details in the UI
     update_person_details(app, person_id)
     display_person_details(app, current_person)
+
+def aggiorna_genere(app):
+    # Determine the selected pioneer status
+    if app.fratello_radio.isChecked():
+        genere_status = "0"  # "Fratello"
+    elif app.sorella_radio.isChecked():
+        genere_status = "1"  # "Sorella"
+    else:
+        genere_status = "0"  # "Fratello"
+
+    # Get the selected person
+    current_person = app.person_list.currentItem()
+
+    if current_person is None:
+        # If no person is selected, return early and log a warning
+        print("No proclaimer selected. Unable to update pioneer status.")
+        return
+
+    # Get the person's ID and name
+    person_id = current_person.data(Qt.UserRole)  # Get the selected proclaimer's ID
+    person_name = current_person.text()
+
+    # Update the current proclaimer's status in the app.person_schedule
+    app.person_schedule[person_id]["genere_status"] = {"genere": genere_status}
+
+    # Update the UI to reflect the change
+    app.detail_text.setText(f"Proclamatore: {person_name}\nStato: {genere_status}")
+
+    # Save the updated data
+    save_data(app)
+
+    # Refresh the person details in the UI
+    update_person_details(app, person_id)
+    display_person_details(app, current_person)        

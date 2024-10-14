@@ -193,6 +193,10 @@ def load_espositore_data_from_dropbox(app):
             app.person_schedule = data.get('person_schedule', {})
             app.tipo_luogo_schedule = data.get('tipo_luogo_schedule', {})
             
+            app.tipologie = data.get('tipologie', {})
+            app.last_import_hourglass = data.get('last_import_hourglass', {})
+            app.autocomplete_gender_sino = data.get('autocomplete_gender_sino', {})
+
             # Update the UI with the loaded data
             load_data(app)
             logging_custom(app, "debug", "Dati espositore caricati con successo da Dropbox e salvati localmente!")

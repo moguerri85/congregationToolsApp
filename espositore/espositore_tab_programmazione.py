@@ -121,12 +121,28 @@ def show_programmazione_dialog(app, date):
         selected_fascia = fascia_combo.currentText()
         selected_proclamatori = [item.text() for item in proclamatori_list.selectedItems()]
 
-        if existing_appointments and appointments_combo and appointments_combo.currentIndex() > 0:
+        if not selected_tipologia or not selected_fascia or not selected_proclamatori:
+            QMessageBox.warning(dialog, "Errore", "Tutti i campi devono essere compilati.")
+            return
+
+        # Collect the genders of the selected proclaimers
+        proclamatore_gender = []
+        for proclamatore in selected_proclamatori:
+            for proclamatore_id, proclamatore_nome in app.people.items():
+                if proclamatore_nome == proclamatore:  # Match by name
+                    gender = app.person_schedule.get(proclamatore_id, {}).get('genere_status', {}).get('genere', 'Non specificato')
+                    proclamatore_gender.append(gender)
+                    break
+
+        # Avoiding duplicate entries
+        existing_appointments = app.person_schedule.get(date, [])
+        if existing_appointments and appointments_combo.currentIndex() > 0:
             appointment_index = appointments_combo.currentData()
             app.person_schedule[date][appointment_index] = {
                 'tipologia': selected_tipologia,
                 'fascia': selected_fascia,
-                'proclamatori': selected_proclamatori
+                'proclamatori': selected_proclamatori,
+                'genere': proclamatore_gender  # List of genders for each selected proclaimer
             }
         else:
             if date not in app.person_schedule:
@@ -134,10 +150,12 @@ def show_programmazione_dialog(app, date):
             app.person_schedule[date].append({
                 'tipologia': selected_tipologia,
                 'fascia': selected_fascia,
-                'proclamatori': selected_proclamatori
+                'proclamatori': selected_proclamatori,
+                'genere': proclamatore_gender  # Handle appropriately
             })
 
         update_day_button(app, date)
+        QMessageBox.information(dialog, "Successo", "Appuntamento confermato con successo!")
         dialog.accept()
 
     confirm_button.clicked.connect(confirm_selection)
@@ -194,7 +212,7 @@ def update_calendar(app):
     start_day_of_week = first_day_of_month.dayOfWeek()
 
     # Aggiorna l'etichetta del mese corrente
-    app.current_month_label.setText(app.current_date.toString("MMMM yyyy"))
+    app.current_month_label.setText(app.current_date.toString("MMMM yyyy").upper())
 
     # Aggiungi intestazione dei giorni della settimana
     day_names = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"]  # Nomi dei giorni della settimana

@@ -272,3 +272,12 @@ def find_similar_luogo(app, base_name, availability):
         if find_base_name(tipo_luogo_data["nome"]) == base_name and tipo_luogo_id in availability:
             return tipo_luogo_id
     return None
+
+def aggiorna_genere_sino(app):
+    if app.genere_si_radio.isChecked():
+        app.autocomplete_gender_sino["same_gender"] = True
+    elif app.genere_no_radio.isChecked():
+        app.autocomplete_gender_sino["same_gender"] = False
+    
+    # Salva il dizionario aggiornato nel file JSON
+    save_data(app)    
