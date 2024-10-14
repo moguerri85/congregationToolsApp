@@ -3,13 +3,12 @@ from PyQt5.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel, QListWidget,
                              QTextEdit, QGridLayout,  QRadioButton, QButtonGroup, 
                              QSizePolicy, QScrollArea, QGroupBox)
 from PyQt5.QtCore import Qt, QSize, QDate
-from PyQt5.QtGui import QPixmap, QPainter, QColor, QIcon, QPolygon
-from PyQt5.QtCore import QPoint, QSize
+from PyQt5.QtCore import QSize
 
 from espositore.espositore_tab_gestione import add_tipo_luogo, fix_orari, fix_proclamatori, modify_selected_tipo_luogo, remove_tipo_luogo
 from espositore.espositore_tab_proclamatore import add_person, aggiorna_status_pioniere, display_person_details, remove_person, show_availability_dialog
 from espositore.espositore_tab_programmazione import update_calendar
-from espositore.espositore_utils import import_disponibilita, update_week_display_and_data
+from espositore.espositore_utils import create_next_icon, create_prev_icon, handle_autocompleta, import_disponibilita, load_tipologie_in_combo, on_tab_changed, update_week_display_and_data
 from utils.auth_utility import load_espositore_data_from_dropbox
 from utils.logging_custom import logging_custom
 
@@ -251,34 +250,6 @@ def setup_espositore_tab(app):
     # Pulsanti di navigazione per il mese
     navigation_layout = QHBoxLayout()
 
-    def create_next_icon(size):
-        """Crea un'icona di dimensione 'size'."""
-        pixmap = QPixmap(size, size)
-        pixmap.fill(QColor("transparent"))  # Riempie lo sfondo dell'immagine con trasparente
-
-        painter = QPainter(pixmap)
-        # Disegna un triangolo per l'icona "Mese Precedente"
-        painter.setBrush(QColor("grey"))  # Colore grigio per il triangolo
-        points = [QPoint(size // 2, 0), QPoint(size, size // 2), QPoint(size // 2, size)]
-        painter.drawPolygon(QPolygon(points))  # Disegna il triangolo
-        painter.end()
-
-        return QIcon(pixmap)
-
-    def create_prev_icon(size):
-        """Crea un'icona di dimensione 'size' per il pulsante Mese Successivo."""
-        pixmap = QPixmap(size, size)
-        pixmap.fill(QColor("transparent"))  # Riempie lo sfondo dell'immagine con trasparente
-
-        painter = QPainter(pixmap)
-        # Disegna un triangolo per l'icona "Mese Successivo"
-        painter.setBrush(QColor("grey"))  # Colore grigio per il triangolo
-        points = [QPoint(0, size // 2), QPoint(size // 2, 0), QPoint(size // 2, size)]
-        painter.drawPolygon(QPolygon(points))  # Disegna il triangolo
-        painter.end()
-
-        return QIcon(pixmap)
-
     # Aggiungi le immagini ai pulsanti
     app.prev_month_button = QPushButton()
     app.prev_month_button.setIcon(create_prev_icon(30))  # Utilizza un'icona di 40x40 pixel
@@ -298,6 +269,23 @@ def setup_espositore_tab(app):
 
     scroll_area_layout.addLayout(navigation_layout)
 
+    # Sezione per l'autocompleta e la lista delle tipologie
+    tipologie_layout = QHBoxLayout()  # Layout orizzontale per il tasto e la lista
+
+    # Autocompleta Button
+    app.autocomplete_button = QPushButton("Autocompleta")
+    app.autocomplete_button.clicked.connect(lambda: handle_autocompleta(app))
+    tipologie_layout.addWidget(app.autocomplete_button)  # Aggiungi il pulsante al layout
+
+    # Multi-selection for tipologie using QListWidget
+    app.multi_tipologie = QListWidget()
+    app.multi_tipologie.setSelectionMode(QListWidget.MultiSelection)  # Enable multi-selection
+
+    tipologie_layout.addWidget(QLabel("Seleziona Tipologie:"))  # Aggiungi etichetta per le tipologie
+    tipologie_layout.addWidget(app.multi_tipologie)  # Aggiungi la QListWidget al layout
+
+    scroll_area_layout.addLayout(tipologie_layout)  # Aggiungi il layout delle tipologie alla scroll area
+
     # Layout del calendario personalizzato
     app.custom_calendar_layout = QGridLayout()
     app.day_buttons = {}
@@ -311,6 +299,8 @@ def setup_espositore_tab(app):
     programmazione_layout.addWidget(scroll_area)  # Aggiungi la scroll area al layout principale
 
     tab_widget.addTab(programmazione_tab, "Programmazione")
+    tab_widget.currentChanged.connect(lambda index: on_tab_changed(app, index, tab_widget))
+
 
     # --- Nuovo Tab Gestione --- 
     gestione_tab = QWidget()

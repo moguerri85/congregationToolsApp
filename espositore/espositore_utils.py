@@ -7,6 +7,8 @@ from PyQt5.QtWidgets import (QMessageBox, QPushButton, QDialog, QVBoxLayout, QCh
 from PyQt5.QtCore import Qt, QSize
 from datetime import datetime
 from PyQt5.QtCore import Qt, QSize, QDateTime
+from PyQt5.QtGui import QPixmap, QPainter, QColor, QIcon, QPolygon
+from PyQt5.QtCore import QPoint, QSize
 
 from utils.auth_utility import save_to_dropbox
 from utils.logging_custom import logging_custom
@@ -481,3 +483,74 @@ def toggle_attivo(app, tipo_luogo_id, state):
         save_data(app)  # Salva i dati dopo aver aggiornato lo stato
     except Exception as e:
         logging_custom(app, "error", f"Errore durante l'aggiornamento della proprietà 'attivo': {str(e)}")
+
+def handle_autocompleta(app):
+    selected_tipologie = []
+    
+    # Iterate over the selected items in the QListWidget
+    for item in app.multi_tipologie.selectedItems():
+        nome = item.text()  # Get the text (name)
+        tipo_luogo_id = item.data(Qt.UserRole)  # Get the associated ID (user data)
+        
+        # Append both the name and id to the selected_tipologie list as a tuple
+        selected_tipologie.append((nome, tipo_luogo_id))
+
+    if not selected_tipologie:
+        print("Nessuna tipologia selezionata.")
+        return
+
+    # Print the selected names and ids
+    for nome, tipo_luogo_id in selected_tipologie:
+        print(f"Tipologia selezionata: Nome = {nome}, ID = {tipo_luogo_id}")
+
+    
+    # Implement your logic here to handle autocompletion based on selected_tipologie
+
+def on_tab_changed(app, index, tab_widget):
+    # Assuming 'Programmazione' is the second tab (index 1)
+    if tab_widget.tabText(index) == "Programmazione":
+        load_tipologie_in_combo(app)
+
+def load_tipologie_in_combo(app):
+    # Clear the list widget before loading new data
+    app.multi_tipologie.clear()
+
+    # Iterate over the items in the tipo_luogo_schedule dictionary
+    for tipo_luogo_id, tipo_luogo in app.tipo_luogo_schedule.items():
+        # Ensure 'tipo_luogo' is a dictionary and check if 'attivo' is True
+        if isinstance(tipo_luogo, dict) and tipo_luogo.get('attivo', False):
+            # Create a new QListWidgetItem
+            item = QListWidgetItem(tipo_luogo['nome'])
+            # Set the tipo_luogo_id as the user data for this item
+            item.setData(Qt.UserRole, tipo_luogo_id)
+            # Add the item to the list widget
+            app.multi_tipologie.addItem(item)
+            print(f"Loaded tipologia: {tipo_luogo['nome']} with ID: {tipo_luogo_id}")
+
+def create_next_icon(size):
+    """Crea un'icona di dimensione 'size'."""
+    pixmap = QPixmap(size, size)
+    pixmap.fill(QColor("transparent"))  # Riempie lo sfondo dell'immagine con trasparente
+
+    painter = QPainter(pixmap)
+    # Disegna un triangolo per l'icona "Mese Precedente"
+    painter.setBrush(QColor("grey"))  # Colore grigio per il triangolo
+    points = [QPoint(size // 2, 0), QPoint(size, size // 2), QPoint(size // 2, size)]
+    painter.drawPolygon(QPolygon(points))  # Disegna il triangolo
+    painter.end()
+
+    return QIcon(pixmap)
+
+def create_prev_icon(size):
+    """Crea un'icona di dimensione 'size' per il pulsante Mese Successivo."""
+    pixmap = QPixmap(size, size)
+    pixmap.fill(QColor("transparent"))  # Riempie lo sfondo dell'immagine con trasparente
+
+    painter = QPainter(pixmap)
+    # Disegna un triangolo per l'icona "Mese Successivo"
+    painter.setBrush(QColor("grey"))  # Colore grigio per il triangolo
+    points = [QPoint(0, size // 2), QPoint(size // 2, 0), QPoint(size // 2, size)]
+    painter.drawPolygon(QPolygon(points))  # Disegna il triangolo
+    painter.end()
+
+    return QIcon(pixmap)
