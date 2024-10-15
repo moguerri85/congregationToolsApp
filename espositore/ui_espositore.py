@@ -8,7 +8,7 @@ from PyQt5.QtCore import QSize
 from espositore.espositore_tab_gestione import add_tipo_luogo, aggiorna_genere_sino, fix_orari, fix_proclamatori, modify_selected_tipo_luogo, remove_tipo_luogo
 from espositore.espositore_tab_proclamatore import add_person, aggiorna_genere, aggiorna_status_pioniere, display_person_details, remove_person, show_availability_dialog
 from espositore.espositore_tab_programmazione import update_calendar
-from espositore.espositore_utils import create_next_icon, create_prev_icon, handle_autocompleta, import_disponibilita, load_tipologie_in_combo, on_tab_changed, update_week_display_and_data
+from espositore.espositore_utils import create_next_icon, create_prev_icon, handle_autoabbinamento, import_disponibilita, load_tipologie_in_combo, on_tab_changed, update_week_display_and_data
 from utils.auth_utility import load_espositore_data_from_dropbox
 from utils.logging_custom import logging_custom
 
@@ -301,8 +301,8 @@ def setup_espositore_tab(app):
     tipologie_layout = QHBoxLayout()  # Layout orizzontale per il tasto e la lista
 
     # Autocompleta Button
-    app.autocomplete_button = QPushButton("Autocompleta")
-    app.autocomplete_button.clicked.connect(lambda: handle_autocompleta(app))
+    app.autocomplete_button = QPushButton("Auto abbinamento")
+    app.autocomplete_button.clicked.connect(lambda: handle_autoabbinamento(app))
     tipologie_layout.addWidget(app.autocomplete_button)  # Aggiungi il pulsante al layout
 
     # Multi-selection for tipologie using QListWidget

@@ -499,10 +499,10 @@ def toggle_attivo(app, tipo_luogo_id, state):
     except Exception as e:
         logging_custom(app, "error", f"Errore durante l'aggiornamento della proprietà 'attivo': {str(e)}")
 
-def handle_autocompleta(app):
+def handle_autoabbinamento(app):
     selected_tipologie = []
     
-    same_gender = app.autocomplete_gender_sino.get('same_gender', False)
+    same_gender = app.autocomplete_gender_sino.get('same_gender')
     print(f"Same gender: {same_gender}")
     
     # Iterate over the selected items in the QListWidget
@@ -525,10 +525,12 @@ def handle_autocompleta(app):
         
         # Check each proclamatore's availability for the selected tipo_luogo_id
         for procla_id, procla in app.person_schedule.items():
+            # Check if this tipo_luogo_id is in the proclamatore's availability
             if tipo_luogo_id in procla['availability']:
+                # Get proclamatore's name and gender
                 proclamatore_name = app.people.get(procla_id, "Sconosciuto")
                 proclamatore_gender = procla.get('genere_status', {}).get('genere', None)
-                
+                # Add available proclamatores
                 available_proclamatores.append({
                     'nome': proclamatore_name,
                     'id': procla_id,
@@ -536,7 +538,7 @@ def handle_autocompleta(app):
                     'genere': proclamatore_gender
                 })
 
-        # Display the available proclamatores
+        # Display available proclamatores and find pairings
         if available_proclamatores:
             print(f"Proclamatori disponibili per {nome}:")
             
@@ -545,10 +547,10 @@ def handle_autocompleta(app):
             # Check all combinations of proclamatores (two at a time)
             for proclamatore1, proclamatore2 in combinations(available_proclamatores, 2):
                 if same_gender and proclamatore1['genere'] != proclamatore2['genere']:
-                    continue
+                    continue  # Skip if genders don't match
 
-                # Find common availability considering both day and specific dates
-                common_times = find_common_times_by_date(proclamatore1['availability'], proclamatore2['availability'])
+                # Find common availability between the two
+                common_times = find_common_times(proclamatore1['availability'], proclamatore2['availability'])
                 
                 if common_times:
                     pairings.append({
@@ -556,7 +558,6 @@ def handle_autocompleta(app):
                         'common_times': common_times
                     })
 
-            # Display the pairings with their common availability
             if pairings:
                 for pair in pairings:
                     print(f"  - Coppia: {pair['pair'][0]} e {pair['pair'][1]} con disponibilità: {', '.join(pair['common_times'])}")
@@ -565,22 +566,45 @@ def handle_autocompleta(app):
         else:
             print(f"Nessun proclamatore disponibile per {nome}.")
 
-def find_common_times_by_date(avail1, avail2):
+
+def find_common_times(times1, times2):
     """
-    Given two dictionaries of availability (keyed by day/date), 
-    find common time slots for each day/date.
+    Finds common time slots between two proclaimers' availability, considering both 
+    specific dates and weekly days.
     """
-    common_times = {}
+    common_times = []
 
-    # Combine both availability dictionaries
-    for day_or_date in avail1.keys():
-        if day_or_date in avail2:
-            # Find common time slots for the same day or date
-            common_times[day_or_date] = list(set(avail1[day_or_date]) & set(avail2[day_or_date]))
+    # Handle weekly availability (days of the week)
+    for day, slots1 in times1.items():
+        # If day is a digit, it's a weekly availability (1 = Monday, 2 = Tuesday, etc.)
+        if day.isdigit() and day in times2:
+            common_times.extend(set(slots1) & set(times2[day]))
 
-    # Return a dictionary of common times
-    return {key: common_times[key] for key in common_times if common_times[key]}  # Filter out empty lists
+    # Handle specific date availability
+    for date, slots1 in times1.items():
+        if is_valid_date(date):
+            weekday = date_to_weekday(date)
+            # Check if the other proclamatore has availability on that weekday or specific date
+            if weekday in times2 or date in times2:
+                common_slots = set(slots1) & (set(times2.get(weekday, [])) | set(times2.get(date, [])))
+                if common_slots:
+                    common_times.extend(common_slots)
 
+    return common_times
+
+def date_to_weekday(date_str):
+    """Convert a date string (e.g., '15/10/2024') to its corresponding weekday number."""
+    date_obj = datetime.strptime(date_str, '%Y-%m-%d')
+    return str(date_obj.isoweekday())  # 1 = Monday, 7 = Sunday
+
+def is_valid_date(date_str):
+    """Check if a string is a valid date format 'YYYY-MM-DD'."""
+    try:
+        datetime.strptime(date_str, '%Y-%m-%d')
+        return True
+    except ValueError:
+        return False
+    
 def on_tab_changed(app, index, tab_widget):
     # Assuming 'Programmazione' is the second tab (index 1)
     if tab_widget.tabText(index) == "Programmazione":
