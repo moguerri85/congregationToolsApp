@@ -1,11 +1,10 @@
 from PyQt5.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel, QListWidget, 
                              QPushButton, QTabWidget, QWidget, QCalendarWidget,
                              QTextEdit, QGridLayout,  QRadioButton, QButtonGroup, 
-                             QSizePolicy, QScrollArea, QGroupBox)
+                             QSizePolicy, QScrollArea, QGroupBox, QSpinBox)
 from PyQt5.QtCore import Qt, QSize, QDate
-from PyQt5.QtCore import QSize
 
-from espositore.espositore_tab_gestione import add_tipo_luogo, aggiorna_genere_sino, fix_orari, fix_proclamatori, modify_selected_tipo_luogo, remove_tipo_luogo
+from espositore.espositore_tab_gestione import add_tipo_luogo, aggiorna_genere_sino, aggiorna_numero_utilizzi, fix_orari, fix_proclamatori, modify_selected_tipo_luogo, remove_tipo_luogo
 from espositore.espositore_tab_proclamatore import add_person, aggiorna_genere, aggiorna_status_pioniere, display_person_details, remove_person, show_availability_dialog
 from espositore.espositore_tab_programmazione import update_calendar
 from espositore.espositore_utils import create_next_icon, create_prev_icon, handle_autoabbinamento, import_disponibilita, load_tipologie_in_combo, on_tab_changed, update_week_display_and_data
@@ -44,6 +43,7 @@ def setup_espositore_tab(app):
     app.person_schedule = {}
     app.last_import_hourglass = {}
     app.autocomplete_gender_sino = {}
+    app.numero_utilizzi = {}
 
     # --- Tab Proclamatore ---
     proclamatore_tab = QWidget()
@@ -369,6 +369,72 @@ def setup_espositore_tab(app):
     # Add the GroupBox to the scroll area layout
     gestione_scroll_area_layout.addWidget(genere_sino_group_box)
 
+    # --- Numero di utilizzi mensile ---
+
+    # GroupBox per il numero di utilizzi
+    utilizzo_mensile_group_box = QGroupBox("Numero di utilizzi mensile")
+    utilizzo_mensile_layout = QVBoxLayout()
+
+    # Label e spinbox per pionieri
+    pionieri_label = QLabel("Pionieri:")
+    app.pionieri_mensile_spinbox = QSpinBox()
+    app.pionieri_mensile_spinbox.setRange(0, 7)  # Imposta il range (0-7)
+           
+    # Aggiungi label e spinbox al layout
+    utilizzo_mensile_layout.addWidget(pionieri_label)
+    utilizzo_mensile_layout.addWidget(app.pionieri_mensile_spinbox)
+
+    # Label e spinbox per proclamatori
+    proclamatori_label = QLabel("Proclamatori:")
+    app.proclamatori_mensile_spinbox = QSpinBox()
+    app.proclamatori_mensile_spinbox.setRange(0, 7)  # Imposta il range (0-7)
+    
+    # Aggiungi label e spinbox al layout
+    utilizzo_mensile_layout.addWidget(proclamatori_label)
+    utilizzo_mensile_layout.addWidget(app.proclamatori_mensile_spinbox)
+    
+    # Imposta il layout del GroupBox
+    utilizzo_mensile_group_box.setLayout(utilizzo_mensile_layout)
+
+    # Aggiungi il GroupBox al layout della scroll area
+    gestione_scroll_area_layout.addWidget(utilizzo_mensile_group_box)
+
+    # --- Numero di utilizzi settimanale ---
+
+    # GroupBox per il numero di utilizzi
+    utilizzo_settimanale_group_box = QGroupBox("Numero di utilizzi settimanale")
+    utilizzo_settimanale_layout = QVBoxLayout()
+
+    # Label e spinbox per pionieri
+    pionieri_label = QLabel("Pionieri:")
+    app.pionieri_settimanale_spinbox = QSpinBox()
+    app.pionieri_settimanale_spinbox.setRange(0, 7)  # Imposta il range (0-7)
+    
+    # Aggiungi label e spinbox al layout
+    utilizzo_settimanale_layout.addWidget(pionieri_label)
+    utilizzo_settimanale_layout.addWidget(app.pionieri_settimanale_spinbox)
+
+    # Label e spinbox per proclamatori
+    proclamatori_label = QLabel("Proclamatori:")
+    app.proclamatori_settimanale_spinbox = QSpinBox()
+    app.proclamatori_settimanale_spinbox.setRange(0, 7)  # Imposta il range (0-7)    
+
+    # Aggiungi label e spinbox al layout
+    utilizzo_settimanale_layout.addWidget(proclamatori_label)
+    utilizzo_settimanale_layout.addWidget(app.proclamatori_settimanale_spinbox)
+
+    # Imposta il layout del GroupBox
+    utilizzo_settimanale_group_box.setLayout(utilizzo_settimanale_layout)
+
+    # Aggiungi il GroupBox al layout della scroll area
+    gestione_scroll_area_layout.addWidget(utilizzo_settimanale_group_box)
+        
+    app.pionieri_mensile_spinbox.valueChanged.connect(lambda value: aggiorna_numero_utilizzi("pionieri_mes", value, app))
+    app.proclamatori_mensile_spinbox.valueChanged.connect(lambda value: aggiorna_numero_utilizzi("proclamatori_mes", value, app))
+    
+    app.pionieri_settimanale_spinbox.valueChanged.connect(lambda value: aggiorna_numero_utilizzi("pionieri_sett", value, app))
+    app.proclamatori_settimanale_spinbox.valueChanged.connect(lambda value: aggiorna_numero_utilizzi("proclamatori_sett", value, app))
+
     # Imposta il contenuto della scroll area
     gestione_scroll_area.setWidget(gestione_scroll_area_content)
     gestione_layout.addWidget(gestione_scroll_area)  # Aggiungi la scroll area al layout principale
@@ -379,7 +445,6 @@ def setup_espositore_tab(app):
 
     # Aggiungi il nuovo tab al QTabWidget
     tab_widget.addTab(gestione_tab, "Gestione")
-
 
     app.tabs.addTab(espositore_tab, "Espositore")
     app.tabs.currentChanged.connect(lambda index: load_espositore_data_from_dropbox(app) if index == app.tabs.indexOf(espositore_tab) else None)

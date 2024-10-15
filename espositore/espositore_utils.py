@@ -38,7 +38,8 @@ def save_data(app):
             "tipo_luogo_schedule": app.tipo_luogo_schedule,
             "person_schedule": app.person_schedule,
             "last_import_hourglass": app.last_import_hourglass,
-            "autocomplete_gender_sino": app.autocomplete_gender_sino
+            "autocomplete_gender_sino": app.autocomplete_gender_sino,
+            "numero_utilizzi": app.numero_utilizzi
         }
         appdata_path = os.path.join(os.getenv('APPDATA'), 'CongregationToolsApp')
         local_file_jsn= appdata_path+'/'+SAVE_FILE
@@ -65,8 +66,6 @@ def load_data(app):
             #Carico la data dell'ultimo import
             app.last_import_hourglass = data.get('last_import_hourglass', {})
 
-            app.autocomplete_gender_sino = data.get('autocomplete_gender_sino', {})
-
             # Popola le persone (people)
             app.people = data.get('people', {})
             app.person_schedule = data.get('person_schedule', {})
@@ -74,7 +73,8 @@ def load_data(app):
             app.tipologie = data.get('tipologie', {})
             app.last_import_hourglass = data.get('last_import_hourglass', {})
             app.autocomplete_gender_sino = data.get('autocomplete_gender_sino', {})
-            
+            app.numero_utilizzi = data.get('numero_utilizzi', {})
+
             same_gender = app.autocomplete_gender_sino.get('same_gender')
             if same_gender:  # Se same_gender è True, seleziona "Sì"
                 app.genere_si_radio.setChecked(True)
@@ -110,7 +110,8 @@ def load_data(app):
             app.person_schedule = {}
             app.last_import_hourglass = {}
             app.autocomplete_gender_sino = {}
-    
+            app.numero_utilizzi = {}
+
     except json.JSONDecodeError as e:
         QMessageBox.critical(app, "Errore", f"Errore nel parsing del file JSON: {str(e)}")
     except Exception as e:
@@ -124,7 +125,7 @@ def load_data(app):
         app.tipologie = {}
         app.last_import_hourglass = {}
         app.autocomplete_gender_sino = {}
-
+        app.numero_utilizzi = {}
     
     except json.JSONDecodeError:
         # Gestione degli errori di parsing JSON
@@ -161,6 +162,7 @@ def import_disponibilita(app):
             app.tipologie = {}
             app.last_import_hourglass = {}
             app.autocomplete_gender_sino = {}
+            app.numero_utilizzi = {}
             logging_custom(app, "error", f"File {local_file_jsn} non trovato. Scarica prima i dati dal tab 'Testimonianza Pubblica'.")
             error_msg = QMessageBox()
             error_msg.setIcon(QMessageBox.Critical)
@@ -227,6 +229,7 @@ def import_disponibilita(app):
             app.person_schedule = {}
             app.last_import_hourglass = {}
             app.autocomplete_gender_sino = {}
+            app.numero_utilizzi = {}
 
     except json.JSONDecodeError as e:
         QMessageBox.critical(app, "Errore", f"Errore nel parsing del file JSON: {str(e)}")
@@ -609,6 +612,8 @@ def on_tab_changed(app, index, tab_widget):
     # Assuming 'Programmazione' is the second tab (index 1)
     if tab_widget.tabText(index) == "Programmazione":
         load_tipologie_in_combo(app)
+    elif tab_widget.tabText(index) == "Gestione":
+        load_utilizzo_spinbox(app)    
 
 def load_tipologie_in_combo(app):
     # Clear the list widget before loading new data
@@ -653,3 +658,12 @@ def create_prev_icon(size):
     painter.end()
 
     return QIcon(pixmap)
+
+def load_utilizzo_spinbox(app):
+    utilizzi = app.numero_utilizzi
+    if utilizzi:    
+        app.pionieri_mensile_spinbox.setValue(utilizzi.get("numero_utilizzi_mensile_pionieri", 0))
+        app.proclamatori_mensile_spinbox.setValue(utilizzi.get("numero_utilizzi_mensile_proclamatori", 0))
+        app.pionieri_settimanale_spinbox.setValue(utilizzi.get("numero_utilizzi_settimanale_pionieri", 0))
+        app.proclamatori_settimanale_spinbox.setValue(utilizzi.get("numero_utilizzi_settimanale_proclamatori", 0))
+        

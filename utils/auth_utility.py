@@ -196,6 +196,7 @@ def load_espositore_data_from_dropbox(app):
             app.tipologie = data.get('tipologie', {})
             app.last_import_hourglass = data.get('last_import_hourglass', {})
             app.autocomplete_gender_sino = data.get('autocomplete_gender_sino', {})
+            app.numero_utilizzi = data.get('numero_utilizzi', {})
 
             # Update the UI with the loaded data
             load_data(app)

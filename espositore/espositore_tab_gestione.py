@@ -281,3 +281,26 @@ def aggiorna_genere_sino(app):
     
     # Salva il dizionario aggiornato nel file JSON
     save_data(app)    
+
+def aggiorna_numero_utilizzi(tipo, valore, app):
+    """
+    Aggiorna il numero di utilizzi settimanali per pionieri o proclamatori.
+    
+    :param tipo: Stringa "pionieri" o "proclamatori" per identificare il gruppo.
+    :param valore: Valore selezionato dallo spinbox.
+    :param app: Istanza dell'applicazione o del contesto corrente.
+    """
+    if tipo == "pionieri_mes":
+        app.numero_utilizzi["numero_utilizzi_mensile_pionieri"] = valore
+        print(f"Aggiornato numero di utilizzi mensile per pionieri a {valore}")
+    elif tipo == "proclamatori_mes":
+        app.numero_utilizzi["numero_utilizzi_mensile_proclamatori"] = valore
+        print(f"Aggiornato numero di utilizzi mensile per proclamatori a {valore}")
+    elif tipo == "pionieri_sett":
+            app.numero_utilizzi["numero_utilizzi_settimanale_pionieri"] = valore
+            print(f"Aggiornato numero di utilizzi settimanali per pionieri a {valore}")
+    elif tipo == "proclamatori_sett":
+            app.numero_utilizzi["numero_utilizzi_settimanale_proclamatori"] = valore
+            print(f"Aggiornato numero di utilizzi settimanali per proclamatori a {valore}")
+
+    save_data(app)        
