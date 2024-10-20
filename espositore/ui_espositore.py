@@ -6,8 +6,8 @@ from PyQt5.QtCore import Qt, QSize, QDate
 
 from espositore.espositore_tab_gestione import add_tipo_luogo, aggiorna_genere_sino, aggiorna_numero_utilizzi, fix_orari, fix_proclamatori, modify_selected_tipo_luogo, remove_tipo_luogo
 from espositore.espositore_tab_proclamatore import add_person, aggiorna_genere, aggiorna_status_pioniere, display_person_details, remove_person, show_availability_dialog
-from espositore.espositore_tab_programmazione import update_calendar
-from espositore.espositore_utils import create_next_icon, create_prev_icon, handle_autoabbinamento, import_disponibilita, load_tipologie_in_combo, on_tab_changed, update_week_display_and_data
+from espositore.espositore_tab_programmazione import handle_autoabbinamento, update_calendar
+from espositore.espositore_utils import create_next_icon, create_prev_icon, import_disponibilita, on_tab_changed, update_week_display_and_data
 from utils.auth_utility import load_espositore_data_from_dropbox
 from utils.logging_custom import logging_custom
 
@@ -42,7 +42,7 @@ def setup_espositore_tab(app):
     app.tipologie = {}
     app.person_schedule = {}
     app.last_import_hourglass = {}
-    app.autocomplete_gender_sino = {}
+    app.autoabbinamento_gender_sino = {}
     app.numero_utilizzi = {}
 
     # --- Tab Proclamatore ---
@@ -162,6 +162,9 @@ def setup_espositore_tab(app):
     # Dopo aver creato i radio button, disabilitali inizialmente
     # Disabilita i radio button all'inizio
     for button in app.radio_group_pioniere.buttons():
+        button.setEnabled(False)
+
+    for button in app.radio_group_genere.buttons():
         button.setEnabled(False)
 
     for button in app.radio_group_disponibilita.buttons():
@@ -301,9 +304,9 @@ def setup_espositore_tab(app):
     tipologie_layout = QHBoxLayout()  # Layout orizzontale per il tasto e la lista
 
     # Autocompleta Button
-    app.autocomplete_button = QPushButton("Auto abbinamento")
-    app.autocomplete_button.clicked.connect(lambda: handle_autoabbinamento(app))
-    tipologie_layout.addWidget(app.autocomplete_button)  # Aggiungi il pulsante al layout
+    app.autoabbinamento_button = QPushButton("Auto abbinamento")
+    app.autoabbinamento_button.clicked.connect(lambda: handle_autoabbinamento(app))
+    tipologie_layout.addWidget(app.autoabbinamento_button)  # Aggiungi il pulsante al layout
 
     # Multi-selection for tipologie using QListWidget
     app.multi_tipologie = QListWidget()

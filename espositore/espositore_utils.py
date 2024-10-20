@@ -1,6 +1,5 @@
 import json
 import os
-from itertools import combinations
 
 from PyQt5.QtWidgets import (QMessageBox, QPushButton, QDialog, QVBoxLayout, QCheckBox,
                              QLabel, QHBoxLayout, QWidget, QListWidget, QSizePolicy, QInputDialog,
@@ -38,7 +37,7 @@ def save_data(app):
             "tipo_luogo_schedule": app.tipo_luogo_schedule,
             "person_schedule": app.person_schedule,
             "last_import_hourglass": app.last_import_hourglass,
-            "autocomplete_gender_sino": app.autocomplete_gender_sino,
+            "autoabbinamento_gender_sino": app.autoabbinamento_gender_sino,
             "numero_utilizzi": app.numero_utilizzi
         }
         appdata_path = os.path.join(os.getenv('APPDATA'), 'CongregationToolsApp')
@@ -72,10 +71,10 @@ def load_data(app):
             app.tipo_luogo_schedule = data.get('tipo_luogo_schedule', {})
             app.tipologie = data.get('tipologie', {})
             app.last_import_hourglass = data.get('last_import_hourglass', {})
-            app.autocomplete_gender_sino = data.get('autocomplete_gender_sino', {})
+            app.autoabbinamento_gender_sino = data.get('autoabbinamento_gender_sino', {})
             app.numero_utilizzi = data.get('numero_utilizzi', {})
 
-            same_gender = app.autocomplete_gender_sino.get('same_gender')
+            same_gender = app.autoabbinamento_gender_sino.get('same_gender')
             if same_gender:  # Se same_gender è True, seleziona "Sì"
                 app.genere_si_radio.setChecked(True)
             else:  # Se è False o None, seleziona "No"
@@ -109,7 +108,7 @@ def load_data(app):
             app.tipologie = {}
             app.person_schedule = {}
             app.last_import_hourglass = {}
-            app.autocomplete_gender_sino = {}
+            app.autoabbinamento_gender_sino = {}
             app.numero_utilizzi = {}
 
     except json.JSONDecodeError as e:
@@ -124,7 +123,7 @@ def load_data(app):
         app.tipo_luogo_schedule = {}
         app.tipologie = {}
         app.last_import_hourglass = {}
-        app.autocomplete_gender_sino = {}
+        app.autoabbinamento_gender_sino = {}
         app.numero_utilizzi = {}
     
     except json.JSONDecodeError:
@@ -161,7 +160,7 @@ def import_disponibilita(app):
             app.tipo_luogo_schedule = {}
             app.tipologie = {}
             app.last_import_hourglass = {}
-            app.autocomplete_gender_sino = {}
+            app.autoabbinamento_gender_sino = {}
             app.numero_utilizzi = {}
             logging_custom(app, "error", f"File {local_file_jsn} non trovato. Scarica prima i dati dal tab 'Testimonianza Pubblica'.")
             error_msg = QMessageBox()
@@ -228,7 +227,7 @@ def import_disponibilita(app):
             app.tipologie = {}
             app.person_schedule = {}
             app.last_import_hourglass = {}
-            app.autocomplete_gender_sino = {}
+            app.autoabbinamento_gender_sino = {}
             app.numero_utilizzi = {}
 
     except json.JSONDecodeError as e:
@@ -501,112 +500,6 @@ def toggle_attivo(app, tipo_luogo_id, state):
         save_data(app)  # Salva i dati dopo aver aggiornato lo stato
     except Exception as e:
         logging_custom(app, "error", f"Errore durante l'aggiornamento della proprietà 'attivo': {str(e)}")
-
-def handle_autoabbinamento(app):
-    selected_tipologie = []
-    
-    same_gender = app.autocomplete_gender_sino.get('same_gender')
-    print(f"Same gender: {same_gender}")
-    
-    # Iterate over the selected items in the QListWidget
-    for item in app.multi_tipologie.selectedItems():
-        nome = item.text()  # Get the text (name)
-        tipo_luogo_id = item.data(Qt.UserRole)  # Get the associated ID (user data)
-        
-        # Append both the name and id to the selected_tipologie list as a tuple
-        selected_tipologie.append((nome, tipo_luogo_id))
-
-    if not selected_tipologie:
-        print("Nessuna tipologia selezionata.")
-        return
-
-    # Print the selected names and ids
-    for nome, tipo_luogo_id in selected_tipologie:
-        print(f"Tipologia selezionata: Nome = {nome}, ID = {tipo_luogo_id}")
-
-        available_proclamatores = []
-        
-        # Check each proclamatore's availability for the selected tipo_luogo_id
-        for procla_id, procla in app.person_schedule.items():
-            # Check if this tipo_luogo_id is in the proclamatore's availability
-            if tipo_luogo_id in procla['availability']:
-                # Get proclamatore's name and gender
-                proclamatore_name = app.people.get(procla_id, "Sconosciuto")
-                proclamatore_gender = procla.get('genere_status', {}).get('genere', None)
-                # Add available proclamatores
-                available_proclamatores.append({
-                    'nome': proclamatore_name,
-                    'id': procla_id,
-                    'availability': procla['availability'][tipo_luogo_id],
-                    'genere': proclamatore_gender
-                })
-
-        # Display available proclamatores and find pairings
-        if available_proclamatores:
-            print(f"Proclamatori disponibili per {nome}:")
-            
-            pairings = []
-            
-            # Check all combinations of proclamatores (two at a time)
-            for proclamatore1, proclamatore2 in combinations(available_proclamatores, 2):
-                if same_gender and proclamatore1['genere'] != proclamatore2['genere']:
-                    continue  # Skip if genders don't match
-
-                # Find common availability between the two
-                common_times = find_common_times(proclamatore1['availability'], proclamatore2['availability'])
-                
-                if common_times:
-                    pairings.append({
-                        'pair': (proclamatore1['nome'], proclamatore2['nome']),
-                        'common_times': common_times
-                    })
-
-            if pairings:
-                for pair in pairings:
-                    print(f"  - Coppia: {pair['pair'][0]} e {pair['pair'][1]} con disponibilità: {', '.join(pair['common_times'])}")
-            else:
-                print(f"Nessuna coppia con disponibilità comune per {nome}.")
-        else:
-            print(f"Nessun proclamatore disponibile per {nome}.")
-
-
-def find_common_times(times1, times2):
-    """
-    Finds common time slots between two proclaimers' availability, considering both 
-    specific dates and weekly days.
-    """
-    common_times = []
-
-    # Handle weekly availability (days of the week)
-    for day, slots1 in times1.items():
-        # If day is a digit, it's a weekly availability (1 = Monday, 2 = Tuesday, etc.)
-        if day.isdigit() and day in times2:
-            common_times.extend(set(slots1) & set(times2[day]))
-
-    # Handle specific date availability
-    for date, slots1 in times1.items():
-        if is_valid_date(date):
-            weekday = date_to_weekday(date)
-            # Check if the other proclamatore has availability on that weekday or specific date
-            if weekday in times2 or date in times2:
-                common_slots = set(slots1) & (set(times2.get(weekday, [])) | set(times2.get(date, [])))
-                if common_slots:
-                    common_times.extend(common_slots)
-
-    return common_times
-
-def date_to_weekday(date_str):
-    """Convert a date string (e.g., '15/10/2024') to its corresponding weekday number."""
-    date_obj = datetime.strptime(date_str, '%Y-%m-%d')
-    return str(date_obj.isoweekday())  # 1 = Monday, 7 = Sunday
-
-def is_valid_date(date_str):
-    """Check if a string is a valid date format 'YYYY-MM-DD'."""
-    try:
-        datetime.strptime(date_str, '%Y-%m-%d')
-        return True
-    except ValueError:
-        return False
     
 def on_tab_changed(app, index, tab_widget):
     # Assuming 'Programmazione' is the second tab (index 1)
@@ -666,4 +559,5 @@ def load_utilizzo_spinbox(app):
         app.proclamatori_mensile_spinbox.setValue(utilizzi.get("numero_utilizzi_mensile_proclamatori", 0))
         app.pionieri_settimanale_spinbox.setValue(utilizzi.get("numero_utilizzi_settimanale_pionieri", 0))
         app.proclamatori_settimanale_spinbox.setValue(utilizzi.get("numero_utilizzi_settimanale_proclamatori", 0))
-        
+
+

@@ -199,6 +199,9 @@ def display_person_details(app, item):
         app.ausiliare_radio.blockSignals(True)
         app.no_pioniere_radio.blockSignals(True)
 
+        app.fratello_radio.blockSignals(True)
+        app.sorella_radio.blockSignals(True)
+
         # Ottieni l'ID del proclamatore selezionato
         person_id = item.data(Qt.UserRole)
         person = app.person_schedule.get(person_id, {})
@@ -268,6 +271,9 @@ def display_person_details(app, item):
         app.regolare_radio.blockSignals(False)
         app.ausiliare_radio.blockSignals(False)
         app.no_pioniere_radio.blockSignals(False)
+
+        app.fratello_radio.blockSignals(False)
+        app.sorella_radio.blockSignals(False)
 
 def aggiorna_status_pioniere(app):
     # Determine the selected pioneer status

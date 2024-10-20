@@ -275,9 +275,9 @@ def find_similar_luogo(app, base_name, availability):
 
 def aggiorna_genere_sino(app):
     if app.genere_si_radio.isChecked():
-        app.autocomplete_gender_sino["same_gender"] = True
+        app.autoabbinamento_gender_sino["same_gender"] = True
     elif app.genere_no_radio.isChecked():
-        app.autocomplete_gender_sino["same_gender"] = False
+        app.autoabbinamento_gender_sino["same_gender"] = False
     
     # Salva il dizionario aggiornato nel file JSON
     save_data(app)    
@@ -297,10 +297,10 @@ def aggiorna_numero_utilizzi(tipo, valore, app):
         app.numero_utilizzi["numero_utilizzi_mensile_proclamatori"] = valore
         print(f"Aggiornato numero di utilizzi mensile per proclamatori a {valore}")
     elif tipo == "pionieri_sett":
-            app.numero_utilizzi["numero_utilizzi_settimanale_pionieri"] = valore
-            print(f"Aggiornato numero di utilizzi settimanali per pionieri a {valore}")
+        app.numero_utilizzi["numero_utilizzi_settimanale_pionieri"] = valore
+        print(f"Aggiornato numero di utilizzi settimanali per pionieri a {valore}")
     elif tipo == "proclamatori_sett":
-            app.numero_utilizzi["numero_utilizzi_settimanale_proclamatori"] = valore
-            print(f"Aggiornato numero di utilizzi settimanali per proclamatori a {valore}")
+        app.numero_utilizzi["numero_utilizzi_settimanale_proclamatori"] = valore
+        print(f"Aggiornato numero di utilizzi settimanali per proclamatori a {valore}")
 
     save_data(app)        
