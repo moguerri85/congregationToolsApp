@@ -40,6 +40,7 @@ def setup_espositore_tab(app):
     app.people = {}
     app.tipo_luogo_schedule = {}
     app.tipologie = {}
+    app.day_buttons = {} #utilizzato per il calendario degli appuntamenti
     app.person_schedule = {}
     app.last_import_hourglass = {}
     app.autoabbinamento_gender_sino = {}

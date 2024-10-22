@@ -82,8 +82,9 @@ def load_data(app):
 
             # Aggiorna l'interfaccia utente
             app.person_list.clear()
-            for person_id, name in app.people.items():
-                item = QListWidgetItem(name)
+            for person_id, person_data in app.people.items():
+                name = person_data.get('name', 'Sconosciuto')  # Extract name properly
+                item = QListWidgetItem(name)  # Create a list item with the person's name
                 item.setData(Qt.UserRole, person_id)
                 app.person_list.addItem(item)
             
@@ -154,7 +155,7 @@ def import_disponibilita(app):
         
         # Controlla se il file esiste prima di provare ad aprirlo
         if not os.path.exists(local_file_jsn):
-             # Inizializza le strutture dati vuote
+            # Inizializza le strutture dati vuote
             app.people = {}
             app.person_schedule = {}
             app.tipo_luogo_schedule = {}
@@ -176,11 +177,10 @@ def import_disponibilita(app):
             logging_custom(app, "error", f"File {local_file_jsn} non trovato. Scarica prima i dati dal tab 'Testimonianza Pubblica'.")
             return  # Esci dalla funzione se il file non viene trovato
 
-
         # Legge il file JSON
         if os.path.exists(local_file_jsn) and os.path.getsize(local_file_jsn) > 0:
             with open(local_file_jsn, 'r', encoding='utf-8') as file:
-                data = json.load(file)            
+                data = json.load(file)
 
             # Popola le persone (people)
             app.people = data.get('people', {})
@@ -190,15 +190,16 @@ def import_disponibilita(app):
 
             # Aggiorna l'interfaccia utente
             app.person_list.clear()
-            for person_id, name in app.people.items():
-                item = QListWidgetItem(name)
+            for person_id, person_data in app.people.items():
+                name = person_data.get('name', 'Sconosciuto')  # Extract name properly
+                item = QListWidgetItem(name)  # Create a list item with the person's name
                 item.setData(Qt.UserRole, person_id)
                 app.person_list.addItem(item)
 
             # Popola le tipologie (tipo_luogo_schedule)
             app.tipologie_list.clear()
             for tipo_luogo_id, tipo_luogo_data in app.tipo_luogo_schedule.items():
-                nome_tipo_luogo = tipo_luogo_data.get('nome', 'Sconosciuto')
+                nome_tipo_luogo = str(tipo_luogo_data.get('nome', 'Sconosciuto'))  # Ensure it's a string
                 item = QListWidgetItem(nome_tipo_luogo)
                 item.setData(Qt.UserRole, tipo_luogo_id)
                 app.tipologie_list.addItem(item)
@@ -208,15 +209,13 @@ def import_disponibilita(app):
                 'ultima_modifica': current_time,
                 'stato': 'Disponibile'
             }
-            
+
             update_last_load_time(app)
-            #Carico la data dell'ultimo import
-            
 
             # Aggiorna la visualizzazione della settimana
             update_week_display_and_data(app, None)
             update_last_modification_time(app)
-            
+
             # Stampa o logga un messaggio di conferma
             logging_custom(app, "debug", "Dati caricati con successo!")
             save_data(app)
@@ -233,6 +232,7 @@ def import_disponibilita(app):
     except json.JSONDecodeError as e:
         QMessageBox.critical(app, "Errore", f"Errore nel parsing del file JSON: {str(e)}")
     except Exception as e:
+        logging_custom(app, "error", {str(e)})
         QMessageBox.critical(app, "Errore", f"Si è verificato un errore durante il caricamento dei dati: {str(e)}")
 
 def update_week_display_and_data(app, tipo_luogo_nome):

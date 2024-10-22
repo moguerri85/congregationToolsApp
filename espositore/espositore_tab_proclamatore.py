@@ -12,14 +12,15 @@ def add_person(app):
         name, ok = QInputDialog.getText(app, "Aggiungi Proclamatore", "Nome del Proclamatore:")
         if ok and name:
             person_id = str(uuid.uuid4())
-            app.people[person_id] = name
+            app.people[person_id] = {
+                "name": name,
+                "availability": {}  # Initialize with empty availability
+            }
             
+            # Add the person to the QListWidget
             item = QListWidgetItem(name)
             item.setData(Qt.UserRole, person_id)
             app.person_list.addItem(item)
-            
-            # Initialize person_schedule entry for the new person
-            app.person_schedule[person_id] = {"availability": {}}
             
             save_data(app)
     except Exception as e:
@@ -34,7 +35,6 @@ def remove_person(app):
     person_id = selected_item.data(Qt.UserRole)
     if person_id in app.people:
         del app.people[person_id]
-        del app.person_schedule[person_id]
         app.person_list.takeItem(app.person_list.row(selected_item))
         update_person_details(app, person_id)
         save_data(app)
@@ -44,9 +44,9 @@ def remove_person(app):
 # Funzione per mostrare i dettagli del proclamatore
 def update_person_details(app, person_id):
     try:
-        if person_id in app.person_schedule:
+        if person_id in app.people:
             app.detail_text.clear()
-            availability = app.person_schedule[person_id]["availability"]
+            availability = app.people[person_id]["availability"]
             tipo_luogo_map = {t_id: t_info['nome'] for t_id, t_info in app.tipo_luogo_schedule.items()}
             
             if availability:
@@ -60,13 +60,13 @@ def update_person_details(app, person_id):
                         for fascia in fasce:
                             app.detail_text.append(f"    Fascia: {fascia}")
             
-            genere_status = app.person_schedule[person_id].get("genere_status", {}).get("genere")
+            genere_status = app.people[person_id].get("genere_status", {}).get("genere")
             if genere_status:
                 # Update the radio buttons based on the status_value
                 app.fratello_radio.setChecked(genere_status == 0)
                 app.sorella_radio.setChecked(genere_status == 1) 
 
-            status_pioniere = app.person_schedule[person_id].get("pioniere_status", {}).get("pioniere")
+            status_pioniere = app.people[person_id].get("pioniere_status", {}).get("pioniere")
             if status_pioniere:
                 # Update the radio buttons based on the status_value
                 app.regolare_radio.setChecked(status_pioniere == 2)
@@ -86,20 +86,20 @@ def update_person_availability(app, date, tipo_luogo_id, fascia, dialog):
             QMessageBox.warning(app, "Attenzione", "Nessun proclamatore selezionato.")
             return
 
-        if selected_person_id not in app.person_schedule:
-            app.person_schedule[selected_person_id] = {"availability": {}}
+        if selected_person_id not in app.people:
+            app.people[selected_person_id] = {"availability": {}}
 
         # Aggiungi la disponibilità per la data specifica
         day_id = date.toString("yyyy-MM-dd")  # Usa la data completa come chiave
-        if tipo_luogo_id not in app.person_schedule[selected_person_id]["availability"]:
-            app.person_schedule[selected_person_id]["availability"][tipo_luogo_id] = {}
+        if tipo_luogo_id not in app.people[selected_person_id]["availability"]:
+            app.people[selected_person_id]["availability"][tipo_luogo_id] = {}
 
-        if day_id not in app.person_schedule[selected_person_id]["availability"][tipo_luogo_id]:
-            app.person_schedule[selected_person_id]["availability"][tipo_luogo_id][day_id] = []
+        if day_id not in app.people[selected_person_id]["availability"][tipo_luogo_id]:
+            app.people[selected_person_id]["availability"][tipo_luogo_id][day_id] = []
 
         # Aggiungi la fascia oraria selezionata
-        if fascia not in app.person_schedule[selected_person_id]["availability"][tipo_luogo_id][day_id]:
-            app.person_schedule[selected_person_id]["availability"][tipo_luogo_id][day_id].append(fascia)
+        if fascia not in app.people[selected_person_id]["availability"][tipo_luogo_id][day_id]:
+            app.people[selected_person_id]["availability"][tipo_luogo_id][day_id].append(fascia)
 
         save_data(app)
 
@@ -204,7 +204,7 @@ def display_person_details(app, item):
 
         # Ottieni l'ID del proclamatore selezionato
         person_id = item.data(Qt.UserRole)
-        person = app.person_schedule.get(person_id, {})
+        person = app.people.get(person_id, {})
         
         # Aggiorna i dettagli del proclamatore
         app.detail_text.clear()
@@ -221,7 +221,7 @@ def display_person_details(app, item):
             
             # Trova il nome della persona usando l'app.people
             person_name = app.people.get(person_id, "N/A")
-            app.detail_text.append(f"Nome: {person_name}")
+            app.detail_text.append(f"Nome: {person_name["name"]}")
 
             # Mappa degli ID delle tipologie ai loro nomi
             tipo_luogo_map = {tipo_luogo_id: tipologia["nome"] for tipo_luogo_id, tipologia in app.tipo_luogo_schedule.items()}
@@ -296,8 +296,8 @@ def aggiorna_status_pioniere(app):
     person_id = current_person.data(Qt.UserRole)  # Get the selected proclaimer's ID
     person_name = current_person.text()
 
-    # Update the current proclaimer's status in the app.person_schedule
-    app.person_schedule[person_id]["pioniere_status"] = {"pioniere": pioneer_status}
+    # Update the current proclaimer's status in the app.people
+    app.people[person_id]["pioniere_status"] = {"pioniere": pioneer_status}
 
     # Update the UI to reflect the change
     app.detail_text.setText(f"Proclamatore: {person_name}\nStato: {pioneer_status}")
@@ -330,8 +330,8 @@ def aggiorna_genere(app):
     person_id = current_person.data(Qt.UserRole)  # Get the selected proclaimer's ID
     person_name = current_person.text()
 
-    # Update the current proclaimer's status in the app.person_schedule
-    app.person_schedule[person_id]["genere_status"] = {"genere": genere_status}
+    # Update the current proclaimer's status in the app.people
+    app.people[person_id]["genere_status"] = {"genere": genere_status}
 
     # Update the UI to reflect the change
     app.detail_text.setText(f"Proclamatore: {person_name}\nStato: {genere_status}")

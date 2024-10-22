@@ -358,8 +358,11 @@ def process_html_disponibilita_espositore(self, html, tipologie):
             for row in rows:
                 name = row.find('td').text.strip()
                 person_id = str(uuid.uuid4())
-                result['people'][person_id] = name
-                result['person_schedule'][person_id] = {"availability": {}}
+                # Aggiungi il nome insieme alla disponibilità
+                result['people'][person_id] = {
+                    "name": name,
+                    "availability": {}
+                }
                 
                 availability = {}
                 checkboxes = row.find_all('input', type='checkbox')
@@ -415,7 +418,7 @@ def process_html_disponibilita_espositore(self, html, tipologie):
                     else:
                         logging_custom(self, "debug", "Checkbox non selezionata")
                 
-                result['person_schedule'][person_id]["availability"] = availability
+                result['people'][person_id]["availability"] = availability
             
             appdata_path = os.path.join(os.getenv('APPDATA'), 'CongregationToolsApp')
             file_path = os.path.join(appdata_path, 'disponibilita_espositore.json')

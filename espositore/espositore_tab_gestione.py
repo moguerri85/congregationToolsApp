@@ -59,7 +59,7 @@ def remove_tipo_luogo(app):
         del app.tipo_luogo_schedule[tipo_luogo_id]
         
         # Rimuovi le fasce di questa tipologia dalle disponibilità delle persone
-        for person_id, person_data in app.person_schedule.items():
+        for person_id, person_data in app.people.items():
             availability = person_data.get("availability", {})
             if tipo_luogo_id in availability:
                 del availability[tipo_luogo_id]
@@ -222,8 +222,8 @@ def find_base_name(nome):
 
 def fix_proclamatori(app):
     try:
-        # Itera su tutti i proclamatori nel person_schedule
-        for person_id, person_data in app.person_schedule.items():
+        # Itera su tutti i proclamatori nel people
+        for person_id, person_data in app.people.items():
             availability = person_data.get("availability", {})
             tipo_luogo_to_remove = []  # Lista per tenere traccia dei tipo_luogo da rimuovere
             
