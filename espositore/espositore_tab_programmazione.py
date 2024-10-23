@@ -12,7 +12,7 @@ def show_programmazione_dialog(app, date):
     date_key = date.toString('yyyy-MM-dd')  # Format date for comparisons
 
     # Check for existing appointments
-    existing_appointments = app.person_schedule.get(date_key, [])
+    existing_appointments = app.schedule.get(date_key, [])
 
     # Select existing appointment (if available)
     appointments_combo = QComboBox()
@@ -117,16 +117,16 @@ def show_programmazione_dialog(app, date):
         # Check for existing appointments
         if existing_appointments and appointments_combo.currentIndex() > 0:
             appointment_index = appointments_combo.currentData()
-            app.person_schedule[date_key][appointment_index] = {
+            app.schedule[date_key][appointment_index] = {
                 'tipologia': selected_tipologia,
                 'fascia': selected_fascia,
                 'proclamatori': selected_proclamatori,
                 'genere': proclamatore_gender
             }
         else:
-            if date_key not in app.person_schedule:
-                app.person_schedule[date_key] = []
-            app.person_schedule[date_key].append({
+            if date_key not in app.schedule:
+                app.schedule[date_key] = []
+            app.schedule[date_key].append({
                 'tipologia': selected_tipologia,
                 'fascia': selected_fascia,
                 'proclamatori': selected_proclamatori,
@@ -150,7 +150,7 @@ def update_day_button(app, date):
 
     if date_key in app.day_buttons:
         button = app.day_buttons[date_key]
-        appointments = app.person_schedule.get(date_key, [])  # Fetch from person_schedule
+        appointments = app.schedule.get(date_key, [])  # Fetch from schedule
 
         info_text = "\n".join(
             f"{appt['tipologia']} - {appt['fascia']} - {', '.join(appt['proclamatori'])}" 
@@ -230,7 +230,6 @@ def update_calendar(app):
 
         app.custom_calendar_layout.addWidget(button, grid_row, grid_column)
         app.day_buttons[date_key] = button  # Store the button with the date key
-        print(f"Button created for date: {date_key}")
 
 def load_schedule(app):
     app.programmazione_list.clear()

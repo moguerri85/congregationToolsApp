@@ -337,7 +337,7 @@ def process_html_disponibilita_espositore(self, html, tipologie):
         giorni = {"lun": 1, "mar": 2, "mer": 3, "gio": 4, "ven": 5, "sab": 6}
         
         # Inizializza tipo_luogo_schedule con i nomi delle tipologie
-        result = {"people": {}, "person_schedule": {}, "tipo_luogo_schedule": {}}
+        result = {"people": {}, "schedule": {}, "tipo_luogo_schedule": {}}
         
         for tipologia_nome, tipologia_id in tipologie.items():
             result["tipo_luogo_schedule"][f"tipo_luogo_{tipologia_id}"] = {

@@ -190,7 +190,7 @@ def load_espositore_data_from_dropbox(app):
 
             # Populate the application data
             app.people = data.get('people', {})
-            app.person_schedule = data.get('person_schedule', {})
+            app.schedule = data.get('schedule', {})
             app.tipo_luogo_schedule = data.get('tipo_luogo_schedule', {})
             
             app.tipologie = data.get('tipologie', {})

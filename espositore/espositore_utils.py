@@ -35,7 +35,7 @@ def save_data(app):
         data = {
             "people": app.people,
             "tipo_luogo_schedule": app.tipo_luogo_schedule,
-            "person_schedule": app.person_schedule,
+            "schedule": app.schedule,
             "last_import_hourglass": app.last_import_hourglass,
             "autoabbinamento_gender_sino": app.autoabbinamento_gender_sino,
             "numero_utilizzi": app.numero_utilizzi
@@ -67,7 +67,7 @@ def load_data(app):
 
             # Popola le persone (people)
             app.people = data.get('people', {})
-            app.person_schedule = data.get('person_schedule', {})
+            app.schedule = data.get('schedule', {})
             app.tipo_luogo_schedule = data.get('tipo_luogo_schedule', {})
             app.tipologie = data.get('tipologie', {})
             app.last_import_hourglass = data.get('last_import_hourglass', {})
@@ -107,7 +107,7 @@ def load_data(app):
             app.people = {}
             app.tipo_luogo_schedule = {}
             app.tipologie = {}
-            app.person_schedule = {}
+            app.schedule = {}
             app.last_import_hourglass = {}
             app.autoabbinamento_gender_sino = {}
             app.numero_utilizzi = {}
@@ -120,7 +120,7 @@ def load_data(app):
         # Se il file non esiste, si crea una struttura vuota
         logging_custom(app, "error", f"File {SAVE_FILE} non trovato, caricamento di default.")
         app.people = {}
-        app.person_schedule = {}
+        app.schedule = {}
         app.tipo_luogo_schedule = {}
         app.tipologie = {}
         app.last_import_hourglass = {}
@@ -157,7 +157,7 @@ def import_disponibilita(app):
         if not os.path.exists(local_file_jsn):
             # Inizializza le strutture dati vuote
             app.people = {}
-            app.person_schedule = {}
+            app.schedule = {}
             app.tipo_luogo_schedule = {}
             app.tipologie = {}
             app.last_import_hourglass = {}
@@ -184,7 +184,7 @@ def import_disponibilita(app):
 
             # Popola le persone (people)
             app.people = data.get('people', {})
-            app.person_schedule = data.get('person_schedule', {})
+            app.schedule = data.get('schedule', {})
             app.tipo_luogo_schedule = data.get('tipo_luogo_schedule', {})
             app.tipologie = data.get('tipologie', {})
 
@@ -224,7 +224,7 @@ def import_disponibilita(app):
             app.people = {}
             app.tipo_luogo_schedule = {}
             app.tipologie = {}
-            app.person_schedule = {}
+            app.schedule = {}
             app.last_import_hourglass = {}
             app.autoabbinamento_gender_sino = {}
             app.numero_utilizzi = {}
