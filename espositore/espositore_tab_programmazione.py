@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import (QVBoxLayout, QMenu, QLabel, QListWidget, QPushButton, 
                              QDialog, QComboBox, QMessageBox, QSizePolicy)
 from PyQt5.QtCore import QDate, Qt
+import random
 
 def show_programmazione_dialog(app, date):
     dialog = QDialog()
@@ -141,8 +142,98 @@ def show_programmazione_dialog(app, date):
     confirm_button.clicked.connect(confirm_selection)
     dialog.exec_()
 
+def get_day_from_id(day_id):
+    giorno_map = {
+        '1': 'Lunedì',
+        '2': 'Martedì',
+        '3': 'Mercoledì',
+        '4': 'Giovedì',
+        '5': 'Venerdì',
+        '6': 'Sabato',
+        '7': 'Domenica',
+    }
+    """Restituisce il nome del giorno corrispondente all'ID."""
+    return giorno_map.get(day_id, "N/A")  # Restituisce "N/A" se l'ID non è valido
+
 def handle_autoabbinamento(app):
-    print("handle_autoabbinamento")
+    selected_month = app.current_date.month()  # Mese corrente
+    selected_year = app.current_date.year()  # Anno corrente
+
+    same_gender_required = app.autoabbinamento_gender_sino.get('same_gender', False)
+    selected_tipologie = [item.data(Qt.UserRole) for item in app.multi_tipologie.selectedItems()]
+
+    max_utilizzi_mensile_pionieri = app.numero_utilizzi['numero_utilizzi_mensile_pionieri']
+    max_utilizzi_mensile_proclamatori = app.numero_utilizzi['numero_utilizzi_mensile_proclamatori']
+
+    max_utilizzi_settimanale_pionieri = app.numero_utilizzi['numero_utilizzi_settimanale_pionieri']
+    max_utilizzi_settimanale_proclamatori = app.numero_utilizzi['numero_utilizzi_settimanale_proclamatori']
+
+    abbinamenti = []
+    abbinamenti_giorno_fascia = {}  # Dizionario per tracciare gli abbinamenti già creati per giorno, tipologia e fascia
+    
+    # Cicla attraverso tutti i giorni del mese selezionato
+    days_in_month = QDate(selected_year, selected_month, 1).daysInMonth()
+
+    for day in range(1, days_in_month + 1):
+        current_date = QDate(selected_year, selected_month, day)  # Data corrente del ciclo
+        giorno_data = current_date.toString('yyyy-MM-dd')  # Giorno specifico come stringa
+        day_of_week = str(current_date.dayOfWeek())  # Numero del giorno della settimana (1=Lun, ..., 7=Dom)
+
+        for tipologia in selected_tipologie:
+            tipologia_data = app.tipo_luogo_schedule.get(tipologia)
+            if not tipologia_data:
+                continue
+
+            fasce_orarie = tipologia_data.get('fasce', {}).get(day_of_week, [])
+            for fascia_oraria in fasce_orarie:
+                # Verifica se esiste già un abbinamento per questo giorno, tipologia e fascia oraria
+                if (giorno_data, tipologia, fascia_oraria) in abbinamenti_giorno_fascia:
+                    continue  # Salta se c'è già un abbinamento
+
+                proclaimers_available = []
+
+                for proclamatore_id, proclamatore_info in app.people.items():
+                    availability = proclamatore_info.get('availability', {})
+
+                    # Verifica la disponibilità per il tipo, giorno e fascia oraria
+                    if tipologia in availability and day_of_week in availability[tipologia]:
+                        available_times = availability[tipologia][day_of_week]
+                        if fascia_oraria in available_times:
+                            proclamatore_gender = proclamatore_info.get('genere_status', {}).get('genere', 0)
+                            proclaimers_available.append((proclamatore_id, proclamatore_info['name'], proclamatore_gender))
+
+                # Mischia proclamatori per generare abbinamenti casuali
+                random.shuffle(proclaimers_available)
+
+                # Crea abbinamenti se ci sono almeno 2 proclamatori disponibili
+                if len(proclaimers_available) >= 2:
+                    if same_gender_required:
+                        male_group = [p for p in proclaimers_available if p[2] == 0]
+                        female_group = [p for p in proclaimers_available if p[2] == 1]
+
+                        if len(male_group) >= 2:
+                            abbinamenti.append((male_group[0][1], male_group[1][1], tipologia, fascia_oraria, giorno_data))
+                            proclaimers_available.remove(male_group[0])
+                            proclaimers_available.remove(male_group[1])
+                        elif len(female_group) >= 2:
+                            abbinamenti.append((female_group[0][1], female_group[1][1], tipologia, fascia_oraria, giorno_data))
+                            proclaimers_available.remove(female_group[0])
+                            proclaimers_available.remove(female_group[1])
+                    else:
+                        proclamatore1 = proclaimers_available.pop(0)
+                        proclamatore2 = proclaimers_available.pop(0)
+                        abbinamenti.append((proclamatore1[1], proclamatore2[1], tipologia, fascia_oraria, giorno_data))
+
+                    # Registra l'abbinamento per questo giorno, tipologia e fascia oraria
+                    abbinamenti_giorno_fascia[(giorno_data, tipologia, fascia_oraria)] = True
+
+    # Stampa gli abbinamenti con la data specifica
+    for abbinamento in abbinamenti:
+        proclamatore1, proclamatore2, tipologia, fascia_oraria, giorno_data = abbinamento
+        print(f"Abbinamento: {proclamatore1} e {proclamatore2} per {tipologia} alle {fascia_oraria} il {giorno_data}")
+
+    return abbinamenti
+
 
 def update_day_button(app, date):
     date_key = date.toString('yyyy-MM-dd')  # Ensure the date key matches the button key format
