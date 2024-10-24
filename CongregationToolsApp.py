@@ -59,7 +59,7 @@ class CongregationToolsApp(QMainWindow):
         super().__init__()
         self.setWindowTitle("Scra - ViGeo")
         # Imposta dimensioni minime e massime della finestra
-        self.setMinimumSize(800, 600)  # Dimensione minima
+        self.setMinimumSize(800, 650)  # Dimensione minima
         #self.setMaximumSize(1200, 800)  # Dimensione massima
 
         # Crea il widget centrale

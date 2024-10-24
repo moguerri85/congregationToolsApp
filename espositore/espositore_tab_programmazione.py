@@ -142,138 +142,160 @@ def show_programmazione_dialog(app, date):
     confirm_button.clicked.connect(confirm_selection)
     dialog.exec_()
 
-def get_day_from_id(day_id):
-    giorno_map = {
-        '1': 'Lunedì',
-        '2': 'Martedì',
-        '3': 'Mercoledì',
-        '4': 'Giovedì',
-        '5': 'Venerdì',
-        '6': 'Sabato',
-        '7': 'Domenica',
-    }
-    """Restituisce il nome del giorno corrispondente all'ID."""
-    return giorno_map.get(day_id, "N/A")  # Restituisce "N/A" se l'ID non è valido
-
 def handle_autoabbinamento(app):
-    selected_month = app.current_date.month()  # Mese corrente
-    selected_year = app.current_date.year()  # Anno corrente
+    selected_month = app.current_date.month()  # Current month
+    selected_year = app.current_date.year()    # Current year
 
-    same_gender_required = app.autoabbinamento_gender_sino.get('same_gender', False)
+    # Define the types of location (tipologia) to use
     selected_tipologie = [item.data(Qt.UserRole) for item in app.multi_tipologie.selectedItems()]
 
-    max_utilizzi_mensile_pionieri = app.numero_utilizzi['numero_utilizzi_mensile_pionieri']
-    max_utilizzi_mensile_proclamatori = app.numero_utilizzi['numero_utilizzi_mensile_proclamatori']
+    # Determine if same-gender pairing is required
+    same_gender_required = app.autoabbinamento_gender_sino.get('same_gender', False)
 
-    max_utilizzi_settimanale_pionieri = app.numero_utilizzi['numero_utilizzi_settimanale_pionieri']
-    max_utilizzi_settimanale_proclamatori = app.numero_utilizzi['numero_utilizzi_settimanale_proclamatori']
+    # Generate a list of all days in the selected month
+    days_in_month = app.current_date.daysInMonth()
 
-    abbinamenti = []
-    abbinamenti_giorno_fascia = {}  # Dizionario per tracciare gli abbinamenti già creati per giorno, tipologia e fascia
+    # Create a schedule for the month
+    monthly_schedule = {}
     
-    # Cicla attraverso tutti i giorni del mese selezionato
-    days_in_month = QDate(selected_year, selected_month, 1).daysInMonth()
-
     for day in range(1, days_in_month + 1):
-        current_date = QDate(selected_year, selected_month, day)  # Data corrente del ciclo
-        giorno_data = current_date.toString('yyyy-MM-dd')  # Giorno specifico come stringa
-        day_of_week = str(current_date.dayOfWeek())  # Numero del giorno della settimana (1=Lun, ..., 7=Dom)
+        current_date = QDate(selected_year, selected_month, day)
+        day_of_week = current_date.dayOfWeek()  # Get the day of the week (1=Mon, 7=Sun)
+        
+        # Iterate through each selected tipologia (type)
+        for selected_tipologia_id in selected_tipologie:
+            if selected_tipologia_id in app.tipo_luogo_schedule:
+                tipo_luogo_info = app.tipo_luogo_schedule[selected_tipologia_id]
+                selected_tipologia_name = tipo_luogo_info['nome']  # Get the name of the type (tipologia)
+                fasce = tipo_luogo_info['fasce'].get(str(day_of_week), [])
+                
+                for selected_fascia in fasce:
+                    # Find available people for this type and time slot
+                    available_people = []
+                    
+                    for proclamatore_id, proclamatore_info in app.people.items():
+                        availability = proclamatore_info.get('availability', {})
+                        if selected_tipologia_id in availability and str(day_of_week) in availability[selected_tipologia_id]:
+                            available_times = availability[selected_tipologia_id][str(day_of_week)]
+                            if selected_fascia in available_times:
+                                available_people.append(proclamatore_info)
 
-        for tipologia in selected_tipologie:
-            tipologia_data = app.tipo_luogo_schedule.get(tipologia)
-            if not tipologia_data:
-                continue
+                    if not available_people:
+                        continue  # No available people for this slot, move on
 
-            fasce_orarie = tipologia_data.get('fasce', {}).get(day_of_week, [])
-            for fascia_oraria in fasce_orarie:
-                # Verifica se esiste già un abbinamento per questo giorno, tipologia e fascia oraria
-                if (giorno_data, tipologia, fascia_oraria) in abbinamenti_giorno_fascia:
-                    continue  # Salta se c'è già un abbinamento
+                    # Separate individuals by gender if same-gender pairing is required
+                    selected_proclamatori = []
+                    proclamatore_gender = []
 
-                proclaimers_available = []
-
-                for proclamatore_id, proclamatore_info in app.people.items():
-                    availability = proclamatore_info.get('availability', {})
-
-                    # Verifica la disponibilità per il tipo, giorno e fascia oraria
-                    if tipologia in availability and day_of_week in availability[tipologia]:
-                        available_times = availability[tipologia][day_of_week]
-                        if fascia_oraria in available_times:
-                            proclamatore_gender = proclamatore_info.get('genere_status', {}).get('genere', 0)
-                            proclaimers_available.append((proclamatore_id, proclamatore_info['name'], proclamatore_gender))
-
-                # Mischia proclamatori per generare abbinamenti casuali
-                random.shuffle(proclaimers_available)
-
-                # Crea abbinamenti se ci sono almeno 2 proclamatori disponibili
-                if len(proclaimers_available) >= 2:
                     if same_gender_required:
-                        male_group = [p for p in proclaimers_available if p[2] == 0]
-                        female_group = [p for p in proclaimers_available if p[2] == 1]
+                        grouped_people = {}
+                        for person in available_people:
+                            gender = person.get('genere_status', {}).get('genere', 'Non specificato')
+                            if gender not in grouped_people:
+                                grouped_people[gender] = []
+                            grouped_people[gender].append(person)
 
-                        if len(male_group) >= 2:
-                            abbinamenti.append((male_group[0][1], male_group[1][1], tipologia, fascia_oraria, giorno_data))
-                            proclaimers_available.remove(male_group[0])
-                            proclaimers_available.remove(male_group[1])
-                        elif len(female_group) >= 2:
-                            abbinamenti.append((female_group[0][1], female_group[1][1], tipologia, fascia_oraria, giorno_data))
-                            proclaimers_available.remove(female_group[0])
-                            proclaimers_available.remove(female_group[1])
+                        # Create one pair per gender group
+                        for gender, people in grouped_people.items():
+                            if len(people) >= 2:
+                                selected_proclamatori, proclamatore_gender = create_single_pair_with_gender(people)
+                                break  # Stop after one pair
                     else:
-                        proclamatore1 = proclaimers_available.pop(0)
-                        proclamatore2 = proclaimers_available.pop(0)
-                        abbinamenti.append((proclamatore1[1], proclamatore2[1], tipologia, fascia_oraria, giorno_data))
+                        # Create a pair from all available people
+                        selected_proclamatori, proclamatore_gender = create_single_pair_with_gender(available_people)
 
-                    # Registra l'abbinamento per questo giorno, tipologia e fascia oraria
-                    abbinamenti_giorno_fascia[(giorno_data, tipologia, fascia_oraria)] = True
+                    if selected_proclamatori:
+                        date_key = current_date.toString('yyyy-MM-dd')
+                        if date_key not in monthly_schedule:
+                            monthly_schedule[date_key] = []
+                        
+                        # Append the appointment with the required attributes, including tipologia and tipologia_id
+                        monthly_schedule[date_key].append({
+                            'tipologia': selected_tipologia_name,       # Name of the tipo_luogo
+                            'tipologia_id': selected_tipologia_id,     # ID of the tipo_luogo
+                            'fascia': selected_fascia,                 # Time slot
+                            'proclamatori': selected_proclamatori,     # Names of the selected people
+                            'genere': proclamatore_gender              # Genders of the selected people
+                        })
+                        break  # Ensure only one pairing per time slot
 
-    # Stampa gli abbinamenti con la data specifica
-    for abbinamento in abbinamenti:
-        proclamatore1, proclamatore2, tipologia, fascia_oraria, giorno_data = abbinamento
-        print(f"Abbinamento: {proclamatore1} e {proclamatore2} per {tipologia} alle {fascia_oraria} il {giorno_data}")
+    # Process the generated monthly schedule as needed (e.g., save it, display it, etc.)
+    # Populate the calendar with the appointments
+    for date_key, appointments in monthly_schedule.items():
+        # Convert date_key back to QDate
+        date = QDate.fromString(date_key, 'yyyy-MM-dd')
 
-    return abbinamenti
+        # Add the appointments to the app's schedule
+        app.schedule[date_key] = appointments
 
+        # Update the button on the calendar to reflect the new appointments
+        update_day_button(app, date)
+        print(monthly_schedule)
+
+    
+
+
+def create_single_pair_with_gender(people_list):
+    """Create a single pair and collect their gender information."""
+    if len(people_list) < 2:
+        return None, None  # Not enough people to create a pair
+    random.shuffle(people_list)  # Shuffle the list to randomize the pair
+
+    selected_pair = (people_list[0]['name'], people_list[1]['name'])
+    genders = [people_list[0].get('genere_status', {}).get('genere', 'Non specificato'),
+               people_list[1].get('genere_status', {}).get('genere', 'Non specificato')]
+
+    return selected_pair, genders
 
 def update_day_button(app, date):
-    date_key = date.toString('yyyy-MM-dd')  # Ensure the date key matches the button key format
+    date_key = date.toString('yyyy-MM-dd')
     print(f"Checking appointments for date: {date_key}")
 
     if date_key in app.day_buttons:
         button = app.day_buttons[date_key]
-        appointments = app.schedule.get(date_key, [])  # Fetch from schedule
-
-        info_text = "\n".join(
-            f"{appt['tipologia']} - {appt['fascia']} - {', '.join(appt['proclamatori'])}" 
-            for appt in appointments
-        )
-
-        appointments_label = QLabel(info_text if appointments else "")
-        appointments_label.setAlignment(Qt.AlignCenter)
-        appointments_label.setWordWrap(True)
+        appointments = app.schedule.get(date_key, [])
 
         layout = button.layout()
+
+        # Pulisci il layout senza rimuovere l'etichetta del giorno
         clear_layout(layout)
 
-        day_label = QLabel(str(date.day()))
-        day_label.setStyleSheet("background-color: white; border: 1px solid black;")
-        day_label.setAlignment(Qt.AlignCenter)
+        # Etichetta con il numero del giorno (se esistente, non rimuoverla)
+        # day_label = QLabel(str(date.day()))
+        # day_label.setStyleSheet("background-color: white; border: 1px solid black;")
+        # day_label.setAlignment(Qt.AlignCenter)
+        # layout.addWidget(day_label, alignment=Qt.AlignTop)  # Allinea in alto
 
-        # Add widgets to button layout
-        button.layout().addWidget(day_label)
-        button.layout().addWidget(appointments_label)
+        # Se ci sono appuntamenti, aggiungili al layout
+        if appointments:
+            info_text = "\n".join(
+                f"{appt['tipologia']} - {appt['fascia']} - {', '.join(appt['proclamatori'])}"
+                for appt in appointments
+            )
+            appointments_label = QLabel(info_text)
+            appointments_label.setAlignment(Qt.AlignCenter)
+            appointments_label.setWordWrap(True)
+            appointments_label.setStyleSheet("background-color: lightgray; border: 1px solid black; padding: 5px;")
+            layout.addWidget(appointments_label, alignment=Qt.AlignTop)
 
-        button.setMaximumWidth(100)
-        button.setStyleSheet("background-color: lightgray; border: 1px solid black; padding: 5px;")
+        # Riduci spaziatura e margini in eccesso
+        layout.setSpacing(0)  # Rimuove spaziatura tra i widget
+        layout.setContentsMargins(0, 0, 0, 0)  # Elimina margini interni nel layout
+
+        button.setMinimumWidth(100)
+        
     else:
         print(f"No button found for date: {date_key}")
 
+
 def clear_layout(layout):
     if layout:
-        while layout.count() > 0:
-            item = layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+        for i in reversed(range(layout.count())):
+            item = layout.itemAt(i)
+            widget = item.widget()
+            if widget and not isinstance(widget, QLabel):  # Non rimuovere l'etichetta del giorno
+                widget.deleteLater()
+
 
 def update_calendar(app):
     # Clear the existing calendar layout
@@ -306,7 +328,7 @@ def update_calendar(app):
         button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         button.setStyleSheet("background-color: lightgray; border: 1px solid black;")
         button.setMinimumHeight(50)
-        button.setMaximumWidth(100)
+        button.setMinimumWidth(100)
 
         button_layout = QVBoxLayout(button)
 
@@ -316,10 +338,17 @@ def update_calendar(app):
 
         button_layout.addWidget(day_label, alignment=Qt.AlignTop)
         button_layout.addStretch()
+        button_layout.setSpacing(0)  # Rimuove spaziatura tra i widget
+        button_layout.setContentsMargins(0, 0, 0, 0)  # Elimina margini interni nel layout
 
         button.clicked.connect(lambda _, d=day_date: show_programmazione_dialog(app, d))
 
         app.custom_calendar_layout.addWidget(button, grid_row, grid_column)
+
+        # Riduci spaziatura e margini in eccesso
+        app.custom_calendar_layout.setSpacing(0)  # Rimuove spaziatura tra i widget
+        app.custom_calendar_layout.setContentsMargins(0, 0, 0, 0)  # Elimina margini interni nel layout
+
         app.day_buttons[date_key] = button  # Store the button with the date key
 
 def load_schedule(app):
